@@ -1,0 +1,43 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>개발제한구역 레이어 찾기</title>
+<style>body{font:14px/1.5 system-ui,"Malgun Gothic",sans-serif;margin:16px;max-width:1000px}
+button{font:inherit;padding:7px 14px}table{border-collapse:collapse;width:100%;margin-top:10px}
+td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top;font-size:12.5px;word-break:break-all}
+.ok{color:#0a7a3d;font-weight:700}.no{color:#b3261e}.nf{color:#8a6d00}pre{white-space:pre-wrap;background:#f3f3f3;padding:8px}</style></head><body>
+<h2>개발제한구역 레이어 찾기</h2>
+<p>이 사이트의 [검토 설정]에 저장된 V-World 키를 사용합니다. 메인 화면에서 검토가 되던 같은 브라우저로 여세요.</p>
+<p id="env" style="background:#fff7d6;padding:6px"></p><p><button id="go">시험 실행</button> <span id="st"></span></p>
+<table><thead><tr><th>레이어 이름</th><th>위치</th><th>결과</th><th>속성(앞부분)</th></tr></thead><tbody></tbody></table>
+<details open><summary>복사용 요약</summary><pre id="raw"></pre></details>
+<script src="geo.js"></script>
+<script>
+var KEY=BFGeo.getKey(),DOM=BFGeo.domain(),seq=0,LOG=[];
+function jsonp(params){return new Promise(function(res,rej){var n="__cb"+(++seq),s=document.createElement("script");
+ var to=setTimeout(function(){c();rej(new Error("시간 초과"))},20000);function c(){clearTimeout(to);delete window[n];s.remove()}
+ window[n]=function(d){c();res(d)};s.onerror=function(){c();rej(new Error("요청 실패"))};
+ params.callback=n;params.key=KEY;params.domain=DOM;
+ s.src="https://api.vworld.kr/req/data?"+new URLSearchParams(params).toString();document.head.appendChild(s)})}
+function row(a,b,cls,txt,det){var tr=document.createElement("tr");[a,b,txt,det].forEach(function(v,i){var td=document.createElement("td");td.textContent=v;if(i===2)td.className=cls;tr.appendChild(td)});
+ document.querySelector("tbody").appendChild(tr);LOG.push(a+" | "+b+" | "+txt+" | "+det);document.getElementById("raw").textContent=LOG.join("\n")}
+var CAND=["LT_C_UQ111","LT_C_UD801","LT_C_UQ141","LT_C_UQ142","LT_C_UQ143","LT_C_UQ144","LT_C_UQ151","LT_C_UQ161","LT_C_UQ162","LT_C_UD802","LT_C_UD803","LT_C_UD901","LT_C_UD701","LT_C_UQ121","LT_C_UQ122","LT_C_GBZONE"];
+var PLACES=[["대구 수성구 가창(변두리)",128.67,35.78],["대구 달성군 화원(변두리)",128.49,35.80],["대구 북구 칠곡 외곽",128.58,35.97],["경산 남산면(변두리)",128.80,35.77]];
+document.getElementById("env").textContent="접속 주소: "+location.href+" | 키 길이: "+(KEY||"").length+" | domain 파라미터: "+DOM+" | 첫 줄 LT_C_UQ111은 이전에 성공한 대조군입니다";
+document.getElementById("go").onclick=async function(){
+ document.querySelector("tbody").innerHTML="";LOG=[];var st=document.getElementById("st");
+ if(!KEY){st.textContent="이 사이트에 V-World 키가 저장돼 있지 않습니다. 메인 화면 검토 설정에서 키를 먼저 입력하세요";return}
+ var found={};
+ for(var i=0;i<CAND.length;i++){for(var j=0;j<PLACES.length;j++){
+   st.textContent=CAND[i]+" / "+PLACES[j][0]+" 시험 중...";
+   var d=0.05,x=PLACES[j][1],y=PLACES[j][2];
+   var p={service:"data",request:"GetFeature",data:CAND[i],version:"2.0",format:"json",errorformat:"json",crs:"EPSG:4326",size:"3",geometry:"false",attribute:"true",
+     geomFilter:"BOX("+(x-d)+","+(y-d)+","+(x+d)+","+(y+d)+")"};
+   try{var r=await jsonp(p),R=(r&&r.response)||{};
+     if(R.status==="OK"){var f=(R.result.featureCollection.features||[]);var pr=(f[0]&&f[0].properties)||{};found[CAND[i]]=1;
+       row(CAND[i],PLACES[j][0],"ok","OK "+f.length+"건",JSON.stringify(pr).slice(0,300))}
+     else if(R.status==="NOT_FOUND")row(CAND[i],PLACES[j][0],"nf","데이터 없음","")
+     else row(CAND[i],PLACES[j][0],"no",R.status||"이상",R.error?(R.error.code+": "+R.error.text).slice(0,160):"")
+   }catch(e){row(CAND[i],PLACES[j][0],"no","실패",e.message)}
+ }}
+ st.textContent="끝. 응답한 레이어: "+(Object.keys(found).join(", ")||"없음")+" — 아래 표를 캡처하거나 '복사용 요약'을 복사해 보내주세요.";
+};
+</script></body></html>
