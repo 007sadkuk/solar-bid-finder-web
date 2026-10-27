@@ -96,6 +96,15 @@ a.link{color:var(--accent);font-size:12.5px}
     <p class="note">온비드 응답에는 지목이 없어 '용도 분류명'으로 대신 판정합니다. 분류명이 다르면 허용 용도를 고쳐 보세요.</p>
   </section>
 
+  <section class="panel" aria-label="내 브라우저에서 직접 조회">
+    <div class="bar">
+      <label class="grow" for="lkey">인증키 (이 브라우저에만 저장)<input id="lkey" type="password" autocomplete="off" placeholder="공공데이터포털 인증키(Encoding)"></label>
+      <button id="live" class="btn" type="button" style="flex:0 0 auto">내 브라우저에서 직접 조회</button>
+    </div>
+    <div id="livemsg" role="status"></div>
+    <p class="note">서버 자동 수집이 온비드에 막힐 때 쓰는 방법입니다. 이 브라우저에서 온비드로 바로 요청합니다. 키는 이 사이트 코드에 들어 있지 않습니다.</p>
+  </section>
+
   <section>
     <div class="chips" id="vchips" role="group" aria-label="판정"></div>
     <div class="stat" id="stat" style="margin:10px 0"></div>
@@ -171,6 +180,48 @@ a.link{color:var(--accent);font-size:12.5px}
     $("diag").textContent=t.join("\n");
   }
   ["q","fsido","fdisp","minA","sort","cats","exk"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  function dt(v){var t=String(v||"");if(t.length<12)return "";return t.slice(0,4)+"-"+t.slice(4,6)+"-"+t.slice(6,8)+" "+t.slice(8,10)+":"+t.slice(10,12)}
+  function nn(v){if(v===null||v===undefined||v==="")return null;var n=Number(String(v).replace(/,/g,""));return isFinite(n)?n:null}
+  function normRaw(r){
+    if(!r.cltrMngNo)return null;
+    var key=r.cltrMngNo+(r.pbctCdtnNo?"#"+r.pbctCdtnNo:"");
+    var cat=r.cltrUsgSclsCtgrNm||r.cltrUsgMclsCtgrNm||null;
+    return {mgmt_no:key,name:(r.onbidCltrNm||key).trim(),address:[r.lctnSdnm,r.lctnSggnm,r.lctnEmdNm].filter(Boolean).join(" "),
+      sido:r.lctnSdnm,sigungu:r.lctnSggnm,land_category:cat,
+      cat_path:[r.cltrUsgLclsCtgrNm,r.cltrUsgMclsCtgrNm,r.cltrUsgSclsCtgrNm].filter(Boolean).join(" > "),
+      area_m2:nn(r.landSqms),appraisal:nn(r.apslEvlAmt),min_bid:nn(r.lowstBidPrcIndctCont),
+      disposal:(r.dspsMthodNm||"").indexOf("임대")>=0?"임대":"매각",bid_start:dt(r.cltrBidBgngDt),bid_end:dt(r.cltrBidEndDt),
+      fail_count:nn(r.usbdNft)||0,status:r.pbctStatNm||"",share:r.alcYn==="Y",remark:""};
+  }
+  try{var lk=localStorage.getItem("onbidKey");if(lk)$("lkey").value=lk;}catch(e){}
+  function lmsg(c,t){var o=$("livemsg");o.innerHTML="";var d=el("div","msg "+c,t);o.appendChild(d)}
+  $("live").addEventListener("click",async function(){
+    var k=$("lkey").value.trim(); if(!k){lmsg("err","인증키를 입력하세요.");return}
+    try{localStorage.setItem("onbidKey",k)}catch(e){}
+    if(k.indexOf("%")<0)k=encodeURIComponent(k);
+    var PR="0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", got={}, fails=[], total=0;
+    for(var si of ["대구광역시","경상북도"]) for(var pv of ["N","Y"]){
+      for(var page=1;page<=30;page++){
+        lmsg("info",si+" / "+pv+" / "+page+"쪽 조회 중... (현재 "+total+"건)");
+        var url="https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2?serviceKey="+k+"&pageNo="+page+"&numOfRows=100&resultType=json&prptDivCd="+PR+"&pvctTrgtYn="+pv+"&lctnSdnm="+encodeURIComponent(si);
+        var tx; try{var rs=await fetch(url);tx=await rs.text()}catch(e){lmsg("err","이 브라우저에서 온비드로 직접 요청이 막혔습니다 (CORS 또는 접속 차단). 이 방법은 사용할 수 없습니다.");return}
+        var j; try{j=JSON.parse(tx)}catch(e){var m=tx.match(/<returnAuthMsg>([^<]*)/);fails.push(si+"/"+pv+": "+(m?m[1]:tx.slice(0,120)));break}
+        var h=j.header||(j.response&&j.response.header)||{}, b=j.body||(j.response&&j.response.body)||{};
+        if(h.resultCode==="03")break; if(h.resultCode&&h.resultCode!=="00"){fails.push(si+"/"+pv+": "+h.resultCode+" "+(h.resultMsg||""));break}
+        var it=b.items; if(it&&it.item!==undefined)it=it.item; if(!it)break; if(!Array.isArray(it))it=[it];
+        if(!DATA)DATA={items:[],passes:[],errors:[],fields:[],first_raw:null,complete:false};
+        if(!DATA.first_raw&&it.length){DATA.first_raw=it[0];DATA.fields=Object.keys(it[0])}
+        it.forEach(function(r){var n=normRaw(r);if(n&&!got[n.mgmt_no]){got[n.mgmt_no]=n;total++}});
+        if(!it.length||page*100>=(Number(b.totalCount)||0))break;
+      }
+    }
+    if(!DATA)DATA={items:[],passes:[],errors:[],fields:[],first_raw:null,complete:false};
+    DATA.items=Object.keys(got).map(function(x){return got[x]}).sort(function(a,b){return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
+    DATA.errors=fails; DATA.fetched_at="방금 (내 브라우저)"; DATA.complete=!fails.length;
+    $("asof").textContent="이 브라우저에서 직접 조회한 결과 · "+DATA.items.length+"건";
+    lmsg(fails.length?"err":"ok",DATA.items.length+"건 불러왔습니다."+(fails.length?"\n일부 실패: "+fails.join(" | "):""));
+    diag();render();
+  });
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
     DATA=j;$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신";diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
