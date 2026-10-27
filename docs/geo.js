@@ -149,10 +149,7 @@ var BFGeo=(function(){
               var hit=polys(ft.geometry).some(function(pg){return overlap(P,to(pg))});
               if(hit)res.names.push(propName(ft.properties))});
           }else if(q.status==="NOT_FOUND"){
-            if(okL[L])anyVerified=true;
-            else{ // 이름이 맞는지 넓은 범위로 한 번 확인
-              for(var wd=0;wd<2&&!okL[L];wd++){try{var w=await vwData(L,{geomFilter:box(wd?0.4:0.1),size:"1",geometry:"false"});if(w.status==="OK"){okL[L]=true;anyVerified=true}}catch(e){}}
-            }
+            anyVerified=true; // 잘못된 레이어 이름은 INVALID_RANGE 오류로 구분됨(2026-10-27 실측) → NOT_FOUND는 이름이 유효하고 해당 위치에 자료가 없다는 뜻
           }else{anyErr=q.status+" "+q.error}
         }catch(e){anyErr=e.message}
       }
@@ -201,5 +198,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-27-k (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-27-l (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
