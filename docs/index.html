@@ -119,9 +119,22 @@ a.link{color:var(--accent);font-size:12.5px}
     배치는 토지를 정사각형으로 가정하고, 남향 30° 2단, 경계 이격 3m, 동지 9~15시 무음영으로 계산한 근사입니다. 실제 필지 모양·경사·진입로·인허가·계통은 반영하지 않습니다.</p>
   </details>
 
+  <details class="panel" id="gpanel">
+    <summary>자동확인 설정 (V-World: 규제·진입·경사)</summary>
+    <div class="grid2" style="margin-top:8px">
+      <label for="vwkey">V-World 인증키 (이 브라우저에만 저장)<input id="vwkey" type="password" autocomplete="off" placeholder="인증키"></label>
+      <label for="slopeLim">경사 기준 °(초과 시 문제 표시)<input id="slopeLim" type="number" value="15" min="1" max="45"></label>
+    </div>
+    <p style="margin:8px 0"><button id="vwsave" class="chip" type="button">저장</button> <span id="vwmsg" class="note"></span></p>
+    <p class="note">키는 이 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. V-World 키는 등록한 주소에서만 동작하며, 현재 주소는 <b id="vwdom"></b> 입니다. 이 주소가 키에 등록돼 있지 않으면 '요청 실패'가 나옵니다.<br>
+    경사는 SRTM 30m 표고(무료 공개 서비스)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이며, 지자체 개발행위허가 경사 기준(조례)은 별도로 확인해야 합니다.
+    진입(맹지) 확인은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
+  </details>
+
   <section>
     <div class="chips" id="vchips" role="group" aria-label="판정"></div>
     <div class="stat" id="stat" style="margin:10px 0"></div>
+    <div style="margin:0 0 10px"><button id="batch" class="chip" type="button">표시된 목록 일괄 자동확인 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note"></span></div>
     <div class="list" id="list"></div>
   </section>
 
@@ -130,6 +143,7 @@ a.link{color:var(--accent);font-size:12.5px}
   </details>
 </div>
 <script src="core.js"></script>
+<script src="geo.js"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -170,7 +184,33 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   function won(n){return (n===null||n===undefined)?"-":n.toLocaleString("ko-KR")+"원"}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
-  var OPEN={};
+  var OPEN={}, GEO=BFGeo.ls("bf-geo-v1",{}), GRUN={}, STOP=false;
+  function saveGeo(){var keys=Object.keys(GEO);if(keys.length>1500){keys.sort(function(a,b){return GEO[a].ts-GEO[b].ts}).slice(0,keys.length-1500).forEach(function(k){delete GEO[k]})}BFGeo.lsSet("bf-geo-v1",GEO)}
+  function slopeLim(){var v=Number($("slopeLim").value);return isFinite(v)&&v>0?v:15}
+  function gsum(p){var r=GEO[p.mgmt_no];return r?BFGeo.summarize(r,p,slopeLim()):null}
+  async function runGeo(p){
+    GRUN[p.mgmt_no]=true;render();
+    try{GEO[p.mgmt_no]=await BFGeo.check(p)}catch(e){GEO[p.mgmt_no]={ts:Date.now(),error:e.message,notes:[],layers:{}}}
+    delete GRUN[p.mgmt_no];saveGeo();render();
+  }
+  function geoPanel(p){
+    var r=GEO[p.mgmt_no],bx=el("div","eco");
+    var S=gsum(p),L=function(t,c){var d=el("div",null,t);if(c)d.style.color=c;bx.appendChild(d)};
+    L("자동확인 결과: "+S.level+" · 확인 시각 "+new Date(r.ts).toLocaleString("ko-KR"));
+    if(r.error){L(r.error);return bx}
+    var P=r.parcel;
+    L("지적도: "+P.addr+" "+P.jibun+" · 지목 "+(P.jimok||"-")+" · 경계 기준 면적 "+P.areaGeo.toLocaleString()+"㎡"+(p.area_m2?" (온비드 "+Math.round(p.area_m2).toLocaleString()+"㎡)":"")+(P.polys>1?" · 경계가 여러 조각입니다":""));
+    S.flags.forEach(function(t){L("⚠ "+t,"var(--bad)")});
+    S.warns.forEach(function(t){L("△ "+t,"var(--warn)")});
+    S.unk.forEach(function(t){L("? "+t+" (해당 없음이 아니라 확인하지 못한 것)","var(--muted)")});
+    ["zone","agri","forest","gb"].forEach(function(id){var x=r.layers[id];if(!x)return;
+      var t=x.status==="overlap"?x.names.join(", "):x.status==="none"?"해당 없음":x.status==="unverified"?"확인 불가(레이어 이름 미검증)":"조회 오류"+(x.detail&&x.detail[0]?": "+x.detail[0]:"");
+      L(x.label+": "+t)});
+    if(r.road)L("진입: "+(r.road.status==="touch"?"도로 지목 필지에 접함("+r.road.roads.join(", ")+")":r.road.status==="no"?"도로 지목 필지와 접하지 않음":"확인 불가: "+r.road.detail)+(r.road.others&&r.road.others.length?" · 인접: "+r.road.others.join(", "):""));
+    if(r.slope)L("경사: "+(r.slope.status==="ok"&&r.slope.deg!==null?"평균 약 "+r.slope.deg.toFixed(1)+"° · 표고차 약 "+Math.round(r.slope.relief)+"m (표고 "+r.slope.n+"지점, SRTM 30m 근사)":"확인 불가: "+(r.slope.detail||"계산 불가")));
+    L("※ 지적도·공개 레이어 기준이며 법적 판단이 아닙니다. 인허가·현장 확인이 필요합니다.");
+    return bx;
+  }
   function econ(p){
     var g=function(i,d){var v=Number($(i).value);return isFinite(v)&&$(i).value!==""?v:d};
     var use=Math.min(1,Math.max(0.1,g("e_use",60)/100)), usable=p.area_m2*use, side=Math.sqrt(usable);
@@ -204,14 +244,14 @@ a.link{color:var(--accent);font-size:12.5px}
     var base=all.filter(function(p){
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
-    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0};
-    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"자동확인":0,"확인-양호":0,"확인-문제":0};
+    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["자동확인"]++;if(gs.level==="양호")cnt["확인-양호"]++;if(gs.level==="문제")cnt["확인-문제"]++}});
     var vc=$("vchips");vc.innerHTML="";
-    ["후보","판단불가","제외","전체","신규","즐겨찾기"].forEach(function(v){
+    ["후보","판단불가","제외","전체","신규","즐겨찾기","자동확인","확인-양호","확인-문제"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
-      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; return p._v===filter});
+      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="자동확인")return !!gg; if(filter==="확인-양호")return !!gg&&gg.level==="양호"; if(filter==="확인-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
     var s=$("sort").value;
     shown.sort(function(a,b){
       var INF=1e18;
@@ -233,6 +273,7 @@ a.link{color:var(--accent);font-size:12.5px}
       var d=el("article","item");d.appendChild(el("div","t",p.name));
       var tg=el("span");tg.style.cssText="display:flex;gap:6px;align-items:center";
       if(isNew(p))tg.appendChild(el("span","tag n","NEW"));
+      var gb=gsum(p);if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"확인 "+gb.level));
       tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
       var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
       (function(pp){st.addEventListener("click",function(){if(FAV[pp.mgmt_no])delete FAV[pp.mgmt_no];else FAV[pp.mgmt_no]={memo:"",name:pp.name};saveFav();render()})})(p);
@@ -271,6 +312,10 @@ a.link{color:var(--accent);font-size:12.5px}
         var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";eb.style.justifySelf="start";
         (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
         d.appendChild(eb);
+        var gbtn=el("button","chip",GRUN[p.mgmt_no]?"확인 중...":(GEO[p.mgmt_no]?"자동확인 다시":"규제·진입·경사 자동확인"));gbtn.type="button";gbtn.style.justifySelf="start";gbtn.disabled=!!GRUN[p.mgmt_no];
+        (function(pp){gbtn.addEventListener("click",function(){runGeo(pp)})})(p);
+        d.appendChild(gbtn);
+        if(GEO[p.mgmt_no])d.appendChild(geoPanel(p));
         if(OPEN[p.mgmt_no]){
           var r=econ(p),bx=el("div","eco");
           if(!r.kW){bx.textContent="이 면적으로는 배치가 나오지 않습니다(경계 이격 3m 적용)."}
@@ -300,6 +345,23 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   ["q","fsido","fdisp","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
   $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
+  $("vwdom").textContent=BFGeo.domain();
+  try{$("vwkey").value=BFGeo.getKey()}catch(e){}
+  try{var sl=localStorage.getItem("bf-slope");if(sl)$("slopeLim").value=sl}catch(e){}
+  $("slopeLim").addEventListener("input",function(){try{localStorage.setItem("bf-slope",$("slopeLim").value)}catch(e){}render()});
+  $("vwsave").addEventListener("click",function(){BFGeo.setKey($("vwkey").value.trim());$("vwmsg").textContent=$("vwkey").value.trim()?"저장했습니다.":"키를 비웠습니다."});
+  $("batchstop").addEventListener("click",function(){STOP=true});
+  $("batch").addEventListener("click",async function(){
+    if(!BFGeo.getKey()){$("batchmsg").textContent="먼저 '자동확인 설정'에 V-World 키를 저장하세요.";return}
+    var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0]})});
+    var cards=Array.prototype.map.call(document.querySelectorAll(".item .t"),function(e){return e.textContent});
+    var list=all.filter(function(p){return cards.indexOf(p.name)>=0&&p.pnu&&!GEO[p.mgmt_no]}).slice(0,30);
+    if(!list.length){$("batchmsg").textContent="확인할 새 항목이 없습니다(이미 확인했거나 필지번호가 없음).";return}
+    STOP=false;$("batch").disabled=true;$("batchstop").style.display="";
+    for(var i=0;i<list.length&&!STOP;i++){$("batchmsg").textContent=(i+1)+" / "+list.length+" 확인 중... "+list[i].name.slice(0,30);
+      await runGeo(list[i]);await new Promise(function(r){setTimeout(r,300)})}
+    $("batch").disabled=false;$("batchstop").style.display="none";$("batchmsg").textContent=STOP?"중지했습니다.":"끝났습니다.";
+  });
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
     DATA=j;buildCats();buildExk();$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
