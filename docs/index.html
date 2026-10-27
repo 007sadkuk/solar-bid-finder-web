@@ -143,8 +143,8 @@ a.link{color:var(--accent);font-size:12.5px}
     <div id="diag" class="fields" style="margin-top:8px">-</div>
   </details>
 </div>
-<script src="core.js?v=20261027f"></script>
-<script src="geo.js?v=20261027f"></script>
+<script src="core.js?v=20261027g"></script>
+<script src="geo.js?v=20261027g"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -241,6 +241,7 @@ a.link{color:var(--accent);font-size:12.5px}
     if(r.road)L("진입: "+(r.road.status==="touch"?"도로 지목 필지에 접함("+r.road.roads.join(", ")+")":r.road.status==="no"?"도로 지목 필지와 접하지 않음":"확인 불가: "+r.road.detail)+(r.road.others&&r.road.others.length?" · 인접: "+r.road.others.join(", "):""));
     if(r.slope)L("경사: "+(r.slope.status==="ok"&&r.slope.deg!==null?"평균 약 "+r.slope.deg.toFixed(1)+"° · 표고차 약 "+Math.round(r.slope.relief)+"m (표고 "+r.slope.n+"지점, "+(r.slope.src||"")+" 근사"+(r.slope.src&&r.slope.src.indexOf("90")>=0?" · 해상도가 낮아 작은 필지는 오차가 큼":"")+")":"확인 불가: "+(r.slope.detail||"계산 불가")));
     L("※ 지적도·공개 레이어 기준이며 법적 판단이 아닙니다. 인허가·현장 확인이 필요합니다.");
+    var rb=el("button","chip","이 필지 다시 조회");rb.type="button";rb.style.justifySelf="start";rb.addEventListener("click",function(){runGeo(p)});bx.appendChild(rb);
     return bx;
   }
   function econ(p){
@@ -346,12 +347,13 @@ a.link{color:var(--accent);font-size:12.5px}
         var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";eb.style.justifySelf="start";
         (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
         d.appendChild(eb);
-        var has=!!GEO[p.mgmt_no],gbtn=el("button","chip",GRUN[p.mgmt_no]?"확인 중...":has?(GOPEN[p.mgmt_no]?"자동확인 결과 닫기":"자동확인 결과 보기"):"규제·진입·경사 자동확인");
+        var has=!!GEO[p.mgmt_no],gbtn=el("button","chip",GRUN[p.mgmt_no]?"확인 중...":GOPEN[p.mgmt_no]?"자동확인 닫기":"자동확인 보기");
         gbtn.type="button";gbtn.style.justifySelf="start";gbtn.disabled=!!GRUN[p.mgmt_no];
-        (function(pp,h){gbtn.addEventListener("click",function(){if(h){GOPEN[pp.mgmt_no]=!GOPEN[pp.mgmt_no];render()}else{GOPEN[pp.mgmt_no]=true;runGeo(pp)}})})(p,has);
-        var gwrap=el("div");gwrap.style.cssText="display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1";gwrap.appendChild(gbtn);
-        if(has&&!GRUN[p.mgmt_no]){var rb=el("button","chip","다시 확인");rb.type="button";(function(pp){rb.addEventListener("click",function(){GOPEN[pp.mgmt_no]=true;runGeo(pp)})})(p);gwrap.appendChild(rb)}
-        d.appendChild(gwrap);
+        (function(pp,h){gbtn.addEventListener("click",function(){
+          if(GOPEN[pp.mgmt_no]){GOPEN[pp.mgmt_no]=false;render()}
+          else if(h){GOPEN[pp.mgmt_no]=true;render()}
+          else{GOPEN[pp.mgmt_no]=true;runGeo(pp)}})})(p,has);
+        d.appendChild(gbtn);
         if(has&&GOPEN[p.mgmt_no])d.appendChild(geoPanel(p));
         if(OPEN[p.mgmt_no]){
           var r=econ(p),bx=el("div","eco");
