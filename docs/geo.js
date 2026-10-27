@@ -131,7 +131,8 @@ var BFGeo=(function(){
     var ji=jibunInfo(f.properties&&f.properties.jibun);
     var lons=ring.map(function(p){return p[0]}),lats=ring.map(function(p){return p[1]});
     var bb={x0:Math.min.apply(0,lons),x1:Math.max.apply(0,lons),y0:Math.min.apply(0,lats),y1:Math.max.apply(0,lats)};
-    out.parcel={pnu:used,addr:(f.properties||{}).addr||"",jibun:(f.properties||{}).jibun||"",jimok:ji.name,jimokCode:ji.code,areaGeo:Math.round(area(P)),polys:ps.length};
+    var rr=ring.length>60?ring.filter(function(_,i){return i%Math.ceil(ring.length/60)===0}):ring;
+    out.parcel={ring:rr.map(function(p){return [+p[1].toFixed(6),+p[0].toFixed(6)]}),center:[+((bb.y0+bb.y1)/2).toFixed(6),+((bb.x0+bb.x1)/2).toFixed(6)],pnu:used,addr:(f.properties||{}).addr||"",jibun:(f.properties||{}).jibun||"",jimok:ji.name,jimokCode:ji.code,areaGeo:Math.round(area(P)),polys:ps.length};
     var box=function(d){return "BOX("+(bb.x0-d)+","+(bb.y0-d)+","+(bb.x1+d)+","+(bb.y1+d)+")"};
 
     /* 규제·용도 레이어 */
@@ -201,5 +202,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk};
   }
-  return {version:"2026-10-27-d (BOX쉼표·표고이중화)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-27-j (지도·상태필터)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();

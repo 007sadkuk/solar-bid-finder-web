@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>부지파인더 · 대구경북 태양광 부지 공고</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
 :root{
@@ -101,6 +102,7 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
 .eco b{font-variant-numeric:tabular-nums}
 .memo{width:100%;font-size:13px}
 .fields{font-family:var(--mono);font-size:11.5px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+#map{background:var(--line2)}.item.hl{outline:2px solid var(--blue);outline-offset:-2px}
 .empty{text-align:center;color:var(--muted);padding:40px 12px}
 @media (max-width:760px){
   .funnel{grid-template-columns:repeat(2,1fr)}.stage:nth-child(2){border-right:0}.stage:nth-child(-n+2){border-bottom:1px solid var(--line)}
@@ -133,6 +135,7 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
       <div class="grid2">
         <label for="minA">최소 면적 ㎡<input id="minA" type="number" min="0" value="3000"></label>
         <label for="fdisp">처분 방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
+        <label for="fst">공고 상태<select id="fst"><option value="">전체</option><option>입찰준비중</option><option>입찰진행중</option><option>수의계약가능</option><option>입찰마감</option></select></label>
       </div>
       <div><div class="lbl">허용 용도 (눌러서 켜고 끄기)</div><div class="chips" id="cats" role="group" aria-label="허용 용도"></div></div>
       <div><div class="lbl">제외 키워드 (물건명·주소에 들어 있으면 제외, 숫자는 현재 목록의 해당 건수)</div><div class="chips" id="exk" role="group" aria-label="제외 키워드"></div>
@@ -177,7 +180,11 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
   <section>
     <div class="sub2" style="margin-bottom:10px"><span class="chips" id="vchips" role="group" aria-label="추가 보기"></span></div>
     <div class="acts" style="margin-bottom:10px"><span class="stat" id="stat"></span><span class="sp"></span>
-      <button id="batch" class="chip" type="button">표시 목록 일괄 자동확인 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
+      <button id="mapbtn" class="chip" type="button">지도 보기</button> <button id="batch" class="chip" type="button">표시 목록 일괄 자동확인 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
+    <div id="mapwrap" class="panel" style="display:none;padding:10px;margin-bottom:10px">
+      <div id="map" style="height:440px;border-radius:6px"></div>
+      <p class="note" id="mapnote"></p>
+    </div>
     <div class="list" id="list"></div>
   </section>
 
@@ -185,8 +192,9 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
     <div class="in"><div id="diag" class="fields">-</div></div>
   </details>
 </div>
-<script src="core.js?v=20261027i"></script>
-<script src="geo.js?v=20261027i"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="core.js?v=20261027j"></script>
+<script src="geo.js?v=20261027j"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -312,6 +320,32 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
     var a=new Date(p.first_seen.replace(" ","T")+":00+09:00"), b=new Date(DATA.fetched_at.replace(" ","T")+":00+09:00");
     return b-a<3*24*3600*1000;
   }
+  var MAP=null,MAPL=null,MAPON=false,GCOL={A:"#17795a",B:"#2f8f83",C:"#b7791f",D:"#6b7780","부적합":"#a33a3a"};
+  function drawMap(shown){
+    if(!MAPON)return;
+    var note=$("mapnote");
+    if(!window.L){note.textContent="지도 라이브러리를 불러오지 못했습니다(네트워크 확인).";return}
+    if(!MAP){
+      MAP=L.map("map",{zoomControl:true}).setView([36.0,128.7],8);
+      var base={"일반 지도":L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})};
+      var k=BFGeo.getKey();
+      if(k){base["위성 (V-World)"]=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"})}
+      base["일반 지도"].addTo(MAP);L.control.layers(base).addTo(MAP);
+      MAPL=L.layerGroup().addTo(MAP);
+    }
+    MAPL.clearLayers();var pts=[],n=0,tot=shown.length;
+    shown.forEach(function(p){
+      var r=GEO[p.mgmt_no];if(!r||!r.parcel||!r.parcel.center)return;
+      var sc=scoreOf(p),col=sc?GCOL[sc.grade]||"#2c6e91":"#2c6e91",lab=sc?(sc.grade==="부적합"?"부적합":"등급 "+sc.grade+(sc.provisional?"?":"")+" "+sc.score+"점"):"미확인";
+      if(r.parcel.ring&&r.parcel.ring.length>2)L.polygon(r.parcel.ring,{color:col,weight:2,fillOpacity:.35}).addTo(MAPL);
+      var m=L.circleMarker(r.parcel.center,{radius:8,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(MAPL);
+      var box=document.createElement("div");box.appendChild(el("b",null,p.name));box.appendChild(document.createElement("br"));
+      box.appendChild(document.createTextNode(lab+" · "+(p.area_m2?Math.round(p.area_m2).toLocaleString()+"㎡":"-")+" · "+(p.status||"")));box.appendChild(document.createElement("br"));
+      var go=el("a","link","목록에서 보기");go.href="#";go.addEventListener("click",function(ev){ev.preventDefault();var c=document.getElementById("c-"+p.mgmt_no.replace(/[^A-Za-z0-9]/g,"_"));if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("hl");setTimeout(function(){c.classList.remove("hl")},2200)}});
+      box.appendChild(go);m.bindPopup(box);pts.push(r.parcel.center);n++});
+    note.textContent="자동확인을 마친 필지만 표시됩니다: 표시 중인 목록 "+tot+"건 중 "+n+"건. 색은 등급(A 진한 초록, B 청록, C 황색, D 회색, 부적합 적색, 미확인 청색)입니다."+(n===0?" 카드에서 '자동확인 보기'나 일괄 자동확인을 먼저 실행하세요. 이전 버전으로 확인한 필지는 '다시 조회'가 필요합니다.":"");
+    setTimeout(function(){MAP.invalidateSize();if(pts.length)MAP.fitBounds(L.latLngBounds(pts).pad(0.2),{maxZoom:15})},50);
+  }
   function dday(p){
     if(!p.bid_end)return null;
     var t=new Date(p.bid_end.replace(" ","T")+":00+09:00");if(isNaN(t))return null;
@@ -325,7 +359,7 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
     var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0],_r:j[1]})});
     var q=$("q").value.trim(), fs=$("fsido").value, fd=$("fdisp").value;
     var base=all.filter(function(p){
-      if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false;
+      if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false; if($("fst").value&&p.status!==$("fst").value)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
     var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"자동확인":0,"확인-양호":0,"확인-문제":0,"추천(A·B)":0};
     base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["자동확인"]++;if(gs.level==="양호")cnt["확인-양호"]++;if(gs.level==="문제")cnt["확인-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
@@ -354,6 +388,7 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
       if(s==="score"){var sa=scoreOf(a),sb=scoreOf(b);return (sb?sb.score:-1)-(sa?sa.score:-1)}
       if(s==="new")return (isNew(b)?1:0)-(isNew(a)?1:0)||String(b.first_seen||"").localeCompare(String(a.first_seen||""));
       return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
+    drawMap(shown);
     $("stat").innerHTML="";var sp=el("span");sp.innerHTML="표시 <b></b>건 / 전체 수집 <b></b>건";
     var bs=sp.querySelectorAll("b");bs[0].textContent=shown.length;bs[1].textContent=all.length;$("stat").appendChild(sp);
     (function(){var al=Object.keys(CATS).filter(function(k){return CATS[k]}),ex=Object.keys(EXK).filter(function(k){return EXK[k]});
@@ -361,7 +396,7 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
     var ls=$("list");ls.innerHTML="";
     if(!shown.length){ls.appendChild(el("div","empty",all.length?"조건에 맞는 공고가 없습니다. 필터나 후보 기준을 바꿔 보세요.":"수집된 공고가 없습니다. 맨 아래 '수집 상태 / 진단'을 확인하세요."));return}
     shown.forEach(function(p){
-      var d=el("article","item"),sc0=scoreOf(p),gb=gsum(p);
+      var d=el("article","item"),sc0=scoreOf(p),gb=gsum(p);d.id="c-"+p.mgmt_no.replace(/[^A-Za-z0-9]/g,"_");
       var rail=el("div","rail "+(sc0?(sc0.grade==="부적합"?"X":sc0.grade):"none"));
       if(sc0){rail.appendChild(el("strong",null,sc0.grade==="부적합"?"✕":sc0.grade+(sc0.provisional?"?":"")));rail.appendChild(el("small",null,sc0.grade==="부적합"?"부적합":sc0.score+"점"))}
       else{rail.appendChild(el("strong",null,"–"));rail.appendChild(el("small",null,"미확인"))}
@@ -450,13 +485,14 @@ a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px s
     if(DATA.fields.length){t.push("\n응답 필드: "+DATA.fields.join(", "));t.push("\n첫 항목:\n"+JSON.stringify(DATA.first_raw,null,1))}
     $("diag").textContent=t.join("\n");
   }
-  ["q","fsido","fdisp","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  ["q","fsido","fdisp","fst","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
   $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
   $("vwdom").textContent=BFGeo.domain();$("gver").textContent="· 코드 버전 "+BFGeo.version;
   try{$("vwkey").value=BFGeo.getKey()}catch(e){}
   try{var sl=localStorage.getItem("bf-slope");if(sl)$("slopeLim").value=sl}catch(e){}
   $("slopeLim").addEventListener("input",function(){try{localStorage.setItem("bf-slope",$("slopeLim").value)}catch(e){}render()});
   $("vwsave").addEventListener("click",function(){BFGeo.setKey($("vwkey").value.trim());$("vwmsg").textContent=$("vwkey").value.trim()?"저장했습니다.":"키를 비웠습니다."});
+  $("mapbtn").addEventListener("click",function(){MAPON=!MAPON;$("mapwrap").style.display=MAPON?"":"none";$("mapbtn").textContent=MAPON?"지도 닫기":"지도 보기";render()});
   $("batchstop").addEventListener("click",function(){STOP=true});
   $("batch").addEventListener("click",async function(){
     if(!BFGeo.getKey()){$("batchmsg").textContent="먼저 '자동확인 설정'에 V-World 키를 저장하세요.";return}
