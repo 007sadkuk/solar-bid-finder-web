@@ -99,9 +99,10 @@ a.link{color:var(--accent);font-size:12.5px}
     </div>
     <div class="bar" style="margin-top:10px">
       <div class="grow"><div class="lbl">허용 용도 (눌러서 켜고 끄기)</div><div class="chips" id="cats" role="group" aria-label="허용 용도"></div></div>
-      <label for="exk">제외 키워드<input id="exk" value="맹지"></label>
+      <div class="grow"><div class="lbl">제외 키워드 (물건명·주소에 포함되면 제외 · 숫자는 현재 목록에서 해당 건수)</div><div class="chips" id="exk" role="group" aria-label="제외 키워드"></div>
+        <div style="display:flex;gap:6px;margin-top:6px"><input id="exkadd" placeholder="키워드 직접 추가" style="flex:1 1 auto"><button id="exkbtn" class="chip" type="button">추가</button></div></div>
     </div>
-    <p class="note">온비드 응답에는 지목이 없어 '용도 분류명'으로 대신 판정합니다. 목록의 용도는 수집된 토지 분류에서 가져옵니다.</p>
+    <p class="note">제외 키워드는 물건명·주소 글자만 보므로, 이름에 적혀 있지 않은 맹지·분묘 등은 걸러지지 않습니다. 온비드 응답에는 지목이 없어 '용도 분류명'으로 대신 판정합니다. 목록의 용도는 수집된 토지 분류에서 가져옵니다.</p>
   </section>
 
   <details class="panel" aria-label="사업성 가정">
@@ -137,6 +138,16 @@ a.link{color:var(--accent);font-size:12.5px}
   function nsido(s){s=s||"";return s.indexOf("대구")===0?"대구":(s.indexOf("경상북")===0||s.indexOf("경북")===0)?"경북":s}
   var CATS={}; try{CATS=JSON.parse(localStorage.getItem("bf-cats-v1")||"null")||{}}catch(e){CATS={}}
   var CAT_DEFAULT=["임야","잡종지","전","답","대지"];
+  var EXK={}; try{EXK=JSON.parse(localStorage.getItem("bf-exk-v1")||"null")||null}catch(e){EXK=null}
+  if(!EXK)EXK={"맹지":true,"분묘":false,"지상권":false,"도로":false,"하천":false,"구거":false,"지분":false};
+  function buildExk(){
+    var box=$("exk");box.innerHTML="";
+    Object.keys(EXK).forEach(function(k){
+      var n=DATA?DATA.items.filter(function(p){return ((p.name||"")+" "+(p.address||"")).indexOf(k)>=0}).length:0;
+      var b=el("button","chip",k+" "+n);b.type="button";b.setAttribute("aria-pressed",EXK[k]?"true":"false");
+      b.addEventListener("click",function(){EXK[k]=!EXK[k];try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}b.setAttribute("aria-pressed",EXK[k]?"true":"false");render()});
+      box.appendChild(b)});
+  }
   function catOk(c,al){return al.indexOf(c)>=0}
   function buildCats(){
     var cnt={};DATA.items.forEach(function(p){if((p.cat_path||"").indexOf("부동산 > 토지")===0&&p.land_category)cnt[p.land_category]=(cnt[p.land_category]||0)+1});
@@ -149,7 +160,7 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   function judge(p){
     var minA=num($("minA").value), al=Object.keys(CATS).filter(function(k){return CATS[k]}),
-        ex=$("exk").value.split(",").map(function(x){return x.trim()}).filter(Boolean);
+        ex=Object.keys(EXK).filter(function(k){return EXK[k]});
     var hay=(p.name||"")+" "+(p.address||"");
     for(var i=0;i<ex.length;i++) if(hay.indexOf(ex[i])>=0) return ["제외","제외 키워드 '"+ex[i]+"'"];
     if(!p.land_category||p.area_m2===null) return ["판단불가",(!p.land_category?"용도":"면적")+" 정보 없음"];
@@ -245,6 +256,16 @@ a.link{color:var(--accent);font-size:12.5px}
         var ta=el("textarea","memo");ta.placeholder="메모 (이 브라우저에만 저장됩니다)";ta.value=FAV[p.mgmt_no].memo||"";
         (function(pp,t){t.addEventListener("input",function(){if(FAV[pp.mgmt_no]){FAV[pp.mgmt_no].memo=t.value;saveFav()}})})(p,ta);
         d.appendChild(ta);
+        var ck=el("div","grid2");ck.style.gridColumn="1/-1";
+        var CK=[["reg","법적규제"],["slope","경사"],["road","맹지·진입"],["grid","계통연계"]];
+        FAV[p.mgmt_no].chk=FAV[p.mgmt_no].chk||{};
+        CK.forEach(function(c){
+          var lb=el("label",null,c[1]);var sel=document.createElement("select");
+          ["미확인","양호","문제 있음"].forEach(function(o){var op=document.createElement("option");op.textContent=o;op.value=o;sel.appendChild(op)});
+          sel.value=FAV[p.mgmt_no].chk[c[0]]||"미확인";
+          (function(pp,key,sl){sl.addEventListener("change",function(){FAV[pp.mgmt_no].chk[key]=sl.value;saveFav()})})(p,c[0],sel);
+          lb.appendChild(sel);ck.appendChild(lb)});
+        d.appendChild(ck);
       }
       if(p.area_m2){
         var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";eb.style.justifySelf="start";
@@ -277,9 +298,10 @@ a.link{color:var(--accent);font-size:12.5px}
     if(DATA.fields.length){t.push("\n응답 필드: "+DATA.fields.join(", "));t.push("\n첫 항목:\n"+JSON.stringify(DATA.first_raw,null,1))}
     $("diag").textContent=t.join("\n");
   }
-  ["q","fsido","fdisp","minA","sort","exk"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  ["q","fsido","fdisp","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
-    DATA=j;buildCats();$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
+    DATA=j;buildCats();buildExk();$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
 })();
 </script></body></html>
