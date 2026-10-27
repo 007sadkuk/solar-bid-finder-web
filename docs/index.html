@@ -232,8 +232,8 @@ a.link:hover{text-decoration:underline}
   </details>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="core.js?v=20261027m"></script>
-<script src="geo.js?v=20261027m"></script>
+<script src="core.js?v=20261027n"></script>
+<script src="geo.js?v=20261027n"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -481,7 +481,12 @@ a.link:hover{text-decoration:underline}
       cb.addEventListener("click",function(){var done=function(){cb.textContent="복사했습니다"};
         if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(no).then(done,function(){window.prompt("복사하세요",no)})}else{window.prompt("복사하세요",no)}});
       ac.appendChild(cb);
-      var a=el("a","link","온비드 열기");a.href="https://www.onbid.co.kr/";a.target="_blank";a.rel="noopener";ac.appendChild(a);
+      var a=el("a","link","온비드 열기"),ob=p.onbid;
+      if(ob&&ob.onbidCltrno&&ob.onbidPbancNo&&ob.pbctNo&&ob.pbctCdtnNo){
+        a.href="https://www.onbid.co.kr/op/cltrpbancinf/cltrdtl/CltrDtlController/mvmnCltrDtl.do?cltrScrnGrpCd=1&cltrPrptDivCd="+(parseInt(ob.prptDivCd,10)||"")+"&onbidCltrno="+ob.onbidCltrno+"&onbidPbancNo="+ob.onbidPbancNo+"&pbctNo="+ob.pbctNo+"&pbctCdtnNo="+ob.pbctCdtnNo;
+        a.title="온비드 물건 상세 페이지로 바로 이동"}
+      else{a.href="https://www.onbid.co.kr/";a.title="상세 주소 정보가 아직 없어 온비드 첫 화면으로 이동합니다(다음 수집 후 갱신)"}
+      a.target="_blank";a.rel="noopener";ac.appendChild(a);
       bd.appendChild(ac);
       if(p.area_m2&&GEO[p.mgmt_no]&&GOPEN[p.mgmt_no])bd.appendChild(geoPanel(p));
       if(p.area_m2&&OPEN[p.mgmt_no]){

@@ -50,6 +50,7 @@ else:
                     n["status"] = r.get("pbctStatNm") or ""
                     n["share"] = r.get("alcYn") == "Y"
                     n["pnu"] = r.get("ltnoPnu") or ""
+                    n["onbid"] = {k: r.get(k) for k in ("onbidCltrno", "onbidPbancNo", "pbctNo", "pbctCdtnNo", "prptDivCd")}
                     merged[n["mgmt_no"]] = n
     out["items"] = sorted(merged.values(), key=lambda x: x.get("bid_end") or "9")
 
