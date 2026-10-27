@@ -120,7 +120,7 @@ a.link{color:var(--accent);font-size:12.5px}
   </details>
 
   <details class="panel" id="gpanel">
-    <summary>자동확인 설정 (V-World: 규제·진입·경사)</summary>
+    <summary>자동확인 설정 (V-World: 규제·진입·경사) <span id="gver" class="note"></span></summary>
     <div class="grid2" style="margin-top:8px">
       <label for="vwkey">V-World 인증키 (이 브라우저에만 저장)<input id="vwkey" type="password" autocomplete="off" placeholder="인증키"></label>
       <label for="slopeLim">경사 기준 °(초과 시 문제 표시)<input id="slopeLim" type="number" value="15" min="1" max="45"></label>
@@ -142,8 +142,8 @@ a.link{color:var(--accent);font-size:12.5px}
     <div id="diag" class="fields" style="margin-top:8px">-</div>
   </details>
 </div>
-<script src="core.js"></script>
-<script src="geo.js"></script>
+<script src="core.js?v=20261027d"></script>
+<script src="geo.js?v=20261027d"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -345,7 +345,7 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   ["q","fsido","fdisp","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
   $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
-  $("vwdom").textContent=BFGeo.domain();
+  $("vwdom").textContent=BFGeo.domain();$("gver").textContent="· 코드 버전 "+BFGeo.version;
   try{$("vwkey").value=BFGeo.getKey()}catch(e){}
   try{var sl=localStorage.getItem("bf-slope");if(sl)$("slopeLim").value=sl}catch(e){}
   $("slopeLim").addEventListener("input",function(){try{localStorage.setItem("bf-slope",$("slopeLim").value)}catch(e){}render()});

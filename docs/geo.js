@@ -201,5 +201,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk};
   }
-  return {check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-27-d (BOX쉼표·표고이중화)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
