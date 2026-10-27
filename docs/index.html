@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>부지파인더 · 대구경북 태양광 부지 공고</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 좌측 단일 컬럼 작업대. 1) 조회 링크 만들기 2) 결과 붙여넣기 3) 후보 목록 */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --fg:#1b2127; --muted:#5d6872; --line:#d5dade;
+  --accent:#b86e00; --accent-soft:#fbeed6; --ok:#1f7a4d; --ok-soft:#dff2e8;
+  --warn:#9a5b00; --warn-soft:#fdf0d0; --bad:#8a8f94; --bad-soft:#e6e8ea; --err:#b3261e; --err-soft:#fbe3e1;
+  --font:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14181c; --panel:#1d2329; --fg:#e6e9ec; --muted:#9aa5ae; --line:#323b43;
+  --accent:#f0a93a; --accent-soft:#3b2d14; --ok:#5fcf97; --ok-soft:#173226;
+  --warn:#f0b955; --warn-soft:#3a2d12; --bad:#8d979f; --bad-soft:#2a3138; --err:#ff8a80; --err-soft:#3d1f1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14181c; --panel:#1d2329; --fg:#e6e9ec; --muted:#9aa5ae; --line:#323b43;
+  --accent:#f0a93a; --accent-soft:#3b2d14; --ok:#5fcf97; --ok-soft:#173226;
+  --warn:#f0b955; --warn-soft:#3a2d12; --bad:#8d979f; --bad-soft:#2a3138; --err:#ff8a80; --err-soft:#3d1f1d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:20px;margin:0;text-wrap:balance}
+h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.sub{color:var(--muted);margin:2px 0 0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
+.step{font-family:var(--mono);font-size:12px;background:var(--fg);color:var(--bg);border-radius:3px;padding:1px 7px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
+input,select,textarea,button{font:inherit;color:var(--fg)}
+input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px;min-width:0;width:100%}
+textarea{font-family:var(--mono);font-size:12px;min-height:110px;resize:vertical}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.row>*{flex:1 1 180px}
+.row>.fit{flex:0 0 auto}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block}
+:root[data-theme="dark"] .btn{color:#1b1306}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#1b1306}}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
+.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.msg{border-radius:4px;padding:8px 10px;margin-top:10px;font-size:13px;white-space:pre-wrap;word-break:break-word}
+.msg.err{background:var(--err-soft);color:var(--err)}
+.msg.ok{background:var(--ok-soft);color:var(--ok)}
+.msg.info{background:var(--bad-soft);color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:transparent;cursor:pointer;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.stat{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.stat b{color:var(--fg);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;min-width:0}
+.item .t{font-weight:700;word-break:break-word;min-width:0}
+.item .a{color:var(--muted);font-size:12.5px;grid-column:1/-1}
+.tag{font-size:11.5px;font-weight:700;border-radius:3px;padding:1px 7px;white-space:nowrap;height:fit-content}
+.tag.c{background:var(--ok-soft);color:var(--ok)}
+.tag.u{background:var(--warn-soft);color:var(--warn)}
+.tag.x{background:var(--bad-soft);color:var(--bad)}
+.nums{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px}
+.nums span{font-variant-numeric:tabular-nums}
+.nums i{font-style:normal;color:var(--muted);font-size:11.5px;margin-right:5px}
+.why{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.fields{font-family:var(--mono);font-size:11.5px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+.empty{text-align:center;color:var(--muted);padding:28px 8px;border:1px dashed var(--line);border-radius:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+</style>
+<style>
+body{margin:0}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.bar>*{flex:1 1 150px}
+.bar .grow{flex:2 1 220px}
+.diag{font-size:12.5px}
+a.link{color:var(--accent);font-size:12.5px}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <h1>부지파인더</h1>
+    <p class="sub" id="asof">데이터를 불러오는 중...</p>
+  </header>
+
+  <section class="panel" aria-label="필터">
+    <div class="bar">
+      <label class="grow" for="q">검색 (물건명·주소)<input id="q" placeholder="예: 영천, 금호읍, 임야"></label>
+      <label for="fsido">시도<select id="fsido"><option value="">전체</option><option>대구</option><option>경북</option></select></label>
+      <label for="fdisp">처분방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
+      <label for="minA">최소 면적(㎡)<input id="minA" type="number" min="0" value="3000"></label>
+      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="area">면적 큰 순</option><option value="price">감정가 낮은 순</option></select></label>
+    </div>
+    <div class="bar" style="margin-top:10px">
+      <label for="cats">허용 용도 (쉼표 구분)<input id="cats" value="임야,잡종지,전,답,대"></label>
+      <label for="exk">제외 키워드<input id="exk" value="맹지"></label>
+    </div>
+    <p class="note">온비드 응답에는 지목이 없어 '용도 분류명'으로 대신 판정합니다. 분류명이 다르면 허용 용도를 고쳐 보세요.</p>
+  </section>
+
+  <section>
+    <div class="chips" id="vchips" role="group" aria-label="판정"></div>
+    <div class="stat" id="stat" style="margin:10px 0"></div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <details class="panel diag"><summary>수집 상태 / 진단</summary>
+    <div id="diag" class="fields" style="margin-top:8px">-</div>
+  </details>
+</div>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var DATA=null, filter="후보";
+  function num(v){return (v===null||v===undefined||v==="")?null:Number(v)}
+  function nsido(s){s=s||"";return s.indexOf("대구")===0?"대구":(s.indexOf("경상북")===0||s.indexOf("경북")===0)?"경북":s}
+  function catOk(c,al){if(al.indexOf(c)>=0)return true;if(al.indexOf("대")>=0&&c==="대지")return true;return al.some(function(a){return a.length>=2&&c.indexOf(a)>=0})}
+  function judge(p){
+    var minA=num($("minA").value), al=$("cats").value.split(",").map(function(x){return x.trim()}).filter(Boolean),
+        ex=$("exk").value.split(",").map(function(x){return x.trim()}).filter(Boolean);
+    var hay=(p.name||"")+" "+(p.address||"");
+    for(var i=0;i<ex.length;i++) if(hay.indexOf(ex[i])>=0) return ["제외","제외 키워드 '"+ex[i]+"'"];
+    if(!p.land_category||p.area_m2===null) return ["판단불가",(!p.land_category?"용도":"면적")+" 정보 없음"];
+    if(!catOk(p.land_category,al)) return ["제외","용도 제외("+p.land_category+")"];
+    if(minA!==null&&p.area_m2<minA) return ["제외","면적 미달("+Math.round(p.area_m2).toLocaleString()+"㎡)"];
+    return ["후보","조건 충족"];
+  }
+  function won(n){return (n===null||n===undefined)?"-":n.toLocaleString("ko-KR")+"원"}
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  function render(){
+    if(!DATA)return;
+    var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0],_r:j[1]})});
+    var q=$("q").value.trim(), fs=$("fsido").value, fd=$("fdisp").value;
+    var base=all.filter(function(p){
+      if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false;
+      if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length};
+    base.forEach(function(p){cnt[p._v]++});
+    var vc=$("vchips");vc.innerHTML="";
+    ["후보","판단불가","제외","전체"].forEach(function(v){
+      var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
+      b.addEventListener("click",function(){filter=v;render()});vc.appendChild(b)});
+    var shown=base.filter(function(p){return filter==="전체"||p._v===filter});
+    var s=$("sort").value;
+    shown.sort(function(a,b){
+      if(s==="area")return (b.area_m2||0)-(a.area_m2||0);
+      if(s==="price")return (a.appraisal===null?1e18:a.appraisal)-(b.appraisal===null?1e18:b.appraisal);
+      return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
+    $("stat").innerHTML="";var sp=el("span");sp.innerHTML="표시 <b></b>건 / 전체 수집 <b></b>건";
+    var bs=sp.querySelectorAll("b");bs[0].textContent=shown.length;bs[1].textContent=all.length;$("stat").appendChild(sp);
+    var ls=$("list");ls.innerHTML="";
+    if(!shown.length){ls.appendChild(el("div","empty",all.length?"조건에 맞는 공고가 없습니다. 필터나 후보 기준을 바꿔 보세요.":"수집된 공고가 없습니다. 아래 '수집 상태 / 진단'을 확인하세요."));return}
+    shown.forEach(function(p){
+      var d=el("article","item");d.appendChild(el("div","t",p.name));
+      d.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
+      d.appendChild(el("div","a",(p.address||"")+" · "+(p.cat_path||p.land_category||"용도 미상")+" · "+(p.disposal||"")+(p.share?" · 지분물건":"")));
+      var n=el("div","nums");
+      function add(l,v){var x=el("span");x.appendChild(el("i",null,l));x.appendChild(document.createTextNode(v));n.appendChild(x)}
+      add("토지",p.area_m2===null?"-":Math.round(p.area_m2).toLocaleString()+"㎡ ("+Math.round(p.area_m2/3.3058).toLocaleString()+"평)");
+      add("감정가",won(p.appraisal));add("최저입찰가",p.min_bid!==null?won(p.min_bid):"비공개/미상");
+      add("유찰",(p.fail_count||0)+"회");add("입찰",(p.bid_start?p.bid_start.slice(5):"-")+" ~ "+(p.bid_end?p.bid_end.slice(5):"-"));
+      if(p.status)add("상태",p.status);
+      d.appendChild(n);d.appendChild(el("div","why","판정 사유: "+p._r));
+      var a=el("a","link","온비드에서 찾기 ↗");a.href="https://www.onbid.co.kr/";a.target="_blank";a.rel="noopener";
+      var w=el("div","why");w.appendChild(a);w.appendChild(document.createTextNode("  물건관리번호 "+p.mgmt_no.split("#")[0]));d.appendChild(w);
+      ls.appendChild(d)});
+  }
+  function diag(){
+    var t=[];t.push("수집 시각: "+DATA.fetched_at+" (KST)");t.push("전체 페이지 완료: "+(DATA.complete?"예":"아니오"));
+    DATA.passes.forEach(function(p){t.push(" - "+p.sido+" / 수의계약 "+p.pvct+": "+(p.count===null?"실패":p.count+"건"))});
+    DATA.errors.forEach(function(e){t.push("오류: "+e)});
+    if(DATA.fields.length){t.push("\n응답 필드: "+DATA.fields.join(", "));t.push("\n첫 항목:\n"+JSON.stringify(DATA.first_raw,null,1))}
+    $("diag").textContent=t.join("\n");
+  }
+  ["q","fsido","fdisp","minA","sort","cats","exk"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
+    DATA=j;$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신";diag();render();
+  }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
+})();
+</script></body></html>
