@@ -232,7 +232,7 @@ a.link:hover{text-decoration:underline}
   </details>
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="core.js?v=20261027n"></script>
+<script src="core.js?v=20261027p"></script>
 <script src="geo.js?v=20261027o"></script>
 <script>
 (function(){
@@ -275,6 +275,7 @@ a.link:hover{text-decoration:underline}
   function won(n){return (n===null||n===undefined)?"-":n.toLocaleString("ko-KR")+"원"}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
   var OPEN={}, GOPEN={}, GEO=BFGeo.ls("bf-geo-v1",{}), GRUN={}, STOP=false;
+  Object.keys(GEO).forEach(function(k){if(GEO[k]&&GEO[k].error)delete GEO[k]});
   function saveGeo(){var keys=Object.keys(GEO);if(keys.length>1500){keys.sort(function(a,b){return GEO[a].ts-GEO[b].ts}).slice(0,keys.length-1500).forEach(function(k){delete GEO[k]})}BFGeo.lsSet("bf-geo-v1",GEO)}
   function slopeLim(){var v=Number($("slopeLim").value);return isFinite(v)&&v>0?v:15}
   function gsum(p){var r=GEO[p.mgmt_no];return r?BFGeo.summarize(r,p,slopeLim()):null}
@@ -467,7 +468,7 @@ a.link:hover{text-decoration:underline}
         var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";
         (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
         ac.appendChild(eb);
-        var has=!!GEO[p.mgmt_no],gbtn=el("button","chip go",GRUN[p.mgmt_no]?"검토 중...":GOPEN[p.mgmt_no]?"검토 닫기":"검토 보기");
+        var has=!!GEO[p.mgmt_no]&&!GEO[p.mgmt_no].error,gbtn=el("button","chip go",GRUN[p.mgmt_no]?"검토 중...":GOPEN[p.mgmt_no]?"검토 닫기":"검토 보기");
         gbtn.type="button";gbtn.disabled=!!GRUN[p.mgmt_no];
         (function(pp,h){gbtn.addEventListener("click",function(){
           if(GOPEN[pp.mgmt_no]){GOPEN[pp.mgmt_no]=false;render()}
