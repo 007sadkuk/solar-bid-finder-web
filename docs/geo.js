@@ -63,7 +63,7 @@ var BFGeo=(function(){
   }
   function jibunInfo(j){j=String(j||"");var ch=j.slice(-1);return /\d/.test(ch)?{code:"",name:""}:{code:ch,name:JIMOK[ch]||ch}}
   function propName(p){p=p||{};var ks=["uname","dgm_nm","name","nm","dname","prpos_area_dstrc_nm1"];for(var i=0;i<ks.length;i++)if(p[ks[i]])return String(p[ks[i]]);
-    for(var k in p){if(typeof p[k]==="string"&&p[k]&&!/^\d+$/.test(p[k]))return p[k]}return "(이름 없음)"}
+    for(var k in p){if(/^(sido_name|sigg_name|sgg_name|emd_name|dyear|dnum)$/.test(k))continue;if(typeof p[k]==="string"&&p[k]&&!/^\d+$/.test(p[k]))return p[k]}return "(이름 없음)"}
 
   /* ── 경사: SRTM 30m 표고를 격자로 읽어 평면 근사 ── */
   function plane(pts){ // pts: [x,y,z] → 기울기(도)
@@ -147,7 +147,7 @@ var BFGeo=(function(){
           if(q.status==="OK"){okL[L]=true;anyVerified=true;
             q.features.forEach(function(ft){
               var hit=polys(ft.geometry).some(function(pg){return overlap(P,to(pg))});
-              if(hit)res.names.push(propName(ft.properties))});
+              if(hit){var nm=propName(ft.properties);if(nm!=="(이름 없음)")res.names.push(nm)}});
           }else if(q.status==="NOT_FOUND"){
             anyVerified=true; // 잘못된 레이어 이름은 INVALID_RANGE 오류로 구분됨(2026-10-27 실측) → NOT_FOUND는 이름이 유효하고 해당 위치에 자료가 없다는 뜻
           }else{anyErr=q.status+" "+q.error}
@@ -198,5 +198,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-27-l (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-m (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
