@@ -95,7 +95,7 @@ a.link{color:var(--accent);font-size:12.5px}
       <label for="fsido">시도<select id="fsido"><option value="">전체</option><option>대구</option><option>경북</option></select></label>
       <label for="fdisp">처분방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
       <label for="minA">최소 면적(㎡)<input id="minA" type="number" min="0" value="3000"></label>
-      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
+      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="score">적합도 높은 순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
     </div>
     <div class="bar" style="margin-top:10px">
       <div class="grow"><div class="lbl">허용 용도 (눌러서 켜고 끄기)</div><div class="chips" id="cats" role="group" aria-label="허용 용도"></div></div>
@@ -128,7 +128,8 @@ a.link{color:var(--accent);font-size:12.5px}
     <p style="margin:8px 0"><button id="vwsave" class="chip" type="button">저장</button> <span id="vwmsg" class="note"></span></p>
     <p class="note">키는 이 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. V-World 키는 등록한 주소에서만 동작하며, 현재 주소는 <b id="vwdom"></b> 입니다. 이 주소가 키에 등록돼 있지 않으면 '요청 실패'가 나옵니다.<br>
     경사는 SRTM 30m 표고(무료 공개 서비스)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이며, 지자체 개발행위허가 경사 기준(조례)은 별도로 확인해야 합니다.
-    진입(맹지) 확인은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
+    <br><b>적합도 점수 기준(제가 정한 가정값, 법적 기준 아님)</b>: 면적 20(≥2만㎡ 20 · ≥1만 16 · ≥5천 11 · ≥3천 6) · 경사 20(≤5° 20 · ≤10° 14 · ≤15° 8 · ≤기준° 3 · 초과 0) · 진입 20(도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5(해당 없음일 때만 득점, 해당이면 '부적합') · 토지가격 15(감정가 ㎡당 ≤1만원 15 · ≤3만 11 · ≤6만 6 · ≤10만 3).
+    확인하지 못한 항목은 0점으로 두고 '잠정' 등급으로 표시합니다. 등급: A ≥80 · B ≥65 · C ≥50 · D 미만. 용도지역·지목 불일치는 점수에 넣지 않고 표시만 합니다.<br>진입(맹지) 확인은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
   </details>
 
   <section>
@@ -142,8 +143,8 @@ a.link{color:var(--accent);font-size:12.5px}
     <div id="diag" class="fields" style="margin-top:8px">-</div>
   </details>
 </div>
-<script src="core.js?v=20261027d"></script>
-<script src="geo.js?v=20261027d"></script>
+<script src="core.js?v=20261027e"></script>
+<script src="geo.js?v=20261027e"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -188,6 +189,32 @@ a.link{color:var(--accent);font-size:12.5px}
   function saveGeo(){var keys=Object.keys(GEO);if(keys.length>1500){keys.sort(function(a,b){return GEO[a].ts-GEO[b].ts}).slice(0,keys.length-1500).forEach(function(k){delete GEO[k]})}BFGeo.lsSet("bf-geo-v1",GEO)}
   function slopeLim(){var v=Number($("slopeLim").value);return isFinite(v)&&v>0?v:15}
   function gsum(p){var r=GEO[p.mgmt_no];return r?BFGeo.summarize(r,p,slopeLim()):null}
+  /* 적합도 점수: 배점은 가정값(아래 기준표 참고). 확인하지 못한 항목은 0점으로 두고 '미확인'으로 따로 센다. */
+  function scoreOf(p){
+    var r=GEO[p.mgmt_no]; if(!r||r.error)return null;
+    var parts=[],hard=[],unkMax=0,sc=0,mx=0;
+    function add(label,pts,max,note,unk){parts.push([label,pts,max,note]);mx+=max;if(unk)unkMax+=max;else sc+=pts}
+    var A=p.area_m2||0, ak=A>=20000?20:A>=10000?16:A>=5000?11:A>=3000?6:0;
+    add("면적",ak,20,Math.round(A).toLocaleString()+"㎡",!A);
+    var sl=r.slope;
+    if(sl&&sl.status==="ok"&&sl.deg!==null){var d=sl.deg,lim=slopeLim(),k=d<=5?20:d<=10?14:d<=15?8:d<=lim?3:0;add("경사",k,20,"평균 "+d.toFixed(1)+"°",false)}
+    else add("경사",0,20,"확인 불가",true);
+    var rd=r.road;
+    if(rd&&rd.status==="touch")add("진입",20,20,"도로 지목 필지에 접함",false);
+    else if(rd&&rd.status==="no")add("진입",0,20,"도로 지목 필지와 접하지 않음",false);
+    else add("진입",0,20,"확인 불가",true);
+    [["agri","농업진흥구역"],["gb","개발제한구역"]].forEach(function(x){
+      var L=r.layers&&r.layers[x[0]];
+      if(L&&L.status==="overlap"){hard.push(x[1]+" 해당");add(x[1],0,12.5,"해당",false)}
+      else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
+      else add(x[1],0,12.5,"확인 불가",true)});
+    var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
+    if(up===null)add("토지가격",0,15,"정보 없음",true);
+    else add("토지가격",up<=10000?15:up<=30000?11:up<=60000?6:up<=100000?3:0,15,"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원",false);
+    sc=Math.round(sc*10)/10;
+    var g=hard.length?"부적합":sc>=80?"A":sc>=65?"B":sc>=50?"C":"D";
+    return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,provisional:unkMax>0};
+  }
   async function runGeo(p){
     GRUN[p.mgmt_no]=true;render();
     try{GEO[p.mgmt_no]=await BFGeo.check(p)}catch(e){GEO[p.mgmt_no]={ts:Date.now(),error:e.message,notes:[],layers:{}}}
@@ -198,6 +225,11 @@ a.link{color:var(--accent);font-size:12.5px}
     var S=gsum(p),L=function(t,c){var d=el("div",null,t);if(c)d.style.color=c;bx.appendChild(d)};
     L("자동확인 결과: "+S.level+" · 확인 시각 "+new Date(r.ts).toLocaleString("ko-KR"));
     if(r.error){L(r.error);return bx}
+    var SC=scoreOf(p);
+    if(SC){
+      L("적합도: 등급 "+SC.grade+(SC.provisional?"(잠정)":"")+" · "+SC.score+"점"+(SC.provisional?" (미확인 항목이 모두 만점이면 최대 "+SC.max+"점)":"")+(SC.hard.length?" · 부적합 사유: "+SC.hard.join(", "):""));
+      L("점수 내역: "+SC.parts.map(function(x){return x[0]+" "+x[1]+"/"+x[2]+" ("+x[3]+")"}).join(" · "));
+    }
     var P=r.parcel;
     L("지적도: "+P.addr+" "+P.jibun+" · 지목 "+(P.jimok||"-")+" · 경계 기준 면적 "+P.areaGeo.toLocaleString()+"㎡"+(p.area_m2?" (온비드 "+Math.round(p.area_m2).toLocaleString()+"㎡)":"")+(P.polys>1?" · 경계가 여러 조각입니다":""));
     S.flags.forEach(function(t){L("⚠ "+t,"var(--bad)")});
@@ -244,14 +276,14 @@ a.link{color:var(--accent);font-size:12.5px}
     var base=all.filter(function(p){
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
-    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"자동확인":0,"확인-양호":0,"확인-문제":0};
-    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["자동확인"]++;if(gs.level==="양호")cnt["확인-양호"]++;if(gs.level==="문제")cnt["확인-문제"]++}});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"자동확인":0,"확인-양호":0,"확인-문제":0,"추천(A·B)":0};
+    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["자동확인"]++;if(gs.level==="양호")cnt["확인-양호"]++;if(gs.level==="문제")cnt["확인-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
     var vc=$("vchips");vc.innerHTML="";
-    ["후보","판단불가","제외","전체","신규","즐겨찾기","자동확인","확인-양호","확인-문제"].forEach(function(v){
+    ["후보","판단불가","제외","전체","신규","즐겨찾기","자동확인","확인-양호","확인-문제","추천(A·B)"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
-      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="자동확인")return !!gg; if(filter==="확인-양호")return !!gg&&gg.level==="양호"; if(filter==="확인-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
+      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="자동확인")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="확인-양호")return !!gg&&gg.level==="양호"; if(filter==="확인-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
     var s=$("sort").value;
     shown.sort(function(a,b){
       var INF=1e18;
@@ -263,6 +295,7 @@ a.link{color:var(--accent);font-size:12.5px}
       if(s==="unit")return unit(a)-unit(b);
       if(s==="bid")return bidv(a)-bidv(b);
       if(s==="fail")return (b.fail_count||0)-(a.fail_count||0);
+      if(s==="score"){var sa=scoreOf(a),sb=scoreOf(b);return (sb?sb.score:-1)-(sa?sa.score:-1)}
       if(s==="new")return (isNew(b)?1:0)-(isNew(a)?1:0)||String(b.first_seen||"").localeCompare(String(a.first_seen||""));
       return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
     $("stat").innerHTML="";var sp=el("span");sp.innerHTML="표시 <b></b>건 / 전체 수집 <b></b>건";
@@ -274,6 +307,7 @@ a.link{color:var(--accent);font-size:12.5px}
       var tg=el("span");tg.style.cssText="display:flex;gap:6px;align-items:center";
       if(isNew(p))tg.appendChild(el("span","tag n","NEW"));
       var gb=gsum(p);if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"확인 "+gb.level));
+      var sc0=scoreOf(p);if(sc0)tg.appendChild(el("span","tag "+(sc0.grade==="A"||sc0.grade==="B"?"c":sc0.grade==="C"?"u":"x"),"등급 "+sc0.grade+(sc0.provisional?"?":"")+" "+sc0.score+"점"));
       tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
       var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
       (function(pp){st.addEventListener("click",function(){if(FAV[pp.mgmt_no])delete FAV[pp.mgmt_no];else FAV[pp.mgmt_no]={memo:"",name:pp.name};saveFav();render()})})(p);
