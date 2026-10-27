@@ -176,6 +176,9 @@ a.link{color:var(--accent);font-size:12.5px}
     var t=[];t.push("수집 시각: "+DATA.fetched_at+" (KST)");t.push("전체 페이지 완료: "+(DATA.complete?"예":"아니오"));
     DATA.passes.forEach(function(p){t.push(" - "+p.sido+" / 수의계약 "+p.pvct+": "+(p.count===null?"실패":p.count+"건"))});
     DATA.errors.forEach(function(e){t.push("오류: "+e)});
+    var cc={};DATA.items.forEach(function(p){var k=p.cat_path||"(용도 없음)";cc[k]=(cc[k]||0)+1});
+    var ks=Object.keys(cc).sort(function(a,b){return cc[b]-cc[a]});
+    if(ks.length){t.push("\n[용도 분류별 건수] 총 "+DATA.items.length+"건");ks.slice(0,60).forEach(function(k){t.push(" "+cc[k]+"건  "+k)})}
     if(DATA.fields.length){t.push("\n응답 필드: "+DATA.fields.join(", "));t.push("\n첫 항목:\n"+JSON.stringify(DATA.first_raw,null,1))}
     $("diag").textContent=t.join("\n");
   }
@@ -199,25 +202,28 @@ a.link{color:var(--accent);font-size:12.5px}
     var k=$("lkey").value.trim(); if(!k){lmsg("err","인증키를 입력하세요.");return}
     try{localStorage.setItem("onbidKey",k)}catch(e){}
     if(k.indexOf("%")<0)k=encodeURIComponent(k);
-    var PR="0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", got={}, fails=[], total=0;
+    var PR="0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", got={}, fails=[], total=0, passes=[];
     for(var si of ["대구광역시","경상북도"]) for(var pv of ["N","Y"]){
+      var pc=0, pf=false;
       for(var page=1;page<=30;page++){
         lmsg("info",si+" / "+pv+" / "+page+"쪽 조회 중... (현재 "+total+"건)");
         var url="https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2?serviceKey="+k+"&pageNo="+page+"&numOfRows=100&resultType=json&prptDivCd="+PR+"&pvctTrgtYn="+pv+"&lctnSdnm="+encodeURIComponent(si);
         var tx; try{var rs=await fetch(url);tx=await rs.text()}catch(e){lmsg("err","이 브라우저에서 온비드로 직접 요청이 막혔습니다 (CORS 또는 접속 차단). 이 방법은 사용할 수 없습니다.");return}
-        var j; try{j=JSON.parse(tx)}catch(e){var m=tx.match(/<returnAuthMsg>([^<]*)/);fails.push(si+"/"+pv+": "+(m?m[1]:tx.slice(0,120)));break}
+        var j; try{j=JSON.parse(tx)}catch(e){var m=tx.match(/<returnAuthMsg>([^<]*)/);fails.push(si+"/"+pv+": "+(m?m[1]:tx.slice(0,120)));pf=true;break}
         var h=j.header||(j.response&&j.response.header)||{}, b=j.body||(j.response&&j.response.body)||{};
-        if(h.resultCode==="03")break; if(h.resultCode&&h.resultCode!=="00"){fails.push(si+"/"+pv+": "+h.resultCode+" "+(h.resultMsg||""));break}
+        if(h.resultCode==="03")break; if(h.resultCode&&h.resultCode!=="00"){fails.push(si+"/"+pv+": "+h.resultCode+" "+(h.resultMsg||""));pf=true;break}
         var it=b.items; if(it&&it.item!==undefined)it=it.item; if(!it)break; if(!Array.isArray(it))it=[it];
         if(!DATA)DATA={items:[],passes:[],errors:[],fields:[],first_raw:null,complete:false};
         if(!DATA.first_raw&&it.length){DATA.first_raw=it[0];DATA.fields=Object.keys(it[0])}
+        pc+=it.length;
         it.forEach(function(r){var n=normRaw(r);if(n&&!got[n.mgmt_no]){got[n.mgmt_no]=n;total++}});
         if(!it.length||page*100>=(Number(b.totalCount)||0))break;
       }
+      passes.push({sido:si,pvct:pv,count:pf?null:pc});
     }
     if(!DATA)DATA={items:[],passes:[],errors:[],fields:[],first_raw:null,complete:false};
     DATA.items=Object.keys(got).map(function(x){return got[x]}).sort(function(a,b){return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
-    DATA.errors=fails; DATA.fetched_at="방금 (내 브라우저)"; DATA.complete=!fails.length;
+    DATA.passes=passes; DATA.errors=fails; DATA.fetched_at="방금 (내 브라우저)"; DATA.complete=!fails.length;
     $("asof").textContent="이 브라우저에서 직접 조회한 결과 · "+DATA.items.length+"건";
     lmsg(fails.length?"err":"ok",DATA.items.length+"건 불러왔습니다."+(fails.length?"\n일부 실패: "+fails.join(" | "):""));
     diag();render();
