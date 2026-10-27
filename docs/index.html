@@ -1,87 +1,117 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>부지파인더 · 대구경북 태양광 부지 공고</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
-/* Layout: 좌측 단일 컬럼 작업대. 1) 조회 링크 만들기 2) 결과 붙여넣기 3) 후보 목록 */
 :root{
-  --bg:#eef0f2; --panel:#ffffff; --fg:#1b2127; --muted:#5d6872; --line:#d5dade;
-  --accent:#b86e00; --accent-soft:#fbeed6; --ok:#1f7a4d; --ok-soft:#dff2e8;
-  --warn:#9a5b00; --warn-soft:#fdf0d0; --bad:#8a8f94; --bad-soft:#e6e8ea; --err:#b3261e; --err-soft:#fbe3e1;
-  --font:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --bg:#edf0f2; --panel:#ffffff; --fg:#0f1b24; --muted:#586873; --line:#d3dadf; --line2:#e4e9ec;
+  --blue:#2c6e91; --blue-soft:#dcebf3; --on-blue:#ffffff;
+  --gA:#17795a; --gB:#2f8f83; --gC:#b7791f; --gD:#6b7780; --gX:#a33a3a;
+  --ok:#17795a; --ok-soft:#dff2e8; --warn:#8a5a00; --warn-soft:#fdf0d0; --bad:#6b7780; --bad-soft:#e6e9ec; --err:#b3261e; --err-soft:#fbe3e1; --hot:#c2410c;
+  --font:"Noto Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif; --mono:ui-monospace,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#14181c; --panel:#1d2329; --fg:#e6e9ec; --muted:#9aa5ae; --line:#323b43;
-  --accent:#f0a93a; --accent-soft:#3b2d14; --ok:#5fcf97; --ok-soft:#173226;
-  --warn:#f0b955; --warn-soft:#3a2d12; --bad:#8d979f; --bad-soft:#2a3138; --err:#ff8a80; --err-soft:#3d1f1d; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#14181c; --panel:#1d2329; --fg:#e6e9ec; --muted:#9aa5ae; --line:#323b43;
-  --accent:#f0a93a; --accent-soft:#3b2d14; --ok:#5fcf97; --ok-soft:#173226;
-  --warn:#f0b955; --warn-soft:#3a2d12; --bad:#8d979f; --bad-soft:#2a3138; --err:#ff8a80; --err-soft:#3d1f1d; color-scheme:dark}
+  --bg:#101820; --panel:#18222b; --fg:#e8edf0; --muted:#9aa8b2; --line:#2e3b45; --line2:#243039;
+  --blue:#6db3d6; --blue-soft:#1d3544; --on-blue:#0b1a24;
+  --gA:#4fcf9f; --gB:#58c4b6; --gC:#e0a84a; --gD:#8d99a3; --gX:#ee8a8a;
+  --ok:#4fcf9f; --ok-soft:#143327; --warn:#e0b25a; --warn-soft:#3a2d12; --bad:#8d99a3; --bad-soft:#25303a; --err:#ff8a80; --err-soft:#3d1f1d; --hot:#ff9a62; color-scheme:dark}}
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.6;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
-.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-h1{font-size:20px;margin:0;text-wrap:balance}
-h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
-.sub{color:var(--muted);margin:2px 0 0}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;min-width:0}
-.step{font-family:var(--mono);font-size:12px;background:var(--fg);color:var(--bg);border-radius:3px;padding:1px 7px}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:14px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 56px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 20px}
+h1{font-size:26px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0;font-size:12.5px;max-width:60ch}
 label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);min-width:0}
 input,select,textarea,button{font:inherit;color:var(--fg)}
-input,select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:7px 9px;min-width:0;width:100%}
-textarea{font-family:var(--mono);font-size:12px;min-height:110px;resize:vertical}
-:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-.row>*{flex:1 1 180px}
-.row>.fit{flex:0 0 auto}
-.btn{background:var(--accent);color:#fff;border:0;border-radius:4px;padding:8px 14px;cursor:pointer;font-weight:700;text-decoration:none;display:inline-block}
-:root[data-theme="dark"] .btn{color:#1b1306}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#1b1306}}
-.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
-.btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
-.note{font-size:12px;color:var(--muted);margin:8px 0 0}
-.msg{border-radius:4px;padding:8px 10px;margin-top:10px;font-size:13px;white-space:pre-wrap;word-break:break-word}
-.msg.err{background:var(--err-soft);color:var(--err)}
-.msg.ok{background:var(--ok-soft);color:var(--ok)}
-.msg.info{background:var(--bad-soft);color:var(--fg)}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0;width:100%}
+textarea{min-height:56px;resize:vertical}
+:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0;max-width:90ch}
+.lbl{font-size:12.5px;margin-bottom:6px;color:var(--muted)}
+.msg{border-radius:6px;padding:8px 10px;margin-top:10px;font-size:13px;white-space:pre-wrap;word-break:break-word}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+
+/* 깔때기: 전체 → 조건 통과 → 자동확인 → 추천. 필터를 겸한다 */
+.funnel{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.stage{appearance:none;border:0;background:transparent;text-align:left;padding:12px 16px;cursor:pointer;border-right:1px solid var(--line);position:relative;min-width:0}
+.stage:last-child{border-right:0}
+.stage b{display:block;font-size:26px;line-height:1.15;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.stage span{font-size:12.5px;color:var(--muted)}
+.stage[aria-pressed="true"]{background:var(--blue-soft)}
+.stage[aria-pressed="true"] b{color:var(--blue)}
+.stage:hover{background:var(--line2)}.stage[aria-pressed="true"]:hover{background:var(--blue-soft)}
+.sub2{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+
+/* 조작줄 */
+.tool{display:grid;grid-template-columns:minmax(180px,2fr) minmax(90px,1fr) minmax(150px,1.2fr);gap:10px;align-items:end}
+details.fold{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+details.fold>summary{cursor:pointer;padding:10px 16px;font-size:13px;font-weight:500;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary::after{content:"+";color:var(--muted);font-size:18px;line-height:1}
+details.fold[open]>summary::after{content:"–"}
+details.fold>.in{padding:2px 16px 16px;display:grid;gap:12px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:transparent;cursor:pointer;font-size:13px}
-.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
-.stat{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
-.stat b{color:var(--fg);font-family:var(--mono);font-variant-numeric:tabular-nums}
-.list{display:flex;flex-direction:column;gap:10px}
-.item{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;min-width:0}
-.item .t{font-weight:700;word-break:break-word;min-width:0}
-.item .a{color:var(--muted);font-size:12.5px;grid-column:1/-1}
-.tag{font-size:11.5px;font-weight:700;border-radius:3px;padding:1px 7px;white-space:nowrap;height:fit-content}
+.chip{white-space:nowrap;border:1px solid var(--line);border-radius:6px;padding:4px 10px;background:var(--panel);cursor:pointer;font-size:13px;line-height:1.4}
+.chip:hover{border-color:var(--blue)}
+.chip[aria-pressed="true"]{background:var(--blue);color:var(--on-blue);border-color:var(--blue)}
+.chip:disabled{opacity:.5;cursor:default}
+.btn{background:var(--blue);color:var(--on-blue);border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:700}
+.stat{font-size:13px;color:var(--muted)}
+.stat b{color:var(--fg);font-variant-numeric:tabular-nums}
+
+/* 목록: 토지대장처럼 행 단위로 읽는다. 왼쪽 띠가 등급 */
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.item{display:grid;grid-template-columns:64px minmax(0,1fr);border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.rail{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;padding:16px 4px;color:#fff;background:var(--gD);text-align:center}
+.rail strong{font-size:26px;line-height:1;font-weight:700}
+.rail small{font-size:11px;opacity:.92;font-variant-numeric:tabular-nums}
+.rail.A{background:var(--gA)}.rail.B{background:var(--gB)}.rail.C{background:var(--gC)}.rail.D{background:var(--gD)}.rail.X{background:var(--gX)}
+.rail.none{background:var(--line2);color:var(--muted)}
+:root:not([data-theme="light"]) .rail{color:#0b1a24}
+@media (prefers-color-scheme:light){.rail{color:#fff}.rail.none{color:var(--muted)}}
+.rail.none{color:var(--muted)!important}
+.body{padding:12px 16px 12px;display:grid;gap:8px;min-width:0}
+.head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.t{font-weight:700;font-size:15.5px;line-height:1.4;word-break:break-word;min-width:0}
+.tags{display:flex;gap:5px;align-items:center;flex:0 0 auto}
+.tag{font-size:11.5px;font-weight:700;border-radius:4px;padding:1px 7px;white-space:nowrap}
 .tag.c{background:var(--ok-soft);color:var(--ok)}
 .tag.u{background:var(--warn-soft);color:var(--warn)}
-.lbl{font-size:12.5px;margin-bottom:6px;color:var(--muted)}
-.eco{grid-column:1/-1;border-top:1px dashed var(--line);padding-top:8px;font-size:13px;display:grid;gap:3px}
-.eco b{font-variant-numeric:tabular-nums}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-.tag.n{background:#d9480f;color:#fff}
-.star{border:0;background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:0 2px;color:var(--muted)}
-.star[aria-pressed="true"]{color:#f0a500}
-.memo{grid-column:1/-1;width:100%;box-sizing:border-box;min-height:44px;font:inherit;font-size:13px}
 .tag.x{background:var(--bad-soft);color:var(--bad)}
-.nums{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px}
-.nums span{font-variant-numeric:tabular-nums}
-.nums i{font-style:normal;color:var(--muted);font-size:11.5px;margin-right:5px}
-.why{grid-column:1/-1;font-size:12px;color:var(--muted)}
-.fields{font-family:var(--mono);font-size:11.5px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px}
-details summary{cursor:pointer;color:var(--muted);font-size:13px}
-.empty{text-align:center;color:var(--muted);padding:28px 8px;border:1px dashed var(--line);border-radius:6px}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
-</style>
-<style>
-body{margin:0}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.bar>*{flex:1 1 150px}
-.bar .grow{flex:2 1 220px}
-.diag{font-size:12.5px}
-a.link{color:var(--accent);font-size:12.5px}
+.tag.n{background:var(--hot);color:#fff}
+:root:not([data-theme="light"]) .tag.n{color:#1b0b02}
+.star{border:0;background:transparent;cursor:pointer;font-size:21px;line-height:1;padding:0 2px;color:var(--muted)}
+.star[aria-pressed="true"]{color:#e0a000}
+.a{color:var(--muted);font-size:13px}
+.nums{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:8px 18px;align-items:end}
+.nums div{min-width:0}
+.nums i{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
+.nums span{font-size:14.5px;font-variant-numeric:tabular-nums;font-weight:500;word-break:keep-all}
+.nums .big span{font-size:21px;font-weight:700;letter-spacing:-.01em}
+.nums .big em{font-style:normal;font-size:12px;color:var(--muted);margin-left:5px;font-weight:400}
+.why{font-size:12px;color:var(--muted)}
+.acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.acts .sp{flex:1}
+a.link{color:var(--blue);font-size:13px;text-decoration:none;border-bottom:1px solid currentColor}
+.eco{background:var(--bg);border-radius:6px;padding:10px 12px;font-size:13px;display:grid;gap:3px}
+.eco b{font-variant-numeric:tabular-nums}
+.memo{width:100%;font-size:13px}
+.fields{font-family:var(--mono);font-size:11.5px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.empty{text-align:center;color:var(--muted);padding:40px 12px}
+@media (max-width:760px){
+  .funnel{grid-template-columns:repeat(2,1fr)}.stage:nth-child(2){border-right:0}.stage:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  .tool{grid-template-columns:1fr 1fr}.tool label:first-child{grid-column:1/-1}
+  .settings{grid-template-columns:1fr}
+  .item{grid-template-columns:52px minmax(0,1fr)}
+  .nums{grid-template-columns:repeat(2,1fr)}.nums .big{grid-column:1/-1}
+  .head{flex-direction:column;gap:4px}.tags{flex-wrap:wrap}
+  h1{font-size:22px}
+}
+@media (prefers-reduced-motion:no-preference){.stage,.chip{transition:background-color .12s,border-color .12s}}
 </style></head><body>
 <div class="wrap">
   <header>
@@ -89,25 +119,33 @@ a.link{color:var(--accent);font-size:12.5px}
     <p class="sub" id="asof">데이터를 불러오는 중...</p>
   </header>
 
-  <section class="panel" aria-label="필터">
-    <div class="bar">
-      <label class="grow" for="q">검색 (물건명·주소)<input id="q" placeholder="예: 영천, 금호읍, 임야"></label>
-      <label for="fsido">시도<select id="fsido"><option value="">전체</option><option>대구</option><option>경북</option></select></label>
-      <label for="fdisp">처분방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
-      <label for="minA">최소 면적(㎡)<input id="minA" type="number" min="0" value="3000"></label>
-      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="score">적합도 높은 순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
-    </div>
-    <div class="bar" style="margin-top:10px">
-      <div class="grow"><div class="lbl">허용 용도 (눌러서 켜고 끄기)</div><div class="chips" id="cats" role="group" aria-label="허용 용도"></div></div>
-      <div class="grow"><div class="lbl">제외 키워드 (물건명·주소에 포함되면 제외 · 숫자는 현재 목록에서 해당 건수)</div><div class="chips" id="exk" role="group" aria-label="제외 키워드"></div>
-        <div style="display:flex;gap:6px;margin-top:6px"><input id="exkadd" placeholder="키워드 직접 추가" style="flex:1 1 auto"><button id="exkbtn" class="chip" type="button">추가</button></div></div>
-    </div>
-    <p class="note">제외 키워드는 물건명·주소 글자만 보므로, 이름에 적혀 있지 않은 맹지·분묘 등은 걸러지지 않습니다. 온비드 응답에는 지목이 없어 '용도 분류명'으로 대신 판정합니다. 목록의 용도는 수집된 토지 분류에서 가져옵니다.</p>
+  <nav class="funnel" id="funnel" aria-label="단계별 보기"></nav>
+
+  <section class="tool" aria-label="검색">
+    <label for="q">검색 (물건명·주소)<input id="q" placeholder="예: 영천, 금호읍, 임야"></label>
+    <label for="fsido">지역<select id="fsido"><option value="">대구·경북</option><option>대구</option><option>경북</option></select></label>
+    <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="score">적합도 높은 순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
   </section>
 
-  <details class="panel" aria-label="사업성 가정">
-    <summary>간이 사업성 가정 (카드의 '사업성 보기'에 적용)</summary>
-    <div class="grid2" style="margin-top:8px">
+  <details class="fold" id="cond">
+    <summary><span>후보 조건 <span id="condsum" class="note" style="margin-left:8px"></span></span></summary>
+    <div class="in">
+      <div class="grid2">
+        <label for="minA">최소 면적 ㎡<input id="minA" type="number" min="0" value="3000"></label>
+        <label for="fdisp">처분 방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
+      </div>
+      <div><div class="lbl">허용 용도 (눌러서 켜고 끄기)</div><div class="chips" id="cats" role="group" aria-label="허용 용도"></div></div>
+      <div><div class="lbl">제외 키워드 (물건명·주소에 들어 있으면 제외, 숫자는 현재 목록의 해당 건수)</div><div class="chips" id="exk" role="group" aria-label="제외 키워드"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;max-width:360px"><input id="exkadd" placeholder="키워드 직접 추가"><button id="exkbtn" class="chip" type="button">추가</button></div></div>
+      <p class="note" style="margin:0">제외 키워드는 물건명·주소 글자만 봅니다. 이름에 적혀 있지 않은 맹지·분묘는 걸러지지 않습니다. 온비드 응답에는 지목이 없어서 '용도 분류명'으로 대신 판정하며, 실제 지목은 자동확인(지적도)에서 확인합니다.</p>
+    </div>
+  </details>
+
+  <div class="settings">
+  <details class="fold" aria-label="사업성 가정">
+    <summary>간이 사업성 가정</summary>
+    <div class="in">
+    <div class="grid2">
       <label for="e_use">가용률 % (토지 중 설치 가능 비율)<input id="e_use" type="number" value="60" min="10" max="100"></label>
       <label for="e_price">판매단가 원/kWh<input id="e_price" type="number" value="150"></label>
       <label for="e_capex">설치단가 만원/kW<input id="e_capex" type="number" value="120"></label>
@@ -115,36 +153,40 @@ a.link{color:var(--accent);font-size:12.5px}
       <label for="e_om">운영비 만원/kW·년<input id="e_om" type="number" step="0.1" value="2"></label>
       <label for="e_years">기간 년<input id="e_years" type="number" value="20"></label>
     </div>
-    <p class="note">모두 가정값이므로 직접 바꿔 보세요. 판매단가·설치단가는 시기와 계약 방식(SMP+REC, 고정가격 등)에 따라 크게 다릅니다.
-    배치는 토지를 정사각형으로 가정하고, 남향 30° 2단, 경계 이격 3m, 동지 9~15시 무음영으로 계산한 근사입니다. 실제 필지 모양·경사·진입로·인허가·계통은 반영하지 않습니다.</p>
+    <p class="note" style="margin:0">모두 가정값입니다. 판매단가·설치단가는 시기와 계약 방식(SMP+REC, 고정가격 등)에 따라 크게 다릅니다. 배치는 토지를 정사각형으로 보고 남향 30° 2단, 경계 이격 3m, 동지 9~15시 무음영으로 계산한 근사이며, 필지 모양·경사·진입로·인허가·계통은 반영하지 않습니다.</p>
+    </div>
   </details>
 
-  <details class="panel" id="gpanel">
-    <summary>자동확인 설정 (V-World: 규제·진입·경사) <span id="gver" class="note"></span></summary>
-    <div class="grid2" style="margin-top:8px">
+  <details class="fold" id="gpanel">
+    <summary><span>자동확인 설정 (V-World) <span id="gver" class="note"></span></span></summary>
+    <div class="in">
+    <div class="grid2">
       <label for="vwkey">V-World 인증키 (이 브라우저에만 저장)<input id="vwkey" type="password" autocomplete="off" placeholder="인증키"></label>
-      <label for="slopeLim">경사 기준 °(초과 시 문제 표시)<input id="slopeLim" type="number" value="15" min="1" max="45"></label>
+      <label for="slopeLim">경사 기준 °(초과 시 문제)<input id="slopeLim" type="number" value="15" min="1" max="45"></label>
     </div>
-    <p style="margin:8px 0"><button id="vwsave" class="chip" type="button">저장</button> <span id="vwmsg" class="note"></span></p>
-    <p class="note">키는 이 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. V-World 키는 등록한 주소에서만 동작하며, 현재 주소는 <b id="vwdom"></b> 입니다. 이 주소가 키에 등록돼 있지 않으면 '요청 실패'가 나옵니다.<br>
-    경사는 SRTM 30m 표고(무료 공개 서비스)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이며, 지자체 개발행위허가 경사 기준(조례)은 별도로 확인해야 합니다.
-    <br><b>적합도 점수 기준(제가 정한 가정값, 법적 기준 아님)</b>: 면적 20(≥2만㎡ 20 · ≥1만 16 · ≥5천 11 · ≥3천 6) · 경사 20(≤5° 20 · ≤10° 14 · ≤15° 8 · ≤기준° 3 · 초과 0) · 진입 20(도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5(해당 없음일 때만 득점, 해당이면 '부적합') · 토지가격 15(감정가 ㎡당 ≤1만원 15 · ≤3만 11 · ≤6만 6 · ≤10만 3).
-    확인하지 못한 항목은 0점으로 두고 '잠정' 등급으로 표시합니다. 등급: A ≥80 · B ≥65 · C ≥50 · D 미만. 용도지역·지목 불일치는 점수에 넣지 않고 표시만 합니다.<br>진입(맹지) 확인은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
+    <div><button id="vwsave" class="chip" type="button">저장</button> <span id="vwmsg" class="note"></span></div>
+    <p class="note" style="margin:0">키는 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. 키는 등록한 주소에서만 동작하며 현재 주소는 <b id="vwdom"></b> 입니다. 등록되지 않았으면 '요청 실패'가 나옵니다.<br>
+    경사는 무료 공개 표고 서비스(SRTM 30m, 막히면 Copernicus 90m)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이고, 지자체 경사 기준(조례)은 별도로 확인해야 합니다. 진입은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
+    <p class="note" style="margin:0"><b>적합도 점수 기준 (제가 정한 가정값이며 법적 기준이 아닙니다)</b><br>
+    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 토지가격 15 (감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
+    확인하지 못한 항목은 0점으로 두고 등급 뒤에 ?(잠정)를 붙입니다. 등급은 A 80점 이상, B 65점 이상, C 50점 이상, D 그 미만입니다. 용도지역과 지목 불일치는 점수에 넣지 않고 표시만 합니다.</p>
+    </div>
   </details>
+  </div>
 
   <section>
-    <div class="chips" id="vchips" role="group" aria-label="판정"></div>
-    <div class="stat" id="stat" style="margin:10px 0"></div>
-    <div style="margin:0 0 10px"><button id="batch" class="chip" type="button">표시된 목록 일괄 자동확인 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note"></span></div>
+    <div class="sub2" style="margin-bottom:10px"><span class="chips" id="vchips" role="group" aria-label="추가 보기"></span></div>
+    <div class="acts" style="margin-bottom:10px"><span class="stat" id="stat"></span><span class="sp"></span>
+      <button id="batch" class="chip" type="button">표시 목록 일괄 자동확인 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
     <div class="list" id="list"></div>
   </section>
 
-  <details class="panel diag"><summary>수집 상태 / 진단</summary>
-    <div id="diag" class="fields" style="margin-top:8px">-</div>
+  <details class="fold"><summary>수집 상태 / 진단</summary>
+    <div class="in"><div id="diag" class="fields">-</div></div>
   </details>
 </div>
-<script src="core.js?v=20261027g"></script>
-<script src="geo.js?v=20261027g"></script>
+<script src="core.js?v=20261027i"></script>
+<script src="geo.js?v=20261027i"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -270,6 +312,14 @@ a.link{color:var(--accent);font-size:12.5px}
     var a=new Date(p.first_seen.replace(" ","T")+":00+09:00"), b=new Date(DATA.fetched_at.replace(" ","T")+":00+09:00");
     return b-a<3*24*3600*1000;
   }
+  function dday(p){
+    if(!p.bid_end)return null;
+    var t=new Date(p.bid_end.replace(" ","T")+":00+09:00");if(isNaN(t))return null;
+    var diff=Math.ceil((t-Date.now())/86400000);
+    if(diff<0)return p.status==="수의계약가능"?{t:"수의계약 가능",cls:"c"}:{t:"입찰기간 지남",cls:"x"};
+    if(diff===0)return {t:"오늘 마감",cls:"n"};
+    return {t:"D-"+diff,cls:diff<=3?"n":"u"};
+  }
   function render(){
     if(!DATA)return;
     var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0],_r:j[1]})});
@@ -279,10 +329,15 @@ a.link{color:var(--accent);font-size:12.5px}
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
     var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"자동확인":0,"확인-양호":0,"확인-문제":0,"추천(A·B)":0};
     base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["자동확인"]++;if(gs.level==="양호")cnt["확인-양호"]++;if(gs.level==="문제")cnt["확인-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
+    var fn=$("funnel");fn.innerHTML="";
+    [["전체","전체 공고"],["후보","조건 통과"],["자동확인","자동확인 완료"],["추천(A·B)","추천 A·B"]].forEach(function(x){
+      var bt=el("button","stage");bt.type="button";bt.setAttribute("aria-pressed",filter===x[0]?"true":"false");
+      bt.appendChild(el("b",null,cnt[x[0]].toLocaleString()));bt.appendChild(el("span",null,x[1]));
+      bt.addEventListener("click",function(){filter=x[0];render()});fn.appendChild(bt)});
     var vc=$("vchips");vc.innerHTML="";
-    ["후보","판단불가","제외","전체","신규","즐겨찾기","자동확인","확인-양호","확인-문제","추천(A·B)"].forEach(function(v){
+    ["판단불가","제외","신규","즐겨찾기","확인-양호","확인-문제"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
-      b.addEventListener("click",function(){filter=v;render()});vc.appendChild(b)});
+      b.addEventListener("click",function(){filter=filter===v?"후보":v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
       if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="자동확인")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="확인-양호")return !!gg&&gg.level==="양호"; if(filter==="확인-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
     var s=$("sort").value;
@@ -301,38 +356,77 @@ a.link{color:var(--accent);font-size:12.5px}
       return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
     $("stat").innerHTML="";var sp=el("span");sp.innerHTML="표시 <b></b>건 / 전체 수집 <b></b>건";
     var bs=sp.querySelectorAll("b");bs[0].textContent=shown.length;bs[1].textContent=all.length;$("stat").appendChild(sp);
+    (function(){var al=Object.keys(CATS).filter(function(k){return CATS[k]}),ex=Object.keys(EXK).filter(function(k){return EXK[k]});
+      $("condsum").textContent="면적 "+(num($("minA").value)||0).toLocaleString()+"㎡ 이상 / 용도 "+(al.join("·")||"없음")+" / 제외 "+(ex.join("·")||"없음")})();
     var ls=$("list");ls.innerHTML="";
-    if(!shown.length){ls.appendChild(el("div","empty",all.length?"조건에 맞는 공고가 없습니다. 필터나 후보 기준을 바꿔 보세요.":"수집된 공고가 없습니다. 아래 '수집 상태 / 진단'을 확인하세요."));return}
+    if(!shown.length){ls.appendChild(el("div","empty",all.length?"조건에 맞는 공고가 없습니다. 필터나 후보 기준을 바꿔 보세요.":"수집된 공고가 없습니다. 맨 아래 '수집 상태 / 진단'을 확인하세요."));return}
     shown.forEach(function(p){
-      var d=el("article","item");d.appendChild(el("div","t",p.name));
-      var tg=el("span");tg.style.cssText="display:flex;gap:6px;align-items:center";
+      var d=el("article","item"),sc0=scoreOf(p),gb=gsum(p);
+      var rail=el("div","rail "+(sc0?(sc0.grade==="부적합"?"X":sc0.grade):"none"));
+      if(sc0){rail.appendChild(el("strong",null,sc0.grade==="부적합"?"✕":sc0.grade+(sc0.provisional?"?":"")));rail.appendChild(el("small",null,sc0.grade==="부적합"?"부적합":sc0.score+"점"))}
+      else{rail.appendChild(el("strong",null,"–"));rail.appendChild(el("small",null,"미확인"))}
+      d.appendChild(rail);
+      var bd=el("div","body"),hd=el("div","head");
+      hd.appendChild(el("div","t",p.name));
+      var tg=el("div","tags"),dd=dday(p);
       if(isNew(p))tg.appendChild(el("span","tag n","NEW"));
-      var gb=gsum(p);if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"확인 "+gb.level));
-      var sc0=scoreOf(p);if(sc0)tg.appendChild(el("span","tag "+(sc0.grade==="A"||sc0.grade==="B"?"c":sc0.grade==="C"?"u":"x"),"등급 "+sc0.grade+(sc0.provisional?"?":"")+" "+sc0.score+"점"));
+      if(dd)tg.appendChild(el("span","tag "+dd.cls,dd.t));
+      if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"확인 "+gb.level));
       tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
       var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
       (function(pp){st.addEventListener("click",function(){if(FAV[pp.mgmt_no])delete FAV[pp.mgmt_no];else FAV[pp.mgmt_no]={memo:"",name:pp.name};saveFav();render()})})(p);
-      tg.appendChild(st);d.appendChild(tg);
-      d.appendChild(el("div","a",(p.address||"")+" · "+(p.cat_path||p.land_category||"용도 미상")+" · "+(p.disposal||"")+(p.share?" · 지분물건":"")));
+      tg.appendChild(st);hd.appendChild(tg);bd.appendChild(hd);
+      bd.appendChild(el("div","a",(p.address||"")+"  |  "+(p.cat_path||p.land_category||"용도 미상").replace("부동산 > ","")+"  |  "+(p.disposal||"")+(p.share?"  |  지분물건":"")));
       var n=el("div","nums");
-      function add(l,v){var x=el("span");x.appendChild(el("i",null,l));x.appendChild(document.createTextNode(v));n.appendChild(x)}
-      add("토지",p.area_m2===null?"-":Math.round(p.area_m2).toLocaleString()+"㎡ ("+Math.round(p.area_m2/3.3058).toLocaleString()+"평)");
-      add("감정가",won(p.appraisal));add("최저입찰가",p.min_bid!==null?won(p.min_bid):"비공개/미상");
-      add("유찰",(p.fail_count||0)+"회");add("입찰",(p.bid_start?p.bid_start.slice(5):"-")+" ~ "+(p.bid_end?p.bid_end.slice(5):"-"));
-      if(p.status)add("상태",p.status);
-      d.appendChild(n);d.appendChild(el("div","why","판정 사유: "+p._r));
+      function add(l,v,cls,sub){var x=el("div",cls||"");x.appendChild(el("i",null,l));var sp=el("span",null,v);if(sub)sp.appendChild(el("em",null,sub));x.appendChild(sp);n.appendChild(x)}
+      add("토지",p.area_m2===null?"-":Math.round(p.area_m2).toLocaleString()+"㎡","big",p.area_m2===null?"":Math.round(p.area_m2/3.3058).toLocaleString()+"평");
+      add("감정가",won(p.appraisal));
+      add("㎡당 감정가",(p.appraisal!==null&&p.area_m2)?Math.round(p.appraisal/p.area_m2).toLocaleString()+"원":"-");
+      add("최저입찰가",p.min_bid!==null?won(p.min_bid):"비공개");
+      add("유찰",(p.fail_count||0)+"회");
+      bd.appendChild(n);
+      bd.appendChild(el("div","why","입찰 "+(p.bid_start?p.bid_start.slice(0,10):"-")+" ~ "+(p.bid_end?p.bid_end.slice(0,10):"-")+(p.status?"  |  "+p.status:"")+"  |  판정: "+p._r));
+      var ac=el("div","acts");
+      if(p.area_m2){
+        var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";
+        (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
+        ac.appendChild(eb);
+        var has=!!GEO[p.mgmt_no],gbtn=el("button","chip",GRUN[p.mgmt_no]?"확인 중...":GOPEN[p.mgmt_no]?"자동확인 닫기":"자동확인 보기");
+        gbtn.type="button";gbtn.disabled=!!GRUN[p.mgmt_no];
+        (function(pp,h){gbtn.addEventListener("click",function(){
+          if(GOPEN[pp.mgmt_no]){GOPEN[pp.mgmt_no]=false;render()}
+          else if(h){GOPEN[pp.mgmt_no]=true;render()}
+          else{GOPEN[pp.mgmt_no]=true;runGeo(pp)}})})(p,has);
+        ac.appendChild(gbtn);
+      }
+      ac.appendChild(el("span","sp"));
       var no=p.mgmt_no.split("#")[0];
-      var w=el("div","why");w.appendChild(document.createTextNode("물건관리번호 "+no+"  "));
-      var cb=el("button","chip","번호 복사");cb.type="button";
-      cb.addEventListener("click",function(){var done=function(){cb.textContent="복사됨"};
+      var cb=el("button","chip","관리번호 "+no+" 복사");cb.type="button";
+      cb.addEventListener("click",function(){var done=function(){cb.textContent="복사했습니다"};
         if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(no).then(done,function(){window.prompt("복사하세요",no)})}else{window.prompt("복사하세요",no)}});
-      w.appendChild(cb);
-      var a=el("a","link","온비드 열기 ↗");a.href="https://www.onbid.co.kr/";a.target="_blank";a.rel="noopener";a.style.marginLeft="10px";w.appendChild(a);d.appendChild(w);
+      ac.appendChild(cb);
+      var a=el("a","link","온비드 열기");a.href="https://www.onbid.co.kr/";a.target="_blank";a.rel="noopener";ac.appendChild(a);
+      bd.appendChild(ac);
+      if(p.area_m2&&GEO[p.mgmt_no]&&GOPEN[p.mgmt_no])bd.appendChild(geoPanel(p));
+      if(p.area_m2&&OPEN[p.mgmt_no]){
+        var r=econ(p),bx=el("div","eco");
+        if(!r.kW){bx.textContent="이 면적으로는 배치가 나오지 않습니다(경계 이격 3m 적용)."}
+        else{
+          var L=function(t){bx.appendChild(el("div",null,t))};
+          L("가정 배치: 토지 "+Math.round(p.area_m2).toLocaleString()+"㎡ × 가용률 → 약 "+Math.round(r.modules).toLocaleString()+"장, 설치용량 약 "+r.kW.toFixed(0)+" kW");
+          L("연 매출(1년차) 약 "+Math.round(r.e0.rev1).toLocaleString()+" 만원 · 공사비 "+Math.round(r.e0.capex).toLocaleString()+" 만원(토지비 제외)");
+          L("토지비 제외: 수익률(IRR) "+pct(r.e0.irr)+" · 회수 "+yr(r.e0.payback));
+          if(r.e1)L("토지비 포함("+r.landSrc+" "+won(p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):0)+"): IRR "+pct(r.e1.irr)+" · 회수 "+yr(r.e1.payback));
+          else L("임대 물건은 토지 매입비 계산을 하지 않았습니다(임대료 별도).");
+          L("※ 가정값 기반 근사입니다. 규제·경사·맹지·계통은 반영되지 않았습니다.");
+        }
+        bd.appendChild(bx);
+      }
       if(FAV[p.mgmt_no]){
         var ta=el("textarea","memo");ta.placeholder="메모 (이 브라우저에만 저장됩니다)";ta.value=FAV[p.mgmt_no].memo||"";
         (function(pp,t){t.addEventListener("input",function(){if(FAV[pp.mgmt_no]){FAV[pp.mgmt_no].memo=t.value;saveFav()}})})(p,ta);
-        d.appendChild(ta);
-        var ck=el("div","grid2");ck.style.gridColumn="1/-1";
+        bd.appendChild(ta);
+        var ck=el("div","grid2");
         var CK=[["reg","법적규제"],["slope","경사"],["road","맹지·진입"],["grid","계통연계"]];
         FAV[p.mgmt_no].chk=FAV[p.mgmt_no].chk||{};
         CK.forEach(function(c){
@@ -341,35 +435,9 @@ a.link{color:var(--accent);font-size:12.5px}
           sel.value=FAV[p.mgmt_no].chk[c[0]]||"미확인";
           (function(pp,key,sl){sl.addEventListener("change",function(){FAV[pp.mgmt_no].chk[key]=sl.value;saveFav()})})(p,c[0],sel);
           lb.appendChild(sel);ck.appendChild(lb)});
-        d.appendChild(ck);
+        bd.appendChild(ck);
       }
-      if(p.area_m2){
-        var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";eb.style.justifySelf="start";
-        (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
-        d.appendChild(eb);
-        var has=!!GEO[p.mgmt_no],gbtn=el("button","chip",GRUN[p.mgmt_no]?"확인 중...":GOPEN[p.mgmt_no]?"자동확인 닫기":"자동확인 보기");
-        gbtn.type="button";gbtn.style.justifySelf="start";gbtn.disabled=!!GRUN[p.mgmt_no];
-        (function(pp,h){gbtn.addEventListener("click",function(){
-          if(GOPEN[pp.mgmt_no]){GOPEN[pp.mgmt_no]=false;render()}
-          else if(h){GOPEN[pp.mgmt_no]=true;render()}
-          else{GOPEN[pp.mgmt_no]=true;runGeo(pp)}})})(p,has);
-        d.appendChild(gbtn);
-        if(has&&GOPEN[p.mgmt_no])d.appendChild(geoPanel(p));
-        if(OPEN[p.mgmt_no]){
-          var r=econ(p),bx=el("div","eco");
-          if(!r.kW){bx.textContent="이 면적으로는 배치가 나오지 않습니다(경계 이격 3m 적용)."}
-          else{
-            var L=function(t){bx.appendChild(el("div",null,t))};
-            L("가정 배치: 토지 "+Math.round(p.area_m2).toLocaleString()+"㎡ × 가용률 → 약 "+Math.round(r.modules).toLocaleString()+"장, 설치용량 약 "+r.kW.toFixed(0)+" kW");
-            L("연 매출(1년차) 약 "+Math.round(r.e0.rev1).toLocaleString()+" 만원 · 공사비 "+Math.round(r.e0.capex).toLocaleString()+" 만원(토지비 제외)");
-            L("토지비 제외: 수익률(IRR) "+pct(r.e0.irr)+" · 회수 "+yr(r.e0.payback));
-            if(r.e1)L("토지비 포함("+r.landSrc+" "+won(p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):0)+"): IRR "+pct(r.e1.irr)+" · 회수 "+yr(r.e1.payback));
-            else L("임대 물건은 토지 매입비 계산을 하지 않았습니다(임대료 별도).");
-            L("※ 가정값 기반 근사입니다. 규제·경사·맹지·계통은 반영되지 않았습니다.");
-          }
-          d.appendChild(bx);
-        }
-      }
+      d.appendChild(bd);
       ls.appendChild(d)});
   }
   function diag(){
