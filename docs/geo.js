@@ -189,18 +189,17 @@ var BFGeo=(function(){
 
   /* ── 요약 판정 ── */
   function summarize(r,item,slopeLimit){
-    var flags=[],warns=[],unk=[];
-    if(r.error)return {level:"미확인",flags:[],warns:[],unk:[r.error]};
+    var flags=[],warns=[],unk=[],info=[];
+    if(r.error)return {level:"미검토",flags:[],warns:[],unk:[r.error],info:[]};
     var P=r.parcel;
     if(item.land_category&&P.jimok&&P.jimok!==item.land_category)warns.push("지목 불일치: 지적도 "+P.jimok+" / 온비드 분류 "+item.land_category);
-    ["agri","gb"].forEach(function(id){var L=r.layers[id];if(!L)return;
-      if(L.status==="overlap")flags.push(L.label+" 해당("+L.names.join(", ")+")");
-      else if(L.status!=="none")unk.push(L.label+" 확인 불가");});
-    var z=r.layers.zone;if(z&&z.status==="overlap")warns.push("용도지역: "+z.names.join(", "));else if(z&&z.status!=="none")unk.push("용도지역 확인 불가");
+    var ag=r.layers.agri;if(ag){if(ag.status==="overlap")flags.push("농업진흥구역 해당("+ag.names.join(", ")+")");else if(ag.status!=="none")unk.push("농업진흥구역 확인 불가")}
+    var gbL=r.layers.gb;if(gbL){if(gbL.status==="overlap")flags.push("개발제한구역 해당("+gbL.names.join(", ")+")");else if(gbL.status!=="none")info.push("개발제한구역 확인 불가(레이어 미검증, 등급은 잠정)")}
+    var z=r.layers.zone;if(z&&z.status==="overlap")info.push("용도지역: "+z.names.join(", "));else if(z&&z.status!=="none")unk.push("용도지역 확인 불가");
     if(r.road){if(r.road.status==="no")flags.push("도로 지목 필지와 접하지 않음(맹지 여부는 현황도로·사도 확인 필요)");else if(r.road.status==="error")unk.push("진입 확인 불가")}
     if(r.slope){if(r.slope.status==="ok"&&r.slope.deg!==null){if(r.slope.deg>slopeLimit)flags.push("평균 경사 약 "+r.slope.deg.toFixed(1)+"° (기준 "+slopeLimit+"° 초과)")}else unk.push("경사 확인 불가")}
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
-    return {level:level,flags:flags,warns:warns,unk:unk};
+    return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-27-j (지도·상태필터)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-27-k (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
