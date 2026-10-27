@@ -207,7 +207,7 @@ a.link{color:var(--accent);font-size:12.5px}
       var t=x.status==="overlap"?x.names.join(", "):x.status==="none"?"해당 없음":x.status==="unverified"?"확인 불가(레이어 이름 미검증)":"조회 오류"+(x.detail&&x.detail[0]?": "+x.detail[0]:"");
       L(x.label+": "+t)});
     if(r.road)L("진입: "+(r.road.status==="touch"?"도로 지목 필지에 접함("+r.road.roads.join(", ")+")":r.road.status==="no"?"도로 지목 필지와 접하지 않음":"확인 불가: "+r.road.detail)+(r.road.others&&r.road.others.length?" · 인접: "+r.road.others.join(", "):""));
-    if(r.slope)L("경사: "+(r.slope.status==="ok"&&r.slope.deg!==null?"평균 약 "+r.slope.deg.toFixed(1)+"° · 표고차 약 "+Math.round(r.slope.relief)+"m (표고 "+r.slope.n+"지점, SRTM 30m 근사)":"확인 불가: "+(r.slope.detail||"계산 불가")));
+    if(r.slope)L("경사: "+(r.slope.status==="ok"&&r.slope.deg!==null?"평균 약 "+r.slope.deg.toFixed(1)+"° · 표고차 약 "+Math.round(r.slope.relief)+"m (표고 "+r.slope.n+"지점, "+(r.slope.src||"")+" 근사"+(r.slope.src&&r.slope.src.indexOf("90")>=0?" · 해상도가 낮아 작은 필지는 오차가 큼":"")+")":"확인 불가: "+(r.slope.detail||"계산 불가")));
     L("※ 지적도·공개 레이어 기준이며 법적 판단이 아닙니다. 인허가·현장 확인이 필요합니다.");
     return bx;
   }

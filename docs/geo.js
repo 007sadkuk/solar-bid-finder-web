@@ -85,14 +85,30 @@ var BFGeo=(function(){
     }
     pts=pts.slice(0,60);
     var kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
-    var loc=pts.map(function(p){return (lat0+p[1]/ky).toFixed(6)+","+(lon0+p[0]/kx).toFixed(6)}).join("|");
-    var rs=await fetch("https://api.opentopodata.org/v1/srtm30m?interpolation=bilinear&locations="+loc);
-    if(!rs.ok)throw new Error("표고 서비스 HTTP "+rs.status);
-    var j=await rs.json();if(j.status!=="OK"||!j.results)throw new Error("표고 서비스 응답 이상");
-    var z=[];j.results.forEach(function(r,i){if(r.elevation!==null&&r.elevation!==undefined)z.push([pts[i][0],pts[i][1],r.elevation])});
-    if(z.length<4)throw new Error("표고 값이 부족합니다");
+    var lats=pts.map(function(p){return +(lat0+p[1]/ky).toFixed(6)}),lons=pts.map(function(p){return +(lon0+p[0]/kx).toFixed(6)});
+    var z=[],src="",errs=[];
+    async function viaTopo(){
+      var loc=lats.map(function(la,i){return la+","+lons[i]}).join("|");
+      var rs=await fetch("https://api.opentopodata.org/v1/srtm30m?interpolation=bilinear&locations="+loc);
+      if(!rs.ok)throw new Error("opentopodata HTTP "+rs.status);
+      var j=await rs.json();if(j.status!=="OK"||!j.results)throw new Error("opentopodata 응답 이상");
+      return j.results.map(function(r){return r.elevation});
+    }
+    async function viaMeteo(){
+      var rs=await fetch("https://api.open-meteo.com/v1/elevation?latitude="+lats.join(",")+"&longitude="+lons.join(","));
+      if(!rs.ok)throw new Error("open-meteo HTTP "+rs.status);
+      var j=await rs.json();if(!j.elevation)throw new Error("open-meteo 응답 이상");
+      return j.elevation;
+    }
+    var tries=[["SRTM 30m",viaTopo],["Copernicus 90m",viaMeteo]];
+    for(var t=0;t<tries.length&&!z.length;t++){
+      try{var el=await tries[t][1]();var tmp=[];el.forEach(function(v,i){if(v!==null&&v!==undefined&&isFinite(v))tmp.push([pts[i][0],pts[i][1],v])});
+        if(tmp.length>=4){z=tmp;src=tries[t][0]}else errs.push(tries[t][0]+": 표고 값 부족")}
+      catch(e){errs.push(tries[t][0]+": "+(e.message==="Failed to fetch"?"접속 실패(차단 또는 네트워크)":e.message))}
+    }
+    if(!z.length)throw new Error(errs.join(" / "));
     var zs=z.map(function(p){return p[2]});
-    return {deg:plane(z),relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:z.length};
+    return {deg:plane(z),relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:z.length,src:src};
   }
 
   /* ── 필지 하나 점검 ── */
@@ -116,7 +132,7 @@ var BFGeo=(function(){
     var lons=ring.map(function(p){return p[0]}),lats=ring.map(function(p){return p[1]});
     var bb={x0:Math.min.apply(0,lons),x1:Math.max.apply(0,lons),y0:Math.min.apply(0,lats),y1:Math.max.apply(0,lats)};
     out.parcel={pnu:used,addr:(f.properties||{}).addr||"",jibun:(f.properties||{}).jibun||"",jimok:ji.name,jimokCode:ji.code,areaGeo:Math.round(area(P)),polys:ps.length};
-    var box=function(d){return "BOX("+(bb.x0-d)+" "+(bb.y0-d)+","+(bb.x1+d)+" "+(bb.y1+d)+")"};
+    var box=function(d){return "BOX("+(bb.x0-d)+","+(bb.y0-d)+","+(bb.x1+d)+","+(bb.y1+d)+")"};
 
     /* 규제·용도 레이어 */
     var okL=ls("bf-vw-ok",{});
@@ -134,7 +150,7 @@ var BFGeo=(function(){
           }else if(q.status==="NOT_FOUND"){
             if(okL[L])anyVerified=true;
             else{ // 이름이 맞는지 넓은 범위로 한 번 확인
-              try{var w=await vwData(L,{geomFilter:box(0.3),size:"1",geometry:"false"});if(w.status==="OK"){okL[L]=true;anyVerified=true}}catch(e){}
+              for(var wd=0;wd<2&&!okL[L];wd++){try{var w=await vwData(L,{geomFilter:box(wd?0.4:0.1),size:"1",geometry:"false"});if(w.status==="OK"){okL[L]=true;anyVerified=true}}catch(e){}}
             }
           }else{anyErr=q.status+" "+q.error}
         }catch(e){anyErr=e.message}
