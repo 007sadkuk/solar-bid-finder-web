@@ -57,6 +57,10 @@ textarea{font-family:var(--mono);font-size:12px;min-height:110px;resize:vertical
 .tag{font-size:11.5px;font-weight:700;border-radius:3px;padding:1px 7px;white-space:nowrap;height:fit-content}
 .tag.c{background:var(--ok-soft);color:var(--ok)}
 .tag.u{background:var(--warn-soft);color:var(--warn)}
+.tag.n{background:#d9480f;color:#fff}
+.star{border:0;background:transparent;cursor:pointer;font-size:20px;line-height:1;padding:0 2px;color:var(--muted)}
+.star[aria-pressed="true"]{color:#f0a500}
+.memo{grid-column:1/-1;width:100%;box-sizing:border-box;min-height:44px;font:inherit;font-size:13px}
 .tag.x{background:var(--bad-soft);color:var(--bad)}
 .nums{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px}
 .nums span{font-variant-numeric:tabular-nums}
@@ -87,7 +91,7 @@ a.link{color:var(--accent);font-size:12.5px}
       <label for="fsido">시도<select id="fsido"><option value="">전체</option><option>대구</option><option>경북</option></select></label>
       <label for="fdisp">처분방식<select id="fdisp"><option value="">전체</option><option>매각</option><option>임대</option></select></label>
       <label for="minA">최소 면적(㎡)<input id="minA" type="number" min="0" value="3000"></label>
-      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="area">면적 큰 순</option><option value="price">감정가 낮은 순</option></select></label>
+      <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
     </div>
     <div class="bar" style="margin-top:10px">
       <label for="cats">허용 용도 (쉼표 구분)<input id="cats" value="임야,잡종지,전,답,대"></label>
@@ -125,6 +129,14 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   function won(n){return (n===null||n===undefined)?"-":n.toLocaleString("ko-KR")+"원"}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  var FAV={};
+  try{FAV=JSON.parse(localStorage.getItem("bf-fav-v1")||"{}")||{}}catch(e){FAV={}}
+  function saveFav(){try{localStorage.setItem("bf-fav-v1",JSON.stringify(FAV))}catch(e){}}
+  function isNew(p){
+    if(!p.first_seen||!DATA||!DATA.fetched_at||p.first_seen<"2001")return false;
+    var a=new Date(p.first_seen.replace(" ","T")+":00+09:00"), b=new Date(DATA.fetched_at.replace(" ","T")+":00+09:00");
+    return b-a<3*24*3600*1000;
+  }
   function render(){
     if(!DATA)return;
     var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0],_r:j[1]})});
@@ -132,17 +144,26 @@ a.link{color:var(--accent);font-size:12.5px}
     var base=all.filter(function(p){
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
-    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length};
-    base.forEach(function(p){cnt[p._v]++});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0};
+    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++});
     var vc=$("vchips");vc.innerHTML="";
-    ["후보","판단불가","제외","전체"].forEach(function(v){
+    ["후보","판단불가","제외","전체","신규","즐겨찾기"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=v;render()});vc.appendChild(b)});
-    var shown=base.filter(function(p){return filter==="전체"||p._v===filter});
+    var shown=base.filter(function(p){
+      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; return p._v===filter});
     var s=$("sort").value;
     shown.sort(function(a,b){
+      var INF=1e18;
+      function unit(x){return (x.appraisal!==null&&x.area_m2)?x.appraisal/x.area_m2:INF}
+      function bidv(x){return x.min_bid===null||x.min_bid===undefined?INF:x.min_bid}
       if(s==="area")return (b.area_m2||0)-(a.area_m2||0);
-      if(s==="price")return (a.appraisal===null?1e18:a.appraisal)-(b.appraisal===null?1e18:b.appraisal);
+      if(s==="areaS")return (a.area_m2||INF)-(b.area_m2||INF);
+      if(s==="price")return (a.appraisal===null?INF:a.appraisal)-(b.appraisal===null?INF:b.appraisal);
+      if(s==="unit")return unit(a)-unit(b);
+      if(s==="bid")return bidv(a)-bidv(b);
+      if(s==="fail")return (b.fail_count||0)-(a.fail_count||0);
+      if(s==="new")return (isNew(b)?1:0)-(isNew(a)?1:0)||String(b.first_seen||"").localeCompare(String(a.first_seen||""));
       return (a.bid_end||"9").localeCompare(b.bid_end||"9")});
     $("stat").innerHTML="";var sp=el("span");sp.innerHTML="표시 <b></b>건 / 전체 수집 <b></b>건";
     var bs=sp.querySelectorAll("b");bs[0].textContent=shown.length;bs[1].textContent=all.length;$("stat").appendChild(sp);
@@ -150,7 +171,12 @@ a.link{color:var(--accent);font-size:12.5px}
     if(!shown.length){ls.appendChild(el("div","empty",all.length?"조건에 맞는 공고가 없습니다. 필터나 후보 기준을 바꿔 보세요.":"수집된 공고가 없습니다. 아래 '수집 상태 / 진단'을 확인하세요."));return}
     shown.forEach(function(p){
       var d=el("article","item");d.appendChild(el("div","t",p.name));
-      d.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
+      var tg=el("span");tg.style.cssText="display:flex;gap:6px;align-items:center";
+      if(isNew(p))tg.appendChild(el("span","tag n","NEW"));
+      tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
+      var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
+      (function(pp){st.addEventListener("click",function(){if(FAV[pp.mgmt_no])delete FAV[pp.mgmt_no];else FAV[pp.mgmt_no]={memo:"",name:pp.name};saveFav();render()})})(p);
+      tg.appendChild(st);d.appendChild(tg);
       d.appendChild(el("div","a",(p.address||"")+" · "+(p.cat_path||p.land_category||"용도 미상")+" · "+(p.disposal||"")+(p.share?" · 지분물건":"")));
       var n=el("div","nums");
       function add(l,v){var x=el("span");x.appendChild(el("i",null,l));x.appendChild(document.createTextNode(v));n.appendChild(x)}
@@ -166,6 +192,11 @@ a.link{color:var(--accent);font-size:12.5px}
         if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(no).then(done,function(){window.prompt("복사하세요",no)})}else{window.prompt("복사하세요",no)}});
       w.appendChild(cb);
       var a=el("a","link","온비드 열기 ↗");a.href="https://www.onbid.co.kr/";a.target="_blank";a.rel="noopener";a.style.marginLeft="10px";w.appendChild(a);d.appendChild(w);
+      if(FAV[p.mgmt_no]){
+        var ta=el("textarea","memo");ta.placeholder="메모 (이 브라우저에만 저장됩니다)";ta.value=FAV[p.mgmt_no].memo||"";
+        (function(pp,t){t.addEventListener("input",function(){if(FAV[pp.mgmt_no]){FAV[pp.mgmt_no].memo=t.value;saveFav()}})})(p,ta);
+        d.appendChild(ta);
+      }
       ls.appendChild(d)});
   }
   function diag(){
@@ -180,7 +211,7 @@ a.link{color:var(--accent);font-size:12.5px}
   }
   ["q","fsido","fdisp","minA","sort","cats","exk"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
-    DATA=j;$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신";diag();render();
+    DATA=j;$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
 })();
 </script></body></html>

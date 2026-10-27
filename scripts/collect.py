@@ -19,36 +19,9 @@ def scrub(t):
     return t
 
 
-def probe():
-    """연결 진단: 키 없이 호출해 어느 단계에서 막히는지 기록(인증 오류 응답이 빨리 오면 연결은 정상)."""
-    res = {}
-    host = "apis.data.go.kr"
-    t = time.time()
-    try:
-        res["dns"] = sorted({a[4][0] for a in socket.getaddrinfo(host, 443)})[:4]
-    except Exception as e:  # noqa: BLE001
-        res["dns"] = "실패: %s" % type(e).__name__
-    t = time.time()
-    try:
-        socket.create_connection((host, 443), timeout=15).close()
-        res["tcp443"] = "성공 %.1fs" % (time.time() - t)
-    except Exception as e:  # noqa: BLE001
-        res["tcp443"] = "실패 %s %.1fs" % (type(e).__name__, time.time() - t)
-    base = "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/"
-    for op in ("getRlstCltrList2", "getRlstCltrList"):
-        t = time.time()
-        try:
-            with urllib.request.urlopen(base + op + "?pageNo=1&numOfRows=1&resultType=json", timeout=20) as r:
-                res[op] = "HTTP %s %.1fs %s" % (r.status, time.time() - t, r.read(200).decode("utf-8", "replace"))
-        except urllib.error.HTTPError as e:
-            res[op] = "HTTP %s %.1fs %s" % (e.code, time.time() - t, e.read(200).decode("utf-8", "replace"))
-        except Exception as e:  # noqa: BLE001
-            res[op] = "실패 %s %.1fs" % (type(e).__name__, time.time() - t)
-    return res
-
 KST = datetime.timezone(datetime.timedelta(hours=9))
 out = {"fetched_at": datetime.datetime.now(KST).strftime("%Y-%m-%d %H:%M"), "errors": [], "passes": [],
-       "complete": True, "probe": probe(), "fields": [], "first_raw": None, "items": []}
+       "complete": True, "fields": [], "first_raw": None, "items": []}
 if not raw_key:
     out["errors"].append("ONBID_SERVICE_KEY 시크릿이 설정되지 않았습니다")
 else:
@@ -79,11 +52,37 @@ else:
                     n["pnu"] = r.get("ltnoPnu") or ""
                     merged[n["mgmt_no"]] = n
     out["items"] = sorted(merged.values(), key=lambda x: x.get("bid_end") or "9")
+
+# ── 신규 판정: 처음 본 시각(first_seen)을 기록해 둔다. 직전 data.json과 비교하며, 일시 실패에도 신규로 오판하지 않도록
+#    사라진 항목의 기록을 14일간 보관한다. 이력이 없던 기존 항목은 '기준(2000-01-01)'으로 두어 신규에서 제외한다.
+BASE = "2000-01-01 00:00"
+prev = {}
 try:
-    import vworld_probe
-    out["vworld_probe"] = vworld_probe.run(out["items"], os.environ.get("VWORLD_KEY", "").strip())
-except Exception as e:  # noqa: BLE001
-    out["vworld_probe"] = {"error": scrub(type(e).__name__ + ": " + str(e))[:300]}
+    with open(OUT, encoding="utf-8") as f:
+        prev = json.load(f)
+except Exception:  # noqa: BLE001
+    prev = {}
+now = out["fetched_at"]
+prev_items = prev.get("items") or []
+prev_seen = prev.get("seen")
+if prev_seen is None:
+    prev_seen = {i["mgmt_no"]: [BASE, prev.get("fetched_at") or now] for i in prev_items}
+if not out["items"] and prev_items:     # 수집 전체 실패 시 이전 목록을 유지(빈 화면 방지)
+    out["items"] = prev_items
+    out["stale"] = True
+    out["fetched_at_prev"] = prev.get("fetched_at")
+first_run = not prev_items and not prev_seen
+seen = {}
+for it in out["items"]:
+    k = it["mgmt_no"]
+    first = prev_seen[k][0] if k in prev_seen else (BASE if first_run else now)
+    it["first_seen"] = first
+    seen[k] = [first, now if not out.get("stale") else prev_seen.get(k, [first, now])[1]]
+cut = (datetime.datetime.now(KST) - datetime.timedelta(days=14)).strftime("%Y-%m-%d %H:%M")
+for k, v in prev_seen.items():
+    if k not in seen and v[1] >= cut:
+        seen[k] = v
+out["seen"] = seen
 print("items:", len(out["items"]), "errors:", len(out["errors"]), "passes:", out["passes"])
 for e in out["errors"]:
     print("ERR", e)
