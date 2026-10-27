@@ -19,6 +19,7 @@ jobs:
       - name: 온비드 수집
         env:
           ONBID_SERVICE_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
+          VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
         run: python scripts/collect.py
       - name: 결과 저장
         run: |

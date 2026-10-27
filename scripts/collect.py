@@ -76,8 +76,14 @@ else:
                                                            r.get("cltrUsgSclsCtgrNm")) if x)
                     n["status"] = r.get("pbctStatNm") or ""
                     n["share"] = r.get("alcYn") == "Y"
+                    n["pnu"] = r.get("ltnoPnu") or ""
                     merged[n["mgmt_no"]] = n
     out["items"] = sorted(merged.values(), key=lambda x: x.get("bid_end") or "9")
+try:
+    import vworld_probe
+    out["vworld_probe"] = vworld_probe.run(out["items"], os.environ.get("VWORLD_KEY", "").strip())
+except Exception as e:  # noqa: BLE001
+    out["vworld_probe"] = {"error": scrub(type(e).__name__ + ": " + str(e))[:300]}
 print("items:", len(out["items"]), "errors:", len(out["errors"]), "passes:", out["passes"])
 for e in out["errors"]:
     print("ERR", e)
