@@ -91,6 +91,15 @@ os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     json.dump(out, f, ensure_ascii=False)
 
+# ── V-World 키를 사이트에 고정(브라우저 어디서나 검토되게). 키는 등록 도메인에서만 동작 ──
+vk = os.environ.get("VWORLD_KEY", "").strip()
+if vk:
+    with open(os.path.join(os.path.dirname(OUT), "vwkey.js"), "w", encoding="utf-8") as f:
+        f.write("window.BF_VW_KEY=" + json.dumps(vk) + ";\n")
+    print("vwkey.js: written (len %d)" % len(vk))
+else:
+    print("vwkey.js: VWORLD_KEY 시크릿 없음")
+
 # ── 한전 분산전원 연계 여유용량 (docs/kepco.json) ──
 try:
     import kepco

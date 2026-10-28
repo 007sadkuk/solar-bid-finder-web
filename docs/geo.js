@@ -11,7 +11,7 @@ var BFGeo=(function(){
   var seq=0;
   function ls(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
   function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-  function getKey(){try{return localStorage.getItem("bf-vw-key")||""}catch(e){return ""}}
+  function getKey(){var k="";try{k=localStorage.getItem("bf-vw-key")||""}catch(e){}return k||window.BF_VW_KEY||""}
   function setKey(k){try{localStorage.setItem("bf-vw-key",k)}catch(e){}}
   function domain(){return location.hostname||"localhost"}
 
