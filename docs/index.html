@@ -544,12 +544,11 @@ a.link:hover{text-decoration:underline}
         a.title="온비드 물건 상세 페이지로 바로 이동"}
       else{a.href="https://www.onbid.co.kr/";a.title="상세 주소 정보가 아직 없어 온비드 첫 화면으로 이동합니다(다음 수집 후 갱신)"}
       a.target="_blank";a.rel="noopener";ac.appendChild(a);
-      (function(pp){var lx=el("a","link","LX 분석");lx.href="https://land.lx.or.kr/solar/";lx.target="_blank";lx.rel="noopener";
-        lx.title="LX '쨍하고 해뜰날'(무료)을 엽니다. 이 물건의 대표 주소가 복사되니 검색창에 붙여넣기(Ctrl+V) 하세요.";
-        lx.addEventListener("click",function(){var ad=lxAddr(pp);
-          if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ad).then(function(){toast("주소를 복사했습니다: "+ad+" — LX 검색창에 붙여넣기(Ctrl+V)")},function(){toast("복사 실패. 주소: "+ad)});
-          else toast("주소: "+ad)});
-        ac.appendChild(lx)})(p);
+      (function(pp){var cp=el("button","chip","주소 복사");cp.type="button";cp.title="대표 주소(지번까지)를 복사합니다. 토지이음·LX·지도 검색에 붙여넣기";
+        cp.addEventListener("click",function(){var ad=lxAddr(pp);
+          if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ad).then(function(){cp.textContent="복사했습니다";toast("복사: "+ad)},function(){window.prompt("복사하세요",ad)});
+          else window.prompt("복사하세요",ad)});
+        ac.insertBefore(cp,a)})(p);
       bd.appendChild(ac);
       if(p.area_m2&&GEO[p.mgmt_no]&&GOPEN[p.mgmt_no])bd.appendChild(geoPanel(p));
       if(p.area_m2&&OPEN[p.mgmt_no]){
