@@ -233,7 +233,7 @@ a.link:hover{text-decoration:underline}
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261027p"></script>
-<script src="geo.js?v=20261028b"></script>
+<script src="geo.js?v=20261028c"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -281,7 +281,7 @@ a.link:hover{text-decoration:underline}
   function gsum(p){var r=GEO[p.mgmt_no];return r?BFGeo.summarize(r,p,slopeLim()):null}
   /* 적합도 점수: 배점은 가정값(아래 기준표 참고). 확인하지 못한 항목은 0점으로 두고 '미확인'으로 따로 센다. */
   function scoreOf(p){
-    var r=GEO[p.mgmt_no]; if(!r||r.error)return null;
+    var r=GEO[p.mgmt_no]; if(!r||r.error||BFGeo.stale(r,p))return null;
     var parts=[],hard=[],unkMax=0,sc=0,mx=0;
     function add(label,pts,max,note,unk){parts.push([label,pts,max,note]);mx+=max;if(unk)unkMax+=max;else sc+=pts}
     var A=p.area_m2||0, ak=A>=20000?20:A>=10000?16:A>=5000?11:A>=3000?6:0;
@@ -295,7 +295,9 @@ a.link:hover{text-decoration:underline}
     else add("진입",0,20,"확인 불가",true);
     [["agri","농업진흥구역"],["gb","개발제한구역"]].forEach(function(x){
       var L=r.layers&&r.layers[x[0]];
-      if(L&&L.status==="overlap"){hard.push(x[1]+" 해당");add(x[1],0,12.5,"해당",false)}
+      var regN=L&&L.status==="overlap"?(L.names||[]).filter(function(n){return !/영농여건불리/.test(n)}):[];
+      if(L&&L.status==="overlap"&&!regN.length)add(x[1],12.5,12.5,"해당 없음(영농여건불리농지만 해당)",false);
+      else if(L&&L.status==="overlap"){hard.push(x[1]+" 해당");add(x[1],0,12.5,"해당",false)}
       else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
       else add(x[1],0,12.5,"확인 불가",true)});
     var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
@@ -468,7 +470,7 @@ a.link:hover{text-decoration:underline}
         var eb=el("button","chip",OPEN[p.mgmt_no]?"사업성 닫기":"사업성 보기");eb.type="button";
         (function(pp){eb.addEventListener("click",function(){OPEN[pp.mgmt_no]=!OPEN[pp.mgmt_no];render()})})(p);
         ac.appendChild(eb);
-        var has=!!GEO[p.mgmt_no]&&!GEO[p.mgmt_no].error,gbtn=el("button","chip go",GRUN[p.mgmt_no]?"검토 중...":GOPEN[p.mgmt_no]?"검토 닫기":"검토 보기");
+        var has=!!GEO[p.mgmt_no]&&!GEO[p.mgmt_no].error&&!BFGeo.stale(GEO[p.mgmt_no],p),gbtn=el("button","chip go",GRUN[p.mgmt_no]?"검토 중...":GOPEN[p.mgmt_no]?"검토 닫기":"검토 보기");
         gbtn.type="button";gbtn.disabled=!!GRUN[p.mgmt_no];
         (function(pp,h){gbtn.addEventListener("click",function(){
           if(GOPEN[pp.mgmt_no]){GOPEN[pp.mgmt_no]=false;render()}

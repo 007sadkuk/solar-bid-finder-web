@@ -11,7 +11,7 @@ th{background:#f3f5f8}.ok{color:#0a7a3d;font-weight:700}.no{color:#b3261e;font-w
 <div class="bar"><i id="pb"></i></div><p id="st"></p>
 <div id="rep"></div>
 <details open><summary>복사용 요약</summary><pre id="raw"></pre></details>
-<script src="geo.js?v=20261028b"></script>
+<script src="geo.js?v=20261028c"></script>
 <script>
 var KEY=BFGeo.getKey(),DOM=BFGeo.domain(),seq=0,STOP=false,RKEY="bf-verify-v1",RES=BFGeo.ls(RKEY,{}),ITEMS=[],ALL=0;
 var ZONES=["제1종전용주거지역","제2종전용주거지역","제1종일반주거지역","제2종일반주거지역","제3종일반주거지역","준주거지역","중심상업지역","일반상업지역","근린상업지역","유통상업지역","전용공업지역","일반공업지역","준공업지역","보전녹지지역","생산녹지지역","자연녹지지역","보전관리지역","생산관리지역","계획관리지역","농림지역","자연환경보전지역"];
@@ -32,7 +32,7 @@ async function one(it){
   if(r.error){o.e=r.error;return o}
   o.p=r.parcel.pnu;var z=r.layers.zone||{},g=r.layers.gb||{},a=r.layers.agri||{};
   o.lz=(z.names||[]).filter(function(x){return ZONES.indexOf(x)>=0});o.lzs=z.status;
-  o.lg=g.status;o.la=a.status;o.lan=a.names||[];
+  o.lg=g.status;o.lan=(a.names||[]);o.la=o.lan.some(function(n){return !/영농여건불리/.test(n)})?"overlap":a.status==="overlap"?"none":a.status;
   if([z.status,g.status,a.status].some(function(s){return s==="error"||s==="unverified"}))o.le=[z,g,a].map(function(x){return (x.detail||[]).join(" ")}).join(" ").trim().slice(0,160);
   try{var nr=await ned(o.p),nl=nedList(nr);
    if(nl)o.N=nl;else{var t=JSON.stringify(nr).slice(0,200);o.ne=t;}
@@ -41,7 +41,8 @@ async function one(it){
  return o}
 function quotaLike(o){var t=(o.e||"")+" "+(o.ne||"")+" "+(o.le||"");return /LIMIT|초과|quota|OVER_REQUEST|일일/i.test(t)}
 async function loadItems(){var d=await (await fetch("data.json?"+Date.now())).json();ALL=d.items.length;
- ITEMS=d.items.filter(function(i){return i.pnu&&i.pnu.length===19&&i.pnu.slice(11,15)!=="0000"})}
+ ITEMS=d.items.filter(function(i){return i.pnu&&i.pnu.length===19&&i.pnu.slice(11,15)!=="0000"});
+ var n=0;ITEMS.forEach(function(i){var o=RES[i.mgmt_no];if(o&&BFGeo.isSan(i.name)&&String(o.p||"")[10]!=="2"){delete RES[i.mgmt_no];n++}});if(n){save();$("st").textContent="예전 코드로 산 번지를 잘못 조회한 결과 "+n+"건을 지웠습니다. 이어서 실행을 누르면 그 건만 다시 조회합니다."}}
 $("go").onclick=async function(){
  if(!KEY){$("st").textContent="키가 저장돼 있지 않습니다";return}
  STOP=false;if(!ITEMS.length)await loadItems();

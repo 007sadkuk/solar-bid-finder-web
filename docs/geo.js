@@ -54,12 +54,20 @@ var BFGeo=(function(){
     return m}
 
   /* ── 필지번호 변환 (온비드는 대지구분 자리가 0으로 와서 V-World 값(1 일반 / 2 산)으로 바꿔야 조회된다) ── */
+  function isSan(name){return /(^|[\s,])산\s*\d/.test(name||"")}
   function pnuVariants(pnu,name){
     pnu=String(pnu||"");if(pnu.length!==19)return [];
     if(pnu.slice(11,15)==="0000")return [];            // 번지 정보 없음(여러 필지 묶음 등)
-    var d=pnu[10];if(d==="1"||d==="2")return [pnu];
-    var san=/(^|\s)산\s*\d/.test(name||"");
-    return (san?["2","1"]:["1","2"]).map(function(x){return pnu.slice(0,10)+x+pnu.slice(11)});
+    // 온비드 PNU는 산 번지도 11번째 자리를 1(일반)로 주는 경우가 대부분(2026-10-28 전수 확인: 산 428건 중 427건).
+    // 같은 번호의 일반 번지 필지를 잘못 잡지 않도록 이름의 '산' 여부로 자리를 정한다.
+    var san=isSan(name),d=pnu[10];
+    if(san)return [pnu.slice(0,10)+"2"+pnu.slice(11)];
+    if(d==="1"||d==="2")return [pnu];
+    return ["1","2"].map(function(x){return pnu.slice(0,10)+x+pnu.slice(11)});
+  }
+  function stale(r,item){ // 예전 코드로 산 번지를 일반 번지로 잘못 조회한 저장 결과
+    if(!r||!r.parcel)return false;var j=String(r.parcel.jibun||"");
+    return isSan(item&&item.name)!==/^산/.test(j);
   }
   function jibunInfo(j){j=String(j||"");var ch=j.slice(-1);return /\d/.test(ch)?{code:"",name:""}:{code:ch,name:JIMOK[ch]||ch}}
   function propName(p){p=p||{};var ks=["uname","dgm_nm","name","nm","dname","prpos_area_dstrc_nm1"];for(var i=0;i<ks.length;i++)if(p[ks[i]])return String(p[ks[i]]);
@@ -124,7 +132,8 @@ var BFGeo=(function(){
       if(r.status==="OK"&&r.features.length){f=r.features[0];used=vs[i]}
       else if(r.status!=="NOT_FOUND")throw new Error("지적도 조회 오류: "+r.status+" "+r.error);
     }
-    if(!f){out.error="지적도에서 이 필지번호를 찾지 못했습니다.";return out}
+    if(!f){out.error="지적도에서 이 필지번호를 찾지 못했습니다."+(isSan(item.name)?" (산 번지로 조회)":"");return out}
+    if(isSan(item.name)!==/^산/.test(String((f.properties||{}).jibun||""))){out.error="필지번호와 물건명의 산 번지 여부가 맞지 않아 검토하지 않았습니다(지적도: "+((f.properties||{}).jibun||"")+").";return out}
     var ps=polys(f.geometry);if(!ps.length){out.error="필지 경계 형식을 읽지 못했습니다.";return out}
     var ring=ps.reduce(function(a,b){return b.length>a.length?b:a});
     var lon0=ring[0][0],lat0=ring[0][1],to=mk(lon0,lat0),P=to(ring);
@@ -191,7 +200,7 @@ var BFGeo=(function(){
     if(r.error)return {level:"미검토",flags:[],warns:[],unk:[r.error],info:[]};
     var P=r.parcel;
     if(item.land_category&&P.jimok&&P.jimok!==item.land_category)warns.push("지목 불일치: 지적도 "+P.jimok+" / 온비드 분류 "+item.land_category);
-    var ag=r.layers.agri;if(ag){if(ag.status==="overlap")flags.push("농업진흥구역 해당("+ag.names.join(", ")+")");else if(ag.status!=="none")unk.push("농업진흥구역 확인 불가")}
+    var ag=r.layers.agri;if(ag){var agReg=(ag.names||[]).filter(function(n){return !/영농여건불리/.test(n)}),agFav=(ag.names||[]).filter(function(n){return /영농여건불리/.test(n)});if(agReg.length)flags.push("농업진흥구역 해당("+agReg.join(", ")+")");else if(ag.status!=="none"&&ag.status!=="overlap")unk.push("농업진흥구역 확인 불가");if(agFav.length)info.push("영농여건불리농지 해당(규제 아님)")}
     var gbL=r.layers.gb;if(gbL){if(gbL.status==="overlap")flags.push("개발제한구역 해당("+gbL.names.join(", ")+")");else if(gbL.status!=="none")info.push("개발제한구역 확인 불가(레이어 미검증, 등급은 잠정)")}
     var z=r.layers.zone;if(z&&z.status==="overlap")info.push("용도지역: "+z.names.join(", "));else if(z&&z.status!=="none")unk.push("용도지역 확인 불가");
     if(r.road){if(r.road.status==="no")flags.push("도로 지목 필지와 접하지 않음(맹지 여부는 현황도로·사도 확인 필요)");else if(r.road.status==="error")unk.push("진입 확인 불가")}
@@ -199,5 +208,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-n (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-o (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
