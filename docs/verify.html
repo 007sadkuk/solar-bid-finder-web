@@ -1,52 +1,99 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>용도지역 대조 시험</title>
-<style>body{font:14px/1.5 system-ui,"Malgun Gothic",sans-serif;margin:16px;max-width:1100px}button{font:inherit;padding:7px 14px}
-table{border-collapse:collapse;width:100%;margin-top:10px}td,th{border:1px solid #ccc;padding:4px 8px;vertical-align:top;font-size:12.5px;word-break:break-all}
-.ok{color:#0a7a3d;font-weight:700}.no{color:#b3261e;font-weight:700}.nf{color:#8a6d00}pre{white-space:pre-wrap;background:#f3f3f3;padding:8px}</style></head><body>
-<h2>용도지역 대조 시험</h2>
-<p>지도 레이어 방식(도구가 쓰는 방식)과 V-World 토지이용계획 조회(NED, 필지번호 기준)를 필지마다 대조합니다. 두 번째 방식이 이 키로 열리는지는 시험 전에는 확인되지 않았습니다.</p>
+<title>전수 대조 시험</title>
+<style>body{font:14px/1.5 system-ui,"Malgun Gothic",sans-serif;margin:16px;max-width:1100px;color:#1d2433}button{font:inherit;padding:7px 14px;margin-right:6px}
+table{border-collapse:collapse;margin:8px 0 14px}td,th{border:1px solid #ccc;padding:4px 10px;font-size:13px;text-align:left;vertical-align:top}
+th{background:#f3f5f8}.ok{color:#0a7a3d;font-weight:700}.no{color:#b3261e;font-weight:700}pre{white-space:pre-wrap;background:#f3f3f3;padding:8px;font-size:12.5px}
+.bar{height:10px;background:#e6e9ef;border-radius:5px;overflow:hidden;max-width:520px}.bar i{display:block;height:100%;background:#2c6e91;width:0}</style></head><body>
+<h2>전수 대조 시험 (용도지역 · 개발제한구역 · 농업진흥구역)</h2>
+<p>필지번호로 특정되는 모든 물건에 대해, 도구가 쓰는 <b>지도 레이어 방식</b>과 V-World <b>필지번호 토지이용계획 조회(NED)</b>를 대조합니다. 결과는 이 브라우저에 저장되므로 중간에 멈추거나 창을 닫아도 <b>이어서 실행</b>하면 남은 것만 조회합니다.</p>
 <p id="env" style="background:#fff7d6;padding:6px"></p>
-<p><button id="go">대조 실행 (16필지, 약 2분)</button> <span id="st"></span></p>
-<table><thead><tr><th>필지</th><th>지도 레이어 결과(도구)</th><th>NED 조회 결과(필지번호)</th><th>판정</th></tr></thead><tbody></tbody></table>
+<p><button id="go">실행 / 이어서 실행</button><button id="stop">멈춤</button><button id="csv">불일치 목록 내려받기(CSV)</button><button id="reset">저장 결과 지우기</button></p>
+<div class="bar"><i id="pb"></i></div><p id="st"></p>
+<div id="rep"></div>
 <details open><summary>복사용 요약</summary><pre id="raw"></pre></details>
-<script src="geo.js"></script>
+<script src="geo.js?v=20261028b"></script>
 <script>
-var KEY=BFGeo.getKey(),DOM=BFGeo.domain(),seq=0,LOG=[];
-document.getElementById("env").textContent="접속 주소: "+location.href+" | 키 길이: "+(KEY||"").length+" | 코드 버전: "+BFGeo.version;
+var KEY=BFGeo.getKey(),DOM=BFGeo.domain(),seq=0,STOP=false,RKEY="bf-verify-v1",RES=BFGeo.ls(RKEY,{}),ITEMS=[],ALL=0;
+var ZONES=["제1종전용주거지역","제2종전용주거지역","제1종일반주거지역","제2종일반주거지역","제3종일반주거지역","준주거지역","중심상업지역","일반상업지역","근린상업지역","유통상업지역","전용공업지역","일반공업지역","준공업지역","보전녹지지역","생산녹지지역","자연녹지지역","보전관리지역","생산관리지역","계획관리지역","농림지역","자연환경보전지역"];
+function $(i){return document.getElementById(i)}
+$("env").textContent="접속 주소: "+location.href+" | 키 길이: "+(KEY||"").length+" | 코드 버전: "+BFGeo.version;
+function save(){try{localStorage.setItem(RKEY,JSON.stringify(RES))}catch(e){$("st").textContent="저장 공간 부족: "+e.message}}
 function jsonp(url,params){return new Promise(function(res,rej){var n="__v"+(++seq),s=document.createElement("script");
  var to=setTimeout(function(){c();rej(new Error("시간 초과"))},20000);function c(){clearTimeout(to);delete window[n];s.remove()}
- window[n]=function(d){c();res(d)};s.onerror=function(){c();rej(new Error("요청 실패(JSONP)"))};
+ window[n]=function(d){c();res(d)};s.onerror=function(){c();rej(new Error("요청 실패"))};
  params.callback=n;s.src=url+"?"+new URLSearchParams(params).toString();document.head.appendChild(s)})}
-async function ned(pnu){
- var p={key:KEY,domain:DOM,pnu:pnu,format:"json",numOfRows:"100",pageNo:"1"},u="https://api.vworld.kr/ned/data/getLandUseAttr";
- try{var r=await fetch(u+"?"+new URLSearchParams(p).toString());return await r.json()}catch(e){}
- return await jsonp(u,p)}
-function nedNames(r){var f=r&&r.landUses&&r.landUses.field;if(!f)return null;if(!Array.isArray(f))f=[f];
- return f.map(function(x){return (x.prposAreaDstrcCodeNm||"")+"("+(x.cnflcAt||"")+")"})}
-function pickZoneNames(names){return names.filter(function(n){return /지역\(/.test(n)&&!/지구|구역/.test(n)})}
-function row(a,b,c,d,cls){var tr=document.createElement("tr");[a,b,c,d].forEach(function(v,i){var td=document.createElement("td");td.textContent=v;if(i===3)td.className=cls||"";tr.appendChild(td)});
- document.querySelector("tbody").appendChild(tr);LOG.push([a,b,c,d].join(" | "));document.getElementById("raw").textContent=LOG.join("\n")}
-document.getElementById("go").onclick=async function(){
- document.querySelector("tbody").innerHTML="";LOG=[];var st=document.getElementById("st");
- if(!KEY){st.textContent="키가 저장돼 있지 않습니다";return}
- var data=await (await fetch("data.json?"+Date.now())).json(),seen={},sel=[];
- data.items.filter(function(i){return i.pnu&&i.pnu.length===19&&i.pnu.slice(11,15)!=="0000"&&i.area_m2}).forEach(function(i){var k=i.pnu.slice(0,5);if(!seen[k]){seen[k]=1;sel.push(i)}});
- sel=sel.sort(function(a,b){return a.pnu<b.pnu?-1:1}).filter(function(_,i){return i%Math.max(1,Math.floor(sel.length/16))===0}).slice(0,16);
- var agree=0,tot=0,nedFail=0;
- for(var i=0;i<sel.length;i++){var it=sel[i];st.textContent=(i+1)+"/"+sel.length+" "+it.name;
-  var A="",B="",V="";
-  try{var r=await BFGeo.check(it);
-   if(r.error){A="오류: "+r.error}else{var z=(r.layers&&r.layers.zone)||{};A=(z.names||[]).join(", ")||(z.status==="none"?"해당 레이어 없음":z.status)}
-   var pnu=(r.parcel&&r.parcel.pnu)||it.pnu;
-   try{var n=await ned(pnu),nm=nedNames(n);
-    if(nm){var zn=pickZoneNames(nm);B=(zn.length?zn.join(", "):"(용도지역 항목 없음) 전체: "+nm.join(", ").slice(0,160))}
-    else{B="NED 응답 형식 이상: "+JSON.stringify(n).slice(0,160);nedFail++}
-   }catch(e){B="NED 실패: "+e.message;nedFail++}
-   if(A&&!/^오류|^해당 레이어/.test(A)&&!/^NED/.test(B)&&!/응답 형식/.test(B)){tot++;
-     var an=A.split(/,\s*/),hit=an.every(function(x){return B.indexOf(x)>=0});if(hit){agree++;V="일치"}else V="불일치"}
-   else V="판정 불가"
-  }catch(e){A="실패: "+e.message;V="판정 불가"}
-  row(it.name.slice(0,40)+" ["+it.pnu.slice(0,5)+"]",A,B,V,V==="일치"?"ok":V==="불일치"?"no":"nf");
- }
- st.textContent="끝. 판정 가능 "+tot+"건 중 일치 "+agree+"건, NED 실패 "+nedFail+"건. 아래 '복사용 요약'을 복사해 보내주세요."};
+async function ned(pnu){var p={key:KEY,domain:DOM,pnu:pnu,format:"json",numOfRows:"100",pageNo:"1"},u="https://api.vworld.kr/ned/data/getLandUseAttr";
+ try{var r=await fetch(u+"?"+new URLSearchParams(p).toString());return await r.json()}catch(e){}return await jsonp(u,p)}
+function nedList(r){var f=r&&r.landUses&&r.landUses.field;if(!f)return null;if(!Array.isArray(f))f=[f];
+ return f.map(function(x){return [x.prposAreaDstrcCodeNm||"",String(x.cnflcAt||"")]})}
+async function one(it){
+ var o={n:it.name.slice(0,60),p:it.pnu};
+ try{var r=await BFGeo.check(it,{groups:["zone","gb","agri"],road:false,slope:false});
+  if(r.error){o.e=r.error;return o}
+  o.p=r.parcel.pnu;var z=r.layers.zone||{},g=r.layers.gb||{},a=r.layers.agri||{};
+  o.lz=(z.names||[]).filter(function(x){return ZONES.indexOf(x)>=0});o.lzs=z.status;
+  o.lg=g.status;o.la=a.status;o.lan=a.names||[];
+  if([z.status,g.status,a.status].some(function(s){return s==="error"||s==="unverified"}))o.le=[z,g,a].map(function(x){return (x.detail||[]).join(" ")}).join(" ").trim().slice(0,160);
+  try{var nr=await ned(o.p),nl=nedList(nr);
+   if(nl)o.N=nl;else{var t=JSON.stringify(nr).slice(0,200);o.ne=t;}
+  }catch(e){o.ne=e.message}
+ }catch(e){o.e="예외: "+e.message}
+ return o}
+function quotaLike(o){var t=(o.e||"")+" "+(o.ne||"")+" "+(o.le||"");return /LIMIT|초과|quota|OVER_REQUEST|일일/i.test(t)}
+async function loadItems(){var d=await (await fetch("data.json?"+Date.now())).json();ALL=d.items.length;
+ ITEMS=d.items.filter(function(i){return i.pnu&&i.pnu.length===19&&i.pnu.slice(11,15)!=="0000"})}
+$("go").onclick=async function(){
+ if(!KEY){$("st").textContent="키가 저장돼 있지 않습니다";return}
+ STOP=false;if(!ITEMS.length)await loadItems();
+ var todo=ITEMS.filter(function(i){var r=RES[i.mgmt_no];return !r||r.e&&/예외|조회 오류|시간 초과|요청 실패/.test(r.e)||r.ne||r.le});
+ var done=0,qcount=0,t0=Date.now(),idx=0;
+ async function worker(){while(!STOP&&idx<todo.length){var it=todo[idx++];var o=await one(it);
+   if(quotaLike(o)){qcount++;if(qcount>=3){STOP=true;$("st").textContent="V-World 호출 한도 또는 차단으로 보이는 오류가 반복돼 멈췄습니다. 내일 이어서 실행하세요. 마지막 오류: "+((o.e||"")+(o.ne||"")+(o.le||"")).slice(0,200);break}}else qcount=0;
+   RES[it.mgmt_no]=o;done++;if(done%10===0){save();report()}
+   var left=todo.length-done,sec=(Date.now()-t0)/1000/done*left;
+   $("st").textContent="진행 "+done+"/"+todo.length+" (남은 예상 "+Math.round(sec/60)+"분) · 현재: "+it.name.slice(0,40);
+   $("pb").style.width=(100*(ITEMS.length-left)/ITEMS.length)+"%";}}
+ await Promise.all([worker(),worker(),worker()]);save();report();
+ if(!STOP)$("st").textContent="완료. 아래 결과를 복사해 보내주세요."};
+$("stop").onclick=function(){STOP=true;$("st").textContent="멈추는 중... (진행 중인 몇 건만 마치고 멈춥니다)"};
+$("reset").onclick=function(){if(confirm("저장된 대조 결과를 모두 지울까요?")){RES={};save();report()}};
+function analyze(){
+ var S={target:ITEMS.length,all:ALL,done:0,noParcel:0,err:0,nedFail:0,layErr:0,cmp:0,
+  zExact:0,zSuper:0,zMissing:0,zBoth:0,zNone:0,code:{},extra:{},
+  gb:{tt:0,tf:0,ft:0,ff:0},ag:{tt:0,tf:0,ft:0,ff:0},rows:[]};
+ ITEMS.forEach(function(it){var o=RES[it.mgmt_no];if(!o)return;S.done++;
+  if(o.e){if(/찾지 못/.test(o.e))S.noParcel++;else S.err++;S.rows.push([o.n,o.p,"검토 불가",o.e]);return}
+  if(o.ne){S.nedFail++;S.rows.push([o.n,o.p,"NED 실패",o.ne]);return}
+  if(o.le){S.layErr++;S.rows.push([o.n,o.p,"레이어 오류",o.le]);return}
+  S.cmp++;
+  var N=o.N,nz=N.filter(function(x){return ZONES.indexOf(x[0])>=0}),L=o.lz||[];
+  var nzNames=nz.map(function(x){return x[0]});
+  nz.forEach(function(x){var k="코드 "+(x[1]||"없음");S.code[k]=S.code[k]||{inLayer:0,notInLayer:0};S.code[k][L.indexOf(x[0])>=0?"inLayer":"notInLayer"]++});
+  var extra=L.filter(function(x){return nzNames.indexOf(x)<0});
+  var core=nz.filter(function(x){return x[1]==="1"}).map(function(x){return x[0]});
+  var miss=(core.length?core:nzNames).filter(function(x){return L.indexOf(x)<0});
+  if(!L.length&&!nzNames.length)S.zNone++;
+  else if(!extra.length&&!miss.length){S.zExact++}
+  else{if(extra.length&&miss.length)S.zBoth++;else if(extra.length)S.zSuper++;else S.zMissing++;
+   S.rows.push([o.n,o.p,"용도지역 차이","레이어: "+L.join("/")+" · NED: "+nz.map(function(x){return x[0]+"("+x[1]+")"}).join("/")])}
+  var ng=N.some(function(x){return /개발제한구역/.test(x[0])}),lg=o.lg==="overlap";
+  S.gb[(lg?"t":"f")+(ng?"t":"f")]++;if(lg!==ng)S.rows.push([o.n,o.p,"개발제한구역 차이","레이어:"+(lg?"해당":"없음")+" · NED:"+(ng?"해당":"없음")+" · "+N.filter(function(x){return /개발제한/.test(x[0])}).map(function(x){return x[0]+"("+x[1]+")"}).join("/")]);
+  var na=N.some(function(x){return /농업진흥구역|농업보호구역/.test(x[0])}),la=o.la==="overlap";
+  S.ag[(la?"t":"f")+(na?"t":"f")]++;if(la!==na)S.rows.push([o.n,o.p,"농업진흥 차이","레이어:"+(la?(o.lan||[]).join("/")||"해당":"없음")+" · NED:"+N.filter(function(x){return /농업/.test(x[0])}).map(function(x){return x[0]+"("+x[1]+")"}).join("/")]);
+ });
+ return S}
+function pct(a,b){return b?(100*a/b).toFixed(1)+"%":"-"}
+function report(){if(!ITEMS.length)return;var S=analyze(),t=[];
+ t.push("기준: 코드 "+BFGeo.version+" / 데이터 전체 "+S.all+"건 중 필지번호로 특정되는 대상 "+S.target+"건 (나머지 "+(S.all-S.target)+"건은 필지번호 없음·번지 없음으로 검토 불가)");
+ t.push("진행: "+S.done+"/"+S.target+" · 지적도에서 못 찾음 "+S.noParcel+" · 기타 오류 "+S.err+" · NED 실패 "+S.nedFail+" · 레이어 오류 "+S.layErr+" · 대조 완료 "+S.cmp);
+ t.push("[용도지역] 완전 일치 "+S.zExact+" ("+pct(S.zExact,S.cmp)+") · 둘 다 없음 "+S.zNone+" · 레이어가 더 많이 잡음 "+S.zSuper+" · 레이어가 놓침 "+S.zMissing+" · 양쪽 차이 "+S.zBoth);
+ Object.keys(S.code).sort().forEach(function(k){t.push("  NED "+k+": 레이어도 잡음 "+S.code[k].inLayer+" / 레이어는 못 잡음 "+S.code[k].notInLayer)});
+ t.push("[개발제한구역] 둘 다 해당 "+S.gb.tt+" · 둘 다 없음 "+S.gb.ff+" · 레이어만 해당 "+S.gb.tf+" · NED만 해당 "+S.gb.ft);
+ t.push("[농업진흥·보호구역] 둘 다 해당 "+S.ag.tt+" · 둘 다 없음 "+S.ag.ff+" · 레이어만 해당 "+S.ag.tf+" · NED만 해당 "+S.ag.ft);
+ t.push("차이·오류 목록 "+S.rows.length+"건 (CSV로 내려받기). 앞 15건:");
+ S.rows.slice(0,15).forEach(function(r){t.push("  "+r.join(" | "))});
+ $("raw").textContent=t.join("\n");window.__S=S}
+$("csv").onclick=function(){var S=window.__S||analyze();var lines=[["물건","PNU","구분","내용"]].concat(S.rows).map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"'}).join(",")});
+ var b=new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="대조_차이목록.csv";a.click()};
+loadItems().then(report);
 </script></body></html>

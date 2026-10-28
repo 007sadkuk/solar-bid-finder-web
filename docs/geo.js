@@ -138,7 +138,8 @@ var BFGeo=(function(){
     /* 규제·용도 레이어 */
     var okL=ls("bf-vw-ok",{});
     for(var g=0;g<GROUPS.length;g++){
-      var G=GROUPS[g],res={label:G.label,kind:G.kind,status:"none",names:[],detail:[]};
+      var G=GROUPS[g];if(opt.groups&&opt.groups.indexOf(G.id)<0)continue;
+      var res={label:G.label,kind:G.kind,status:"none",names:[],detail:[]};
       var anyVerified=false,anyErr="";
       for(var l=0;l<G.layers.length;l++){
         var L=G.layers[l];
@@ -162,7 +163,7 @@ var BFGeo=(function(){
     }
 
     /* 인접 필지 → 도로 접함 */
-    try{
+    if(opt.road!==false)try{
       var nb=await vwData("LP_PA_CBND_BUBUN",{geomFilter:box(0.0003),size:"60"});
       if(nb.status==="OK"){
         var roadTouch=[],others=[];
@@ -198,5 +199,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-m (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-n (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
