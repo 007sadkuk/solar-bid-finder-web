@@ -210,7 +210,7 @@ a.link:hover{text-decoration:underline}
     <summary><span>검토 설정 (V-World) <span id="gver" class="note"></span></span></summary>
     <div class="in">
     <div class="grid2">
-      <label for="vwkey">V-World 인증키 (이 브라우저에만 저장)<input id="vwkey" type="password" autocomplete="off" placeholder="인증키"></label>
+      <label for="vwkey">V-World 인증키 (비워 두면 사이트 기본 키 사용)<input id="vwkey" type="password" autocomplete="off" placeholder="인증키"></label>
       <label for="slopeLim">경사 기준 °(초과 시 문제)<input id="slopeLim" type="number" value="15" min="1" max="45"></label>
     </div>
     <div><button id="vwsave" class="chip" type="button">저장</button> <span id="vwmsg" class="note"></span></div>
@@ -626,7 +626,7 @@ a.link:hover{text-decoration:underline}
   ["e_use","e_price","e_capex","e_hrs","e_om","e_years","e_tirr"].forEach(function(i){$(i).addEventListener("change",function(){ECO={};render()})});
   $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
   $("vwdom").textContent=BFGeo.domain();$("gver").textContent="· 코드 버전 "+BFGeo.version;
-  try{$("vwkey").value=BFGeo.getKey()}catch(e){}
+  try{$("vwkey").value=localStorage.getItem("bf-vw-key")||""}catch(e){}
   try{var sl=localStorage.getItem("bf-slope");if(sl)$("slopeLim").value=sl}catch(e){}
   $("slopeLim").addEventListener("input",function(){try{localStorage.setItem("bf-slope",$("slopeLim").value)}catch(e){}render()});
   $("vwsave").addEventListener("click",function(){BFGeo.setKey($("vwkey").value.trim());$("vwmsg").textContent=$("vwkey").value.trim()?"저장했습니다.":"키를 비웠습니다."});
