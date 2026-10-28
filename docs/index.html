@@ -226,7 +226,7 @@ a.link:hover{text-decoration:underline}
   <section>
     <div class="sub2" style="margin-bottom:10px"><span class="chips" id="vchips" role="group" aria-label="추가 보기"></span></div>
     <div class="acts" style="margin-bottom:10px"><span class="stat" id="stat"></span><span class="sp"></span>
-      <button id="mapbtn" class="chip" type="button">지도 보기</button> <button id="batch" class="chip" type="button">후보 전체 검토</button> <label class="note" style="display:inline-flex;gap:4px;align-items:center"><input type="checkbox" id="autogeo" checked> 열 때 새 후보 자동 검토</label> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
+      <button id="mapbtn" class="chip" type="button">지도 보기</button> <button class="chip go" type="button" data-apply>조건 적용</button> <button id="batch" class="chip" type="button">후보 전체 검토</button> <label class="note" style="display:inline-flex;gap:4px;align-items:center;white-space:nowrap;flex-direction:row"><input type="checkbox" id="autogeo" checked style="width:auto;margin:0">자동 검토</label> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
     <div id="mapwrap" class="panel" style="display:none;padding:10px;margin-bottom:10px">
       <div id="map" style="height:440px;border-radius:6px"></div>
       <p class="note" id="mapnote"></p>
@@ -474,8 +474,8 @@ a.link:hover{text-decoration:underline}
       bt.appendChild(el("b",null,cnt[x[0]].toLocaleString()));bt.appendChild(el("span",null,x[1]));
       bt.addEventListener("click",function(){filter=x[0];render()});fn.appendChild(bt)});
     var vc=$("vchips");vc.innerHTML="";
-    ["가격 적정","계통 여유","판단불가","제외","신규","즐겨찾기","검토-양호","검토-문제"].forEach(function(v){
-      var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
+    ["가격 적정","계통 여유","신규","즐겨찾기","판단불가","제외"].forEach(function(v){
+      var b=el("button","chip",(v==="판단불가"?"정보 부족":v)+" "+cnt[v]);if(v==="판단불가"||v==="제외"){b.style.opacity=".7";b.title=v==="판단불가"?"면적·용도 정보가 비어 조건 판단을 못 한 물건":"후보 조건(면적·용도·제외 키워드)에 맞지 않아 빠진 물건"}b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=filter===v?"후보":v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
       if(filter==="전체")return true; if(filter==="계통 여유"){var gg1=p._v==="후보"&&gridOf(p);return !!gg1&&gg1.st==="ok"} if(filter==="가격 적정"){var pt1=p._v==="후보"&&priceTag(p);return !!pt1&&pt1.ratio<=1} if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
@@ -658,7 +658,7 @@ a.link:hover{text-decoration:underline}
     ECO={};saveEcon();render();
     var n=DATA?DATA.items.filter(function(p){return p.area_m2&&judge(p)[0]==="후보"&&needGeo(p)}).length:0;
     Array.prototype.forEach.call(document.querySelectorAll("[data-applymsg]"),function(m){m.textContent=n?"적용했습니다. 새 후보 "+n+"건 검토를 시작합니다.":"적용했습니다. 새로 검토할 후보는 없습니다."});
-    if(!n)return;
+    if(!n){if(!auto)$("batchmsg").textContent="조건을 적용했습니다. 새로 검토할 후보는 없습니다.";return}
     if($("batch").disabled){PENDING=true;return}
     if(!auto||$("autogeo").checked)batchAll(false);
   }
