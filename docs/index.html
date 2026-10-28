@@ -224,7 +224,7 @@ a.link:hover{text-decoration:underline}
   <section>
     <div class="sub2" style="margin-bottom:10px"><span class="chips" id="vchips" role="group" aria-label="추가 보기"></span></div>
     <div class="acts" style="margin-bottom:10px"><span class="stat" id="stat"></span><span class="sp"></span>
-      <button id="mapbtn" class="chip" type="button">지도 보기</button> <button id="batch" class="chip" type="button">표시 목록 일괄 검토 (최대 30건)</button> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
+      <button id="mapbtn" class="chip" type="button">지도 보기</button> <button id="batch" class="chip" type="button">후보 전체 검토</button> <label class="note" style="display:inline-flex;gap:4px;align-items:center"><input type="checkbox" id="autogeo" checked> 열 때 새 후보 자동 검토</label> <button id="batchstop" class="chip" type="button" style="display:none">중지</button> <span id="batchmsg" class="note" style="margin:0"></span></div>
     <div id="mapwrap" class="panel" style="display:none;padding:10px;margin-bottom:10px">
       <div id="map" style="height:440px;border-radius:6px"></div>
       <p class="note" id="mapnote"></p>
@@ -280,8 +280,9 @@ a.link:hover{text-decoration:underline}
   function won(n){if(n===null||n===undefined||!isFinite(n))return "-";n=Math.round(n);return Math.abs(n)>=1e8?(Math.round(n/1e6)/100).toLocaleString("ko-KR")+"억원":Math.abs(n)>=1e4?Math.round(n/1e4).toLocaleString("ko-KR")+"만원":n.toLocaleString("ko-KR")+"원"}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
   var OPEN={}, GOPEN={}, GEO=BFGeo.ls("bf-geo-v1",{}), GRUN={}, STOP=false;
-  Object.keys(GEO).forEach(function(k){if(GEO[k]&&GEO[k].error)delete GEO[k]});
-  function saveGeo(){var keys=Object.keys(GEO);if(keys.length>1500){keys.sort(function(a,b){return GEO[a].ts-GEO[b].ts}).slice(0,keys.length-1500).forEach(function(k){delete GEO[k]})}BFGeo.lsSet("bf-geo-v1",GEO)}
+  Object.keys(GEO).forEach(function(k){if(GEO[k]&&GEO[k].error&&/인증키|시간 초과|요청 실패|fetch|Failed|예외/.test(GEO[k].error))delete GEO[k]}); // 일시 오류만 비움(검토 불가 사유는 유지)
+  function slim(r){if(r&&r.parcel&&r.parcel.ring&&r.parcel.ring.length>24){var rg=r.parcel.ring,k=Math.ceil(rg.length/24);r.parcel.ring=rg.filter(function(_,i){return i%k===0})}return r}
+  function saveGeo(){Object.keys(GEO).forEach(function(k){slim(GEO[k])});var keys=Object.keys(GEO);if(keys.length>4000){keys.sort(function(a,b){return GEO[a].ts-GEO[b].ts}).slice(0,keys.length-4000).forEach(function(k){delete GEO[k]})}BFGeo.lsSet("bf-geo-v1",GEO)}
   function slopeLim(){var v=Number($("slopeLim").value);return isFinite(v)&&v>0?v:15}
   function gsum(p){var r=GEO[p.mgmt_no];return r?BFGeo.summarize(r,p,slopeLim()):null}
   /* 적합도 점수: 배점은 가정값(아래 기준표 참고). 확인하지 못한 항목은 0점으로 두고 '미확인'으로 따로 센다. */
@@ -628,20 +629,30 @@ a.link:hover{text-decoration:underline}
   $("vwsave").addEventListener("click",function(){BFGeo.setKey($("vwkey").value.trim());$("vwmsg").textContent=$("vwkey").value.trim()?"저장했습니다.":"키를 비웠습니다."});
   $("mapbtn").addEventListener("click",function(){MAPON=!MAPON;$("mapwrap").style.display=MAPON?"":"none";$("mapbtn").textContent=MAPON?"지도 닫기":"지도 보기";render()});
   $("batchstop").addEventListener("click",function(){STOP=true});
-  $("batch").addEventListener("click",async function(){
-    if(!BFGeo.getKey()){$("batchmsg").textContent="먼저 '검토 설정'에 V-World 키를 저장하세요.";return}
-    var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0]})});
-    var cards=Array.prototype.map.call(document.querySelectorAll(".item .t"),function(e){return e.textContent});
-    var list=all.filter(function(p){return cards.indexOf(p.name)>=0&&!GEO[p.mgmt_no]}).slice(0,30);
-    if(!list.length){$("batchmsg").textContent="확인할 새 항목이 없습니다(이미 확인했거나 필지번호가 없음).";return}
+  $("autogeo").addEventListener("change",function(){try{localStorage.setItem("bf-autogeo",$("autogeo").checked?"1":"0")}catch(e){}});
+  function needGeo(p){var r=GEO[p.mgmt_no];if(!r)return true;if(r.error)return /시간 초과|요청 실패|조회 오류|인증키|fetch|Failed|예외/.test(r.error)&&Date.now()-r.ts>3600e3;return BFGeo.stale(r,p)} // 일시 오류만 1시간 뒤 재시도
+  async function batchAll(auto){
+    if(!BFGeo.getKey()){if(!auto)$("batchmsg").textContent="먼저 '검토 설정'에 V-World 키를 저장하세요.";return}
+    if(!DATA||$("batch").disabled)return;
+    var list=DATA.items.filter(function(p){return p.area_m2&&judge(p)[0]==="후보"&&needGeo(p)});
+    if(!list.length){if(!auto)$("batchmsg").textContent="검토할 새 후보가 없습니다. 후보는 모두 검토돼 있습니다.";return}
     STOP=false;$("batch").disabled=true;$("batchstop").style.display="";
-    for(var i=0;i<list.length&&!STOP;i++){$("batchmsg").textContent=(i+1)+" / "+list.length+" 확인 중... "+list[i].name.slice(0,30);
-      await runGeo(list[i]);await new Promise(function(r){setTimeout(r,300)})}
-    $("batch").disabled=false;$("batchstop").style.display="none";$("batchmsg").textContent=STOP?"중지했습니다.":"끝났습니다.";
-  });
+    var done=0,idx=0,t0=Date.now(),fail=0;
+    async function worker(){while(!STOP&&idx<list.length){var p=list[idx++];
+      try{GEO[p.mgmt_no]=await BFGeo.check(p)}catch(e){GEO[p.mgmt_no]={ts:Date.now(),error:e.message,notes:[],layers:{}}}
+      if(GEO[p.mgmt_no].error)fail++;done++;
+      var left=list.length-done,sec=(Date.now()-t0)/1000/done*left;
+      $("batchmsg").textContent="후보 검토 중 "+done+" / "+list.length+" (남은 예상 "+Math.max(1,Math.round(sec/60))+"분) — 창을 열어 두세요. 닫아도 다음에 이어서 합니다.";
+      if(done%10===0){saveGeo();render()}}}
+    await Promise.all([worker(),worker(),worker()]);
+    saveGeo();ECO={};render();
+    $("batch").disabled=false;$("batchstop").style.display="none";
+    $("batchmsg").textContent=(STOP?"중지했습니다. ":"후보 검토를 마쳤습니다. ")+done+"건 검토"+(fail?" (그중 "+fail+"건은 검토 불가 — 사유는 카드의 검토 보기)":"")+". 위쪽 '추천 A·B'를 누르면 고려할 만한 물건만 봅니다.";
+  }
+  $("batch").addEventListener("click",function(){batchAll(false)});
   fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(j){KEP=j;ECO={};if(DATA){diag();render()}}}).catch(function(){});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
-    DATA=j;buildCats();buildExk();$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
+    DATA=j;buildCats();buildExk();try{$("autogeo").checked=localStorage.getItem("bf-autogeo")!=="0"}catch(e){}if($("autogeo").checked)setTimeout(function(){batchAll(true)},1500);$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
 })();
 </script></body></html>
