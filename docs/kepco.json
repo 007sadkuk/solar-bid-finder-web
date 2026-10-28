@@ -1,0 +1,1 @@
+{"meta": {"fetched_at": "2026-10-28 11:36", "calls": 0, "ok": 0, "errors": ["KEPCO_API_KEY 시크릿이 설정되지 않았습니다"], "skipped_no_addr": 0, "source": "https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do", "cached": 0}, "items": {}}
