@@ -215,7 +215,7 @@ a.link:hover{text-decoration:underline}
     <p class="note" style="margin:0">키는 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. 키는 등록한 주소에서만 동작하며 현재 주소는 <b id="vwdom"></b> 입니다. 등록되지 않았으면 '요청 실패'가 나옵니다.<br>
     경사는 무료 공개 표고 서비스(SRTM 30m, 막히면 Copernicus 90m)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이고, 지자체 경사 기준(조례)은 별도로 확인해야 합니다. 진입은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
     <p class="note" style="margin:0"><b>적합도 점수 기준 (제가 정한 가정값이며 법적 기준이 아닙니다)</b><br>
-    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 토지비 15 (매각: 토지비가 목표 IRR 기준 입찰 상한가의 ≤50% 15, ≤75% 11, ≤100% 6, ≤125% 2, 초과 0 · 임대: 감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
+    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 보전산지(임업용·공익용) 해당이면 '부적합' · 토지비 15 (매각: 토지비가 목표 IRR 기준 입찰 상한가의 ≤50% 15, ≤75% 11, ≤100% 6, ≤125% 2, 초과 0 · 임대: 감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
     확인하지 못한 항목은 0점으로 두고 등급 뒤에 ?(잠정)를 붙입니다. 등급은 A 80점 이상, B 65점 이상, C 50점 이상, D 그 미만입니다. 용도지역과 지목 불일치는 점수에 넣지 않고 표시만 합니다.</p>
     </div>
   </details>
@@ -238,7 +238,7 @@ a.link:hover{text-decoration:underline}
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261027p"></script>
-<script src="geo.js?v=20261028e"></script>
+<script src="geo.js?v=20261028f"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -306,6 +306,7 @@ a.link:hover{text-decoration:underline}
       else if(L&&L.status==="edge")add(x[1],0,12.5,"경계 걸침·확인 필요",true)
       else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
       else add(x[1],0,12.5,"확인 불가",true)});
+    var sjL=r.layers&&r.layers.sanji;if(sjL&&sjL.status==="overlap")hard.push("보전산지 해당");
     var ec=A?econ(p):null;
     if(ec&&ec.kW&&ec.ratio!==null){var x=ec.ratio;add("토지비",x<=0.5?15:x<=0.75?11:x<=1?6:x<=1.25?2:0,15,ec.landSrc+" "+won(ec.landWon)+" / 목표 IRR "+Math.round(ec.tirr*1000)/10+"% 상한가 "+won(ec.maxLandWon)+" ("+(x===Infinity?"수익 불가":Math.round(x*100)+"%")+")",false)}
     else{var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
@@ -342,7 +343,7 @@ a.link:hover{text-decoration:underline}
     S.warns.forEach(function(t){L("△ "+t,"var(--warn)")});
     S.unk.forEach(function(t){L("? "+t+" (해당 없음이 아니라 확인하지 못한 것)","var(--muted)")});
     (S.info||[]).forEach(function(x){L("ⓘ "+x,"var(--muted)")});
-    ["zone","agri","forest","gb"].forEach(function(id){var x=r.layers[id];if(!x)return;
+    ["zone","agri","gb","sanji","forest"].forEach(function(id){var x=r.layers[id];if(!x)return;
       var t=x.status==="overlap"?x.names.join(", ")+(x.edge&&x.edge.length?" (경계 걸침: "+x.edge.join(", ")+")":""):x.status==="edge"?"경계 걸침: "+x.names.join(", ")+" (토지이음 확인 필요)":x.status==="none"?"해당 없음":x.status==="unverified"?"확인 불가(레이어 이름 미검증)":"조회 오류"+(x.detail&&x.detail[0]?": "+x.detail[0]:"");
       L(x.label+": "+t+(x.src==="NED"?" [필지번호 조회]":x.src?"":" [지도 레이어]"))});
     if(r.road)L("진입: "+(r.road.status==="touch"?"도로 지목 필지에 접함("+r.road.roads.join(", ")+")":r.road.status==="no"?"도로 지목 필지와 접하지 않음":"확인 불가: "+r.road.detail)+(r.road.others&&r.road.others.length?" · 인접: "+r.road.others.join(", "):""));
@@ -509,6 +510,7 @@ a.link:hover{text-decoration:underline}
           else{var q=mx?pts/mx:0;g=q>=0.8?"A":q>=0.65?"B":q>=0.5?"C":q>0?"D":"F"}
           var row=el("div");row.appendChild(el("span",null,lab));row.appendChild(el("b",null,g));
           row.title=x[0]+" "+pts+"/"+mx+" ("+note+")";rp.appendChild(row)});
+        if(sc0.hard.indexOf("보전산지 해당")>=0){var r2=el("div");r2.appendChild(el("span",null,"산지"));r2.appendChild(el("b",null,"✕"));r2.title="보전산지(임업용·공익용) 해당 — 태양광 설치 불가";rp.appendChild(r2)}
         rail.appendChild(rp);rail.title=(rail.title?rail.title+"\n":"")+"항목 등급: 득점÷배점 80% 이상 A, 65% B, 50% C, 0 초과 D, 0점 F, 미확인 ?, 해당(규제) ✕";
       }
       d.appendChild(rail);

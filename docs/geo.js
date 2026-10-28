@@ -212,6 +212,7 @@ var BFGeo=(function(){
         out.layers.zone=nedGroup(NL,function(n){return ZONES.indexOf(n)>=0&&n!=="도시지역"&&n!=="관리지역"},"용도지역","info");
         out.layers.gb=nedGroup(NL,function(n){return /개발제한구역/.test(n)},"개발제한구역","reg");
         out.layers.agri=nedGroup(NL,function(n){return /농업진흥구역|농업보호구역/.test(n)},"농업진흥구역","reg");
+        out.layers.sanji=nedGroup(NL,function(n){return /임업용산지|공익용산지/.test(n)||(/보전산지/.test(n)&&!/준보전산지/.test(n))},"보전산지","reg");
         nedDone={zone:1,gb:1,agri:1};
       }catch(e){out.notes.push("토지이용계획(NED) 조회 실패 → 지도 레이어로 대체: "+e.message)}
     }
@@ -273,12 +274,13 @@ var BFGeo=(function(){
     if(item.land_category&&P.jimok&&P.jimok!==item.land_category)warns.push("지목 불일치: 지적도 "+P.jimok+" / 온비드 분류 "+item.land_category);
     var ag=r.layers.agri;if(ag){var agReg=(ag.names||[]).filter(function(n){return !/영농여건불리/.test(n)}),agFav=(ag.names||[]).filter(function(n){return /영농여건불리/.test(n)});if(ag.status==="overlap"&&agReg.length)flags.push("농업진흥구역 해당("+agReg.join(", ")+")");else if(ag.status==="edge")warns.push("농업진흥·보호구역 경계 걸침("+ag.names.join(", ")+") — 토지이음으로 확인 필요");else if(ag.status!=="none"&&ag.status!=="overlap")unk.push("농업진흥구역 확인 불가");if(agFav.length)info.push("영농여건불리농지 해당(규제 아님)")}
     var gbL=r.layers.gb;if(gbL){if(gbL.status==="overlap")flags.push("개발제한구역 해당("+gbL.names.join(", ")+")");else if(gbL.status==="edge")warns.push("개발제한구역 경계 걸침 — 토지이음으로 확인 필요");else if(gbL.status!=="none")unk.push("개발제한구역 확인 불가")}
+    var sj=r.layers.sanji;if(sj){if(sj.status==="overlap")flags.push("보전산지 해당("+sj.names.join(", ")+") — 태양광 설치 불가(준보전산지만 가능)");else if(sj.status==="edge")warns.push("보전산지 경계 걸침("+sj.names.join(", ")+") — 토지이음으로 확인 필요")}else if(r.src!=="NED")unk.push("보전산지 확인 불가(토지이용계획 조회 실패)");
     var z=r.layers.zone;if(z&&(z.status==="overlap"||z.status==="edge"))info.push("용도지역: "+z.names.join(", ")+((z.edge&&z.edge.length&&z.status==="overlap")?" (경계 걸침: "+z.edge.join(", ")+")":""));else if(z&&z.status!=="none")unk.push("용도지역 확인 불가");
-    if(r.ned){var ex=r.ned.filter(function(x){return ZONES.indexOf(x[0])<0&&!/개발제한구역|농업진흥구역|농업보호구역/.test(x[0])}).map(function(x){return x[0]+(x[1]==="3"?"(경계)":"")});if(ex.length)info.push("기타 토지이용계획: "+Array.from(new Set(ex)).join(", "))}
+    if(r.ned){var ex=r.ned.filter(function(x){return ZONES.indexOf(x[0])<0&&!/개발제한구역|농업진흥구역|농업보호구역|임업용산지|공익용산지/.test(x[0])&&!(/보전산지/.test(x[0])&&!/준보전산지/.test(x[0]))}).map(function(x){return x[0]+(x[1]==="3"?"(경계)":"")});if(ex.length)info.push("기타 토지이용계획: "+Array.from(new Set(ex)).join(", "))}
     if(r.road){if(r.road.status==="no")flags.push("도로 지목 필지와 접하지 않음(맹지 여부는 현황도로·사도 확인 필요)");else if(r.road.status==="error")unk.push("진입 확인 불가")}
     if(r.slope){if(r.slope.status==="ok"&&r.slope.deg!==null){if(r.slope.deg>slopeLimit)flags.push("평균 경사 약 "+r.slope.deg.toFixed(1)+"° (기준 "+slopeLimit+"° 초과)")}else unk.push("경사 확인 불가")}
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-q (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
