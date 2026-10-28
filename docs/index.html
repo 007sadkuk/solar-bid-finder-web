@@ -233,7 +233,7 @@ a.link:hover{text-decoration:underline}
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261027p"></script>
-<script src="geo.js?v=20261028c"></script>
+<script src="geo.js?v=20261028d"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -298,6 +298,7 @@ a.link:hover{text-decoration:underline}
       var regN=L&&L.status==="overlap"?(L.names||[]).filter(function(n){return !/영농여건불리/.test(n)}):[];
       if(L&&L.status==="overlap"&&!regN.length)add(x[1],12.5,12.5,"해당 없음(영농여건불리농지만 해당)",false);
       else if(L&&L.status==="overlap"){hard.push(x[1]+" 해당");add(x[1],0,12.5,"해당",false)}
+      else if(L&&L.status==="edge")add(x[1],0,12.5,"경계 걸침·확인 필요",true)
       else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
       else add(x[1],0,12.5,"확인 불가",true)});
     var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
@@ -329,8 +330,8 @@ a.link:hover{text-decoration:underline}
     S.unk.forEach(function(t){L("? "+t+" (해당 없음이 아니라 확인하지 못한 것)","var(--muted)")});
     (S.info||[]).forEach(function(x){L("ⓘ "+x,"var(--muted)")});
     ["zone","agri","forest","gb"].forEach(function(id){var x=r.layers[id];if(!x)return;
-      var t=x.status==="overlap"?x.names.join(", "):x.status==="none"?"해당 없음":x.status==="unverified"?"확인 불가(레이어 이름 미검증)":"조회 오류"+(x.detail&&x.detail[0]?": "+x.detail[0]:"");
-      L(x.label+": "+t)});
+      var t=x.status==="overlap"?x.names.join(", ")+(x.edge&&x.edge.length?" (경계 걸침: "+x.edge.join(", ")+")":""):x.status==="edge"?"경계 걸침: "+x.names.join(", ")+" (토지이음 확인 필요)":x.status==="none"?"해당 없음":x.status==="unverified"?"확인 불가(레이어 이름 미검증)":"조회 오류"+(x.detail&&x.detail[0]?": "+x.detail[0]:"");
+      L(x.label+": "+t+(x.src==="NED"?" [필지번호 조회]":x.src?"":" [지도 레이어]"))});
     if(r.road)L("진입: "+(r.road.status==="touch"?"도로 지목 필지에 접함("+r.road.roads.join(", ")+")":r.road.status==="no"?"도로 지목 필지와 접하지 않음":"확인 불가: "+r.road.detail)+(r.road.others&&r.road.others.length?" · 인접: "+r.road.others.join(", "):""));
     if(r.slope)L("경사: "+(r.slope.status==="ok"&&r.slope.deg!==null?"평균 약 "+r.slope.deg.toFixed(1)+"° · 표고차 약 "+Math.round(r.slope.relief)+"m (표고 "+r.slope.n+"지점, "+(r.slope.src||"")+" 근사"+(r.slope.src&&r.slope.src.indexOf("90")>=0?" · 해상도가 낮아 작은 필지는 오차가 큼":"")+")":"확인 불가: "+(r.slope.detail||"계산 불가")));
     L("※ 지적도·공개 레이어 기준이며 법적 판단이 아닙니다. 인허가·현장 확인이 필요합니다.");
