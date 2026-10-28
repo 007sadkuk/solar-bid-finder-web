@@ -467,7 +467,7 @@ a.link:hover{text-decoration:underline}
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false; if($("fst").value&&p.status!==$("fst").value)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
     var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"검토":0,"검토-양호":0,"검토-문제":0,"추천(A·B)":0,"가격 적정":0,"계통 여유":0};
-    base.forEach(function(p){cnt[p._v]++;if(p._v==="후보"){var gg0=gridOf(p);if(gg0&&gg0.st==="ok")cnt["계통 여유"]++}if(p._v==="후보"){var pt0=priceTag(p);if(pt0&&pt0.ratio<=1)cnt["가격 적정"]++}if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
+    base.forEach(function(p){cnt[p._v]++;if(p._v==="후보"){cnt["후보수"]=(cnt["후보수"]||0)+1;var gg0=gridOf(p);if(gg0&&!gg0.err)cnt["계통조회"]=(cnt["계통조회"]||0)+1;if(gg0&&gg0.st==="ok")cnt["계통 여유"]++}if(p._v==="후보"){var pt0=priceTag(p);if(pt0&&pt0.ratio<=1)cnt["가격 적정"]++}if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
     var fn=$("funnel");fn.innerHTML="";
     [["전체","전체 공고"],["후보","조건 통과"],["검토","검토 완료"],["추천(A·B)","추천 A·B"]].forEach(function(x){
       var bt=el("button","stage");bt.type="button";bt.setAttribute("aria-pressed",filter===x[0]?"true":"false");
@@ -475,7 +475,7 @@ a.link:hover{text-decoration:underline}
       bt.addEventListener("click",function(){filter=x[0];render()});fn.appendChild(bt)});
     var vc=$("vchips");vc.innerHTML="";
     ["가격 적정","계통 여유","신규","즐겨찾기","판단불가","제외"].forEach(function(v){
-      var b=el("button","chip",(v==="판단불가"?"정보 부족":v)+" "+cnt[v]);if(v==="판단불가"||v==="제외"){b.style.opacity=".7";b.title=v==="판단불가"?"면적·용도 정보가 비어 조건 판단을 못 한 물건":"후보 조건(면적·용도·제외 키워드)에 맞지 않아 빠진 물건"}b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
+      var b=el("button","chip",(v==="판단불가"?"정보 부족":v)+" "+cnt[v]+(v==="계통 여유"?" (조회 "+(cnt["계통조회"]||0)+"/"+(cnt["후보수"]||0)+")":""));if(v==="계통 여유")b.title="한전에 조회된 후보 중 연결 여유가 예상 설치용량 이상인 물건. 조회 안 된 후보는 여유 여부를 아직 모릅니다.";if(v==="판단불가"||v==="제외"){b.style.opacity=".7";b.title=v==="판단불가"?"면적·용도 정보가 비어 조건 판단을 못 한 물건":"후보 조건(면적·용도·제외 키워드)에 맞지 않아 빠진 물건"}b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=filter===v?"후보":v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
       if(filter==="전체")return true; if(filter==="계통 여유"){var gg1=p._v==="후보"&&gridOf(p);return !!gg1&&gg1.st==="ok"} if(filter==="가격 적정"){var pt1=p._v==="후보"&&priceTag(p);return !!pt1&&pt1.ratio<=1} if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
