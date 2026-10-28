@@ -79,7 +79,7 @@ function analyze(){
    S.rows.push([o.n,o.p,"용도지역 차이","레이어: "+L.join("/")+" · NED: "+nz.map(function(x){return x[0]+"("+x[1]+")"}).join("/")])}
   var ng=N.some(function(x){return /개발제한구역/.test(x[0])}),lg=o.lg==="overlap";
   S.gb[(lg?"t":"f")+(ng?"t":"f")]++;if(lg!==ng)S.rows.push([o.n,o.p,"개발제한구역 차이","레이어:"+(lg?"해당":"없음")+" · NED:"+(ng?"해당":"없음")+" · "+N.filter(function(x){return /개발제한/.test(x[0])}).map(function(x){return x[0]+"("+x[1]+")"}).join("/")]);
-  var na=N.some(function(x){return /농업진흥구역|농업보호구역/.test(x[0])}),la=o.la==="overlap";
+  var na=N.some(function(x){return /농업진흥구역|농업보호구역/.test(x[0])}),la=(o.lan&&o.lan.length)?o.lan.some(function(n){return !/영농여건불리/.test(n)}):o.la==="overlap";
   S.ag[(la?"t":"f")+(na?"t":"f")]++;if(la!==na)S.rows.push([o.n,o.p,"농업진흥 차이","레이어:"+(la?(o.lan||[]).join("/")||"해당":"없음")+" · NED:"+N.filter(function(x){return /농업/.test(x[0])}).map(function(x){return x[0]+"("+x[1]+")"}).join("/")]);
  });
  return S}
