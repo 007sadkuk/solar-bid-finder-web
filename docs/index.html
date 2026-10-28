@@ -361,6 +361,21 @@ a.link:hover{text-decoration:underline}
     return usable*c[c.length-1][1]/c[c.length-1][0];
   }
   function landWonOf(p){return p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):null}
+  var KEP=null;
+  function gridOf(p){ // 한전 분산전원 연계 여유용량. 여유 = min(변전소, 변압기, DL) — 단위 kW로 가정(명세에 단위 없음)
+    var e=KEP&&KEP.items&&KEP.items[p.mgmt_no];if(!e)return null;
+    if(e.err)return {err:e.err,ts:e.ts};
+    var best=null,row=null;(e.rows||[]).forEach(function(r){if(r.v1===null||r.v2===null||r.v3===null)return;var f=Math.min(r.v1,r.v2,r.v3);if(best===null||f>best){best=f;row=r}});
+    var need=p.area_m2?econ(p).kW:null;
+    var st=best===null?"unk":best<=0?"none":(need&&best<need)?"short":"ok";
+    return {free:best,row:row,need:need,level:e.level,st:st,ts:e.ts,rows:e.rows||[]};
+  }
+  function gridTag(p){var g=gridOf(p);if(!g||g.err)return null;
+    var lv=g.level&&g.level!=="지번"?" ("+g.level+" 단위)":"";
+    if(g.st==="ok")return {cls:"c",t:"계통 여유 "+Math.round(g.free).toLocaleString()+"kW"+lv};
+    if(g.st==="short")return {cls:"u",t:"계통 부족 "+Math.round(g.free).toLocaleString()+"kW"+lv};
+    if(g.st==="none")return {cls:"x",t:"계통 여유 없음"+lv};
+    return {cls:"u",t:"계통 값 없음"+lv}}
   function lxAddr(p){ // LX에 넣을 대표 주소: 검토한 지적도 주소 > 물건명의 지번까지 > 소재지
     var r=GEO[p.mgmt_no];if(r&&!r.error&&r.parcel&&r.parcel.addr&&!BFGeo.stale(r,p))return r.parcel.addr;
     var n=p.name||"",J=BFGeo.parseJibun(n);
@@ -445,19 +460,19 @@ a.link:hover{text-decoration:underline}
     var base=all.filter(function(p){
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false; if($("fst").value&&p.status!==$("fst").value)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
-    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"검토":0,"검토-양호":0,"검토-문제":0,"추천(A·B)":0,"가격 적정":0};
-    base.forEach(function(p){cnt[p._v]++;if(p._v==="후보"){var pt0=priceTag(p);if(pt0&&pt0.ratio<=1)cnt["가격 적정"]++}if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"검토":0,"검토-양호":0,"검토-문제":0,"추천(A·B)":0,"가격 적정":0,"계통 여유":0};
+    base.forEach(function(p){cnt[p._v]++;if(p._v==="후보"){var gg0=gridOf(p);if(gg0&&gg0.st==="ok")cnt["계통 여유"]++}if(p._v==="후보"){var pt0=priceTag(p);if(pt0&&pt0.ratio<=1)cnt["가격 적정"]++}if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
     var fn=$("funnel");fn.innerHTML="";
     [["전체","전체 공고"],["후보","조건 통과"],["검토","검토 완료"],["추천(A·B)","추천 A·B"]].forEach(function(x){
       var bt=el("button","stage");bt.type="button";bt.setAttribute("aria-pressed",filter===x[0]?"true":"false");
       bt.appendChild(el("b",null,cnt[x[0]].toLocaleString()));bt.appendChild(el("span",null,x[1]));
       bt.addEventListener("click",function(){filter=x[0];render()});fn.appendChild(bt)});
     var vc=$("vchips");vc.innerHTML="";
-    ["가격 적정","판단불가","제외","신규","즐겨찾기","검토-양호","검토-문제"].forEach(function(v){
+    ["가격 적정","계통 여유","판단불가","제외","신규","즐겨찾기","검토-양호","검토-문제"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=filter===v?"후보":v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
-      if(filter==="전체")return true; if(filter==="가격 적정"){var pt1=p._v==="후보"&&priceTag(p);return !!pt1&&pt1.ratio<=1} if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
+      if(filter==="전체")return true; if(filter==="계통 여유"){var gg1=p._v==="후보"&&gridOf(p);return !!gg1&&gg1.st==="ok"} if(filter==="가격 적정"){var pt1=p._v==="후보"&&priceTag(p);return !!pt1&&pt1.ratio<=1} if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
     var s=$("sort").value;
     shown.sort(function(a,b){
       var INF=1e18;
@@ -504,6 +519,7 @@ a.link:hover{text-decoration:underline}
       if(dd)tg.appendChild(el("span","tag "+dd.cls,dd.t));
       if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"검토 "+gb.level));
       var mc=BFGeo.multiCount(p.name);if(mc)tg.appendChild(el("span","tag u",mc>0?"외 "+mc+"필지":"여러 필지"));
+      var gtg=gridTag(p);if(gtg){var ge=el("span","tag "+gtg.cls,gtg.t);ge.title="한전 분산전원 연계정보: 변전소·변압기·배전선로(DL) 여유용량 중 가장 작은 값(단위 kW로 가정). 예상 설치용량과 비교.";tg.appendChild(ge)}
       var ptg=priceTag(p);if(ptg){var pe=el("span","tag "+ptg.cls,ptg.t);pe.title="토지비(최저입찰가)를 목표 수익률 기준 입찰 상한가와 비교한 값. 100% 이하면 목표 수익률 달성.";tg.appendChild(pe)}
       tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
       var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
@@ -562,7 +578,11 @@ a.link:hover{text-decoration:underline}
           L("토지비 제외: 수익률(IRR) "+pct(r.e0.irr)+" · 회수 "+yr(r.e0.payback));
           if(r.e1)L("토지비 포함("+r.landSrc+" "+won(p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):0)+"): IRR "+pct(r.e1.irr)+" · 회수 "+yr(r.e1.payback));
           else L("임대 물건은 토지 매입비 계산을 하지 않았습니다(임대료 별도).");
-          L("※ 가정값 기반 근사입니다. 규제·경사·맹지·계통은 반영되지 않았습니다.");
+          var gq=gridOf(p);
+          if(gq&&!gq.err&&gq.row)L("계통(한전): "+gq.row.sub+" 변전소 · 변압기 "+gq.row.mtr+" · "+gq.row.dl+" 선로 — 여유 변전소 "+Math.round(gq.row.v1).toLocaleString()+" / 변압기 "+Math.round(gq.row.v2).toLocaleString()+" / 선로 "+Math.round(gq.row.v3).toLocaleString()+" kW(단위 가정) · 예상 설치 "+Math.round(r.kW)+"kW"+(gq.level!=="지번"?" · ⚠ "+gq.level+" 단위 조회값":"")+" · 조회 "+gq.ts);
+          else if(gq&&gq.err)L("계통(한전): 조회 실패 — "+gq.err);
+          else L("계통(한전): 아직 조회 전(매일 자동 수집 중)");
+          L("※ 가정값 기반 근사입니다. 규제·경사·맹지는 반영되지 않았습니다. 계통 여유는 한전 공개값이며 실제 연계 가능 여부는 한전 확인이 필요합니다.");
         }
         bd.appendChild(bx);
       }
@@ -588,6 +608,7 @@ a.link:hover{text-decoration:underline}
     var t=[];t.push("수집 시각: "+DATA.fetched_at+" (KST)");t.push("전체 페이지 완료: "+(DATA.complete?"예":"아니오"));
     DATA.passes.forEach(function(p){t.push(" - "+p.sido+" / 수의계약 "+p.pvct+": "+(p.count===null?"실패":p.count+"건"))});
     DATA.errors.forEach(function(e){t.push("오류: "+e)});
+    if(KEP&&KEP.meta){var m=KEP.meta;t.push("\n[한전 계통] 조회 "+m.fetched_at+" · 호출 "+m.calls+" · 성공 "+m.ok+" · 누적 저장 "+m.cached+"건");(m.errors||[]).forEach(function(e){t.push(" 한전 오류: "+e)})}else t.push("\n[한전 계통] 아직 수집 파일 없음");
     var cc={};DATA.items.forEach(function(p){var k=p.cat_path||"(용도 없음)";cc[k]=(cc[k]||0)+1});
     var ks=Object.keys(cc).sort(function(a,b){return cc[b]-cc[a]});
     if(ks.length){t.push("\n[용도 분류별 건수] 총 "+DATA.items.length+"건");ks.slice(0,60).forEach(function(k){t.push(" "+cc[k]+"건  "+k)})}
@@ -616,6 +637,7 @@ a.link:hover{text-decoration:underline}
       await runGeo(list[i]);await new Promise(function(r){setTimeout(r,300)})}
     $("batch").disabled=false;$("batchstop").style.display="none";$("batchmsg").textContent=STOP?"중지했습니다.":"끝났습니다.";
   });
+  fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(j){KEP=j;ECO={};if(DATA){diag();render()}}}).catch(function(){});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
     DATA=j;buildCats();buildExk();$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});

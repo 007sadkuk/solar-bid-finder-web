@@ -90,3 +90,13 @@ for e in out["errors"]:
 os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     json.dump(out, f, ensure_ascii=False)
+
+# ── 한전 분산전원 연계 여유용량 (docs/kepco.json) ──
+try:
+    import kepco
+    kkey = os.environ.get("KEPCO_API_KEY", "").strip()
+    secrets.append(kkey)
+    if out["items"]:
+        kepco.run(out["items"], os.path.join(os.path.dirname(OUT), "kepco.json"), kkey, scrub=scrub)
+except Exception as e:  # noqa: BLE001  (한전 쪽 실패가 온비드 수집을 막지 않도록)
+    print("KEPCO 단계 실패:", scrub(e)[:300])

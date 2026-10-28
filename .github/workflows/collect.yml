@@ -20,10 +20,12 @@ jobs:
         env:
           ONBID_SERVICE_KEY: ${{ secrets.ONBID_SERVICE_KEY }}
           VWORLD_KEY: ${{ secrets.VWORLD_KEY }}
+          KEPCO_API_KEY: ${{ secrets.KEPCO_API_KEY }}
         run: python scripts/collect.py
       - name: 결과 저장
         run: |
           git config user.name "collector"
           git config user.email "collector@users.noreply.github.com"
           git add docs/data.json
+          [ -f docs/kepco.json ] && git add docs/kepco.json || true
           git diff --cached --quiet || (git commit -m "data: update" && git push)
