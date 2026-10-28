@@ -89,6 +89,10 @@ details.fold>.in{padding:2px 18px 18px;display:grid;gap:14px}
 .rail.C{background:linear-gradient(180deg,var(--gC),color-mix(in srgb,var(--gC) 68%,#000))}
 .rail.D{background:linear-gradient(180deg,var(--gD),color-mix(in srgb,var(--gD) 70%,#000))}
 .rail.X{background:linear-gradient(180deg,var(--gX),color-mix(in srgb,var(--gX) 68%,#000))}
+.rail .rp{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,.35);width:100%}
+.rail .rp div{display:flex;justify-content:space-between;align-items:center;font-size:11px;line-height:1.35;padding:0 4px;gap:2px}
+.rail .rp b{font-size:12px;font-weight:800;min-width:14px;text-align:right}
+@media (max-width:640px){.rail .rp div{font-size:10px;padding:0 1px}}
 .rail.none{background:repeating-linear-gradient(135deg,var(--line2) 0 8px,transparent 8px 16px),var(--line2);color:var(--muted)}
 :root:not([data-theme="light"]) .rail:not(.none){color:#06121a}
 @media (prefers-color-scheme:light){.rail{color:#fff}.rail.none{color:var(--muted)}}
@@ -470,6 +474,16 @@ a.link:hover{text-decoration:underline}
       if(sc0){rail.appendChild(el("strong",null,sc0.grade==="부적합"?"✕":sc0.grade));rail.appendChild(el("small",null,sc0.grade==="부적합"?"부적합":sc0.score+"점"));
         if(sc0.provisional&&sc0.grade!=="부적합"){rail.appendChild(el("small",null,"잠정"));rail.title="잠정: 확인하지 못한 항목이 있습니다. 모두 만점이면 최대 "+sc0.max+"점까지 오를 수 있습니다."}}
       else{rail.appendChild(el("strong",null,"–"));rail.appendChild(el("small",null,"미검토"))}
+      if(sc0&&GOPEN[p.mgmt_no]){ // 검토를 펼쳤을 때 항목별 등급
+        var rp=el("div","rp"),SHORT={"농업진흥구역":"농업","개발제한구역":"GB"};
+        sc0.parts.forEach(function(x){var lab=SHORT[x[0]]||x[0],pts=x[1],mx=x[2],note=String(x[3]||""),g;
+          if(/확인 불가|정보 없음|경계 걸침/.test(note))g="?";
+          else if((x[0]==="농업진흥구역"||x[0]==="개발제한구역")&&/^해당$/.test(note))g="✕";
+          else{var q=mx?pts/mx:0;g=q>=0.8?"A":q>=0.65?"B":q>=0.5?"C":q>0?"D":"F"}
+          var row=el("div");row.appendChild(el("span",null,lab));row.appendChild(el("b",null,g));
+          row.title=x[0]+" "+pts+"/"+mx+" ("+note+")";rp.appendChild(row)});
+        rail.appendChild(rp);rail.title=(rail.title?rail.title+"\n":"")+"항목 등급: 득점÷배점 80% 이상 A, 65% B, 50% C, 0 초과 D, 0점 F, 미확인 ?, 해당(규제) ✕";
+      }
       d.appendChild(rail);
       var bd=el("div","body"),hd=el("div","head");
       hd.appendChild(el("div","t",p.name));
