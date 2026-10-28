@@ -184,6 +184,7 @@ a.link:hover{text-decoration:underline}
       <div><div class="lbl">제외 키워드 (물건명·주소에 들어 있으면 제외, 숫자는 현재 목록의 해당 건수)</div><div class="chips" id="exk" role="group" aria-label="제외 키워드"></div>
         <div style="display:flex;gap:6px;margin-top:8px;max-width:360px"><input id="exkadd" placeholder="키워드 직접 추가"><button id="exkbtn" class="chip" type="button">추가</button></div></div>
       <p class="note" style="margin:0">제외 키워드는 물건명·주소 글자만 봅니다. 이름에 적혀 있지 않은 맹지·분묘는 걸러지지 않습니다. 온비드 응답에는 지목이 없어서 '용도 분류명'으로 대신 판정하며, 실제 지목은 검토(지적도)에서 확인합니다.</p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="chip go" type="button" data-apply>조건 적용 · 새 후보 검토</button><span class="note" data-applymsg>조건을 바꾸면 2초 뒤 자동으로 적용됩니다.</span></div>
     </div>
   </details>
 
@@ -201,6 +202,7 @@ a.link:hover{text-decoration:underline}
       <label for="e_tirr">목표 수익률(IRR) %<input id="e_tirr" type="number" step="0.5" value="8"></label>
     </div>
     <p class="note" style="margin:0">모두 가정값입니다. 판매단가·설치단가는 시기와 계약 방식(SMP+REC, 고정가격 등)에 따라 크게 다릅니다. 배치는 토지를 정사각형으로 보고 남향 30° 2단, 경계 이격 3m, 동지 9~15시 무음영으로 계산한 근사이며, 필지 모양·경사·진입로·인허가·계통은 반영하지 않습니다.</p>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="chip go" type="button" data-apply>조건 적용 · 새 후보 검토</button><span class="note" data-applymsg>조건을 바꾸면 2초 뒤 자동으로 적용됩니다.</span></div>
     </div>
   </details>
 
@@ -647,9 +649,25 @@ a.link:hover{text-decoration:underline}
     await Promise.all([worker(),worker(),worker()]);
     saveGeo();ECO={};render();
     $("batch").disabled=false;$("batchstop").style.display="none";
+    if(PENDING&&!STOP){PENDING=false;setTimeout(function(){batchAll(false)},500)}
     $("batchmsg").textContent=(STOP?"중지했습니다. ":"후보 검토를 마쳤습니다. ")+done+"건 검토"+(fail?" (그중 "+fail+"건은 검토 불가 — 사유는 카드의 검토 보기)":"")+". 위쪽 '추천 A·B'를 누르면 고려할 만한 물건만 봅니다.";
   }
   $("batch").addEventListener("click",function(){batchAll(false)});
+  var APT=null,PENDING=false;
+  function applyConds(auto){
+    ECO={};saveEcon();render();
+    var n=DATA?DATA.items.filter(function(p){return p.area_m2&&judge(p)[0]==="후보"&&needGeo(p)}).length:0;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-applymsg]"),function(m){m.textContent=n?"적용했습니다. 새 후보 "+n+"건 검토를 시작합니다.":"적용했습니다. 새로 검토할 후보는 없습니다."});
+    if(!n)return;
+    if($("batch").disabled){PENDING=true;return}
+    if(!auto||$("autogeo").checked)batchAll(false);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-apply]"),function(b){b.addEventListener("click",function(){clearTimeout(APT);applyConds(false)})});
+  function schedApply(){clearTimeout(APT);APT=setTimeout(function(){applyConds(true)},2000)}
+  ["cond"].forEach(function(id){var c=$(id);c.addEventListener("change",schedApply);c.addEventListener("click",function(e){if(e.target.closest(".chip")&&!e.target.closest("[data-apply]"))schedApply()})});
+  ["e_use","e_price","e_capex","e_hrs","e_om","e_years","e_tirr"].forEach(function(i){$(i).addEventListener("change",schedApply)});
+  function saveEcon(){var o={};["e_use","e_price","e_capex","e_hrs","e_om","e_years","e_tirr"].forEach(function(i){o[i]=$(i).value});try{localStorage.setItem("bf-econ",JSON.stringify(o))}catch(e){}}
+  try{var EO=JSON.parse(localStorage.getItem("bf-econ")||"{}");Object.keys(EO).forEach(function(i){if($(i)&&EO[i]!=="")$(i).value=EO[i]})}catch(e){}
   fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(j){KEP=j;ECO={};if(DATA){diag();render()}}}).catch(function(){});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
     DATA=j;buildCats();buildExk();try{$("autogeo").checked=localStorage.getItem("bf-autogeo")!=="0"}catch(e){}if($("autogeo").checked)setTimeout(function(){batchAll(true)},1500);$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
