@@ -215,8 +215,8 @@ a.link:hover{text-decoration:underline}
     <p class="note" style="margin:0">키는 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. 키는 등록한 주소에서만 동작하며 현재 주소는 <b id="vwdom"></b> 입니다. 등록되지 않았으면 '요청 실패'가 나옵니다.<br>
     경사는 무료 공개 표고 서비스(SRTM 30m, 막히면 Copernicus 90m)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이고, 지자체 경사 기준(조례)은 별도로 확인해야 합니다. 진입은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
     <p class="note" style="margin:0"><b>적합도 점수 기준 (제가 정한 가정값이며 법적 기준이 아닙니다)</b><br>
-    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 보전산지(임업용·공익용) 해당이면 '부적합' · 맹지(도로 지목 필지와 접하지 않음)면 '부적합' · 토지비 15 (매각: 토지비가 목표 IRR 기준 입찰 상한가의 ≤50% 15, ≤75% 11, ≤100% 6, ≤125% 2, 초과 0 · 임대: 감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
-    확인하지 못한 항목은 0점으로 두고 등급 뒤에 ?(잠정)를 붙입니다. 등급은 A 80점 이상, B 65점 이상, C 50점 이상, D 그 미만입니다. 용도지역과 지목 불일치는 점수에 넣지 않고 표시만 합니다.</p>
+    <b>관문</b>(하나라도 걸리면 '부적합'): 진입(맹지 아님) · 농업진흥구역 · 개발제한구역 · 보전산지(임업용·공익용). <b>점수 100</b>: 면적 30 (≥2만㎡ 30, ≥1만 24, ≥5천 16, ≥3천 9) · 경사 30 (≤5° 30, ≤10° 21, ≤15° 12, ≤기준° 4, 초과 0) · 토지비 40 (매각: 최저입찰가가 목표 IRR 기준 입찰 상한가의 ≤50% 40, ≤75% 30, ≤100% 18, ≤125% 6, 초과 0 · 임대: 감정가 ㎡당 ≤1만원 40, ≤3만 30, ≤6만 18, ≤10만 6). 최저입찰가가 상한가를 넘으면 종합 등급은 최대 C, 2배를 넘으면 최대 D.<br>
+    확인하지 못한 점수 항목은 0점, 확인하지 못한 관문은 통과로 보지 않고 등급에 잠정을 붙입니다. 등급은 A 80점 이상, B 65점 이상, C 50점 이상, D 그 미만입니다. 용도지역과 지목 불일치는 점수에 넣지 않고 표시만 합니다.</p>
     </div>
   </details>
   </div>
@@ -288,38 +288,39 @@ a.link:hover{text-decoration:underline}
   /* 적합도 점수: 배점은 가정값(아래 기준표 참고). 확인하지 못한 항목은 0점으로 두고 '미확인'으로 따로 센다. */
   function scoreOf(p){
     var r=GEO[p.mgmt_no]; if(!r||r.error||BFGeo.stale(r,p))return null;
-    var parts=[],hard=[],unkMax=0,sc=0,mx=0;
-    function add(label,pts,max,note,unk){parts.push([label,pts,max,note]);mx+=max;if(unk)unkMax+=max;else sc+=pts}
-    var A=p.area_m2||0, ak=A>=20000?20:A>=10000?16:A>=5000?11:A>=3000?6:0;
-    add("면적",ak,20,Math.round(A).toLocaleString()+"㎡",!A);
-    var sl=r.slope;
-    if(sl&&sl.status==="ok"&&sl.deg!==null){var d=sl.deg,lim=slopeLim(),k=d<=5?20:d<=10?14:d<=15?8:d<=lim?3:0;add("경사",k,20,"평균 "+d.toFixed(1)+"°",false)}
-    else add("경사",0,20,"확인 불가",true);
+    var parts=[],gates=[],hard=[],unkMax=0,sc=0;
+    function add(label,pts,max,note,unk){parts.push([label,pts,max,note]);if(unk)unkMax+=max;else sc+=pts}
+    function gate(label,st,note){gates.push([label,st,note]);if(st==="fail")hard.push(label+" — "+note)}
+    /* 관문: 하나라도 걸리면 부적합(점수 없음) */
     var rd=r.road;
-    if(rd&&rd.status==="touch")add("진입",20,20,"도로 지목 필지에 접함",false);
-    else if(rd&&rd.status==="no"){hard.push("맹지(도로 지목 필지와 접하지 않음)");add("진입",0,20,"맹지 — 도로 지목 필지와 접하지 않음",false)}
-    else add("진입",0,20,"확인 불가",true);
-    [["agri","농업진흥구역"],["gb","개발제한구역"]].forEach(function(x){
+    gate("진입",rd&&rd.status==="touch"?"ok":rd&&rd.status==="no"?"fail":"unk",rd&&rd.status==="touch"?"도로 지목 필지에 접함":rd&&rd.status==="no"?"맹지(도로 지목 필지와 접하지 않음)":"확인 불가");
+    [["agri","농업진흥"],["gb","개발제한"],["sanji","보전산지"]].forEach(function(x){
       var L=r.layers&&r.layers[x[0]];
       var regN=L&&L.status==="overlap"?(L.names||[]).filter(function(n){return !/영농여건불리/.test(n)}):[];
-      if(L&&L.status==="overlap"&&!regN.length)add(x[1],12.5,12.5,"해당 없음(영농여건불리농지만 해당)",false);
-      else if(L&&L.status==="overlap"){hard.push(x[1]+" 해당");add(x[1],0,12.5,"해당",false)}
-      else if(L&&L.status==="edge")add(x[1],0,12.5,"경계 걸침·확인 필요",true)
-      else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
-      else add(x[1],0,12.5,"확인 불가",true)});
-    var sjL=r.layers&&r.layers.sanji;if(sjL&&sjL.status==="overlap")hard.push("보전산지 해당");
+      if(L&&L.status==="overlap"&&regN.length)gate(x[1],"fail",regN.join(", ")+" 해당");
+      else if(L&&L.status==="edge")gate(x[1],"unk","경계 걸침·토지이음 확인 필요");
+      else if(L&&(L.status==="none"||L.status==="overlap"))gate(x[1],"ok","해당 없음");
+      else gate(x[1],"unk","확인 불가")});
+    /* 점수 100: 면적 30 · 경사 30 · 토지비 40 */
+    var A=p.area_m2||0;
+    add("면적",A>=20000?30:A>=10000?24:A>=5000?16:A>=3000?9:0,30,Math.round(A).toLocaleString()+"㎡",!A);
+    var sl=r.slope;
+    if(sl&&sl.status==="ok"&&sl.deg!==null){var d=sl.deg,lim=slopeLim();add("경사",d<=5?30:d<=10?21:d<=15?12:d<=lim?4:0,30,"평균 "+d.toFixed(1)+"°",false)}
+    else add("경사",0,30,"확인 불가",true);
     var ec=A?econ(p):null;
-    if(ec&&ec.kW&&ec.ratio!==null){var x=ec.ratio;add("토지비",x<=0.5?15:x<=0.75?11:x<=1?6:x<=1.25?2:0,15,ec.landSrc+" "+won(ec.landWon)+" / 목표 IRR "+Math.round(ec.tirr*1000)/10+"% 상한가 "+won(ec.maxLandWon)+" ("+(x===Infinity?"수익 불가":Math.round(x*100)+"%")+")",false)}
+    if(ec&&ec.kW&&ec.ratio!==null){var x=ec.ratio;add("토지비",x<=0.5?40:x<=0.75?30:x<=1?18:x<=1.25?6:0,40,ec.landSrc+" "+won(ec.landWon)+" / 목표 IRR "+Math.round(ec.tirr*1000)/10+"% 상한가 "+won(ec.maxLandWon)+" ("+(x===Infinity?"수익 불가":Math.round(x*100)+"%")+")",false)}
     else{var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
-      if(up===null)add("토지비",0,15,"정보 없음",true);
-      else add("토지비",up<=10000?15:up<=30000?11:up<=60000?6:up<=100000?3:0,15,(p.disposal==="임대"?"임대 물건, ":"")+"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원 기준",false)}
+      if(up===null)add("토지비",0,40,"정보 없음",true);
+      else add("토지비",up<=10000?40:up<=30000?30:up<=60000?18:up<=100000?6:0,40,(p.disposal==="임대"?"임대 물건, ":"")+"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원 기준",false)}
     sc=Math.round(sc*10)/10;
     var g=hard.length?"부적합":sc>=80?"A":sc>=65?"B":sc>=50?"C":"D";
     var cap=null; // 가격이 비싸면 등급 상한
     if(g!=="부적합"&&ec&&ec.kW&&ec.ratio!==null){if(ec.ratio>2)cap="D";else if(ec.ratio>1)cap="C"}
     if(cap&&"ABCD".indexOf(g)<"ABCD".indexOf(cap))g=cap;
-    return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,provisional:unkMax>0,cap:cap};
+    var gUnk=gates.some(function(x){return x[1]==="unk"});
+    return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,gates:gates,provisional:unkMax>0||gUnk,cap:cap};
   }
+
   async function runGeo(p){
     GRUN[p.mgmt_no]=true;render();
     try{GEO[p.mgmt_no]=await BFGeo.check(p)}catch(e){GEO[p.mgmt_no]={ts:Date.now(),error:e.message,notes:[],layers:{}}}
@@ -334,6 +335,7 @@ a.link:hover{text-decoration:underline}
     if(SC){
       L("적합도: 등급 "+SC.grade+(SC.provisional?"(잠정)":"")+" · "+SC.score+"점"+(SC.provisional?" (미확인 항목이 모두 만점이면 최대 "+SC.max+"점)":"")+(SC.hard.length?" · 부적합 사유: "+SC.hard.join(", "):"")+(SC.cap?" · 가격이 비싸 등급을 "+SC.cap+" 이하로 제한":""));
       L("점수 내역: "+SC.parts.map(function(x){return x[0]+" "+x[1]+"/"+x[2]+" ("+x[3]+")"}).join(" · "));
+      L("관문: "+(SC.gates||[]).map(function(x){return x[0]+" "+(x[1]==="ok"?"통과":x[1]==="fail"?"✕ "+x[2]:"? "+x[2])}).join(" · "));
     }
     var RPm=r.rep||{};
     if(RPm.method&&RPm.method!=="필지번호")L("분석 기준: "+RPm.method+" — 온비드 필지번호가 없거나 불완전해 대표 필지 1개로 검토했습니다.","var(--warn)");
@@ -504,15 +506,13 @@ a.link:hover{text-decoration:underline}
         if(sc0.provisional&&sc0.grade!=="부적합"){rail.appendChild(el("small",null,"잠정"));rail.title="잠정: 확인하지 못한 항목이 있습니다. 모두 만점이면 최대 "+sc0.max+"점까지 오를 수 있습니다."}}
       else{rail.appendChild(el("strong",null,"–"));rail.appendChild(el("small",null,"미검토"))}
       if(sc0&&GOPEN[p.mgmt_no]){ // 검토를 펼쳤을 때 항목별 등급
-        var rp=el("div","rp"),SHORT={"농업진흥구역":"농업","개발제한구역":"GB"};
-        sc0.parts.forEach(function(x){var lab=SHORT[x[0]]||x[0],pts=x[1],mx=x[2],note=String(x[3]||""),g;
-          if(/확인 불가|정보 없음|경계 걸침/.test(note))g="?";
-          else if((x[0]==="농업진흥구역"||x[0]==="개발제한구역")&&/^해당$/.test(note)||/^맹지/.test(note))g="✕";
-          else{var q=mx?pts/mx:0;g=q>=0.8?"A":q>=0.65?"B":q>=0.5?"C":q>0?"D":"F"}
-          var row=el("div");row.appendChild(el("span",null,lab));row.appendChild(el("b",null,g));
-          row.title=x[0]+" "+pts+"/"+mx+" ("+note+")";rp.appendChild(row)});
-        if(sc0.hard.indexOf("보전산지 해당")>=0){var r2=el("div");r2.appendChild(el("span",null,"산지"));r2.appendChild(el("b",null,"✕"));r2.title="보전산지(임업용·공익용) 해당 — 태양광 설치 불가";rp.appendChild(r2)}
-        rail.appendChild(rp);rail.title=(rail.title?rail.title+"\n":"")+"항목 등급: 득점÷배점 80% 이상 A, 65% B, 50% C, 0 초과 D, 0점 F, 미확인 ?, 해당(규제) ✕";
+        var rp=el("div","rp");
+        sc0.parts.forEach(function(x){var pts=x[1],mx=x[2],note=String(x[3]||""),g;
+          if(/확인 불가|정보 없음/.test(note))g="?";else{var q=mx?pts/mx:0;g=q>=0.8?"A":q>=0.65?"B":q>=0.5?"C":q>0?"D":"F"}
+          var row=el("div");row.appendChild(el("span",null,x[0]));row.appendChild(el("b",null,g));row.title=x[0]+" "+pts+"/"+mx+" ("+note+")";rp.appendChild(row)});
+        var hr=el("div");hr.style.cssText="border-top:1px dashed rgba(255,255,255,.4);margin:2px 0;padding:0";rp.appendChild(hr);
+        (sc0.gates||[]).forEach(function(x){var row=el("div"),SH={"농업진흥":"농업","개발제한":"GB","보전산지":"산지"};row.appendChild(el("span",null,SH[x[0]]||x[0]));row.appendChild(el("b",null,x[1]==="ok"?"✓":x[1]==="fail"?"✕":"?"));row.title=x[0]+": "+x[2];if(x[1]!=="fail")row.style.opacity=".8";rp.appendChild(row)});
+        rail.appendChild(rp);rail.title=(rail.title?rail.title+"\n":"")+"점수 항목(면적·경사·토지비): 득점÷배점 80% 이상 A, 65% B, 50% C, 0 초과 D, 0점 F, 미확인 ? / 관문(진입·농업진흥·개발제한·보전산지): ✓ 통과, ✕ 부적합, ? 미확인";
       }
       d.appendChild(rail);
       var bd=el("div","body"),hd=el("div","head");
