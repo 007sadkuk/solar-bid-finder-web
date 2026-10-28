@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>한전 조회 시험</title>
+<style>body{font:15px/1.6 system-ui,"Malgun Gothic",sans-serif;margin:16px;max-width:900px;color:#1d2433;background:#fff}input,button{font:inherit;padding:7px 12px}input{width:100%;max-width:460px}pre{white-space:pre-wrap;background:#f3f3f3;padding:10px;font-size:13px}</style></head><body>
+<h2>한전 여유용량 조회 시험</h2>
+<p>이 PC(국내 인터넷)에서 한전에 직접 조회되는지 시험합니다. 키는 이 브라우저에만 저장됩니다.</p>
+<p><label>한전 인증키(40자리)<br><input id="k" type="password" autocomplete="off"></label></p>
+<p><button id="go">시험 실행 (5건)</button></p>
+<pre id="out">대기 중</pre>
+<script>
+var K="bf-kepco-key";try{document.getElementById("k").value=localStorage.getItem(K)||""}catch(e){}
+var Q=[["47","290","진량읍","선화리","888-15"],["47","170","풍천면","갈전리","1674"],["47","290","와촌면","덕촌리",""],["27","710","현풍읍","중리",""],["47","113","송라면","지경리",""]];
+document.getElementById("go").onclick=async function(){
+ var key=document.getElementById("k").value.trim(),o=document.getElementById("out"),L=[];
+ try{localStorage.setItem(K,key)}catch(e){}
+ if(key.length<20){o.textContent="키를 넣어주세요";return}
+ for(var i=0;i<Q.length;i++){var q=Q[i];
+  var p=new URLSearchParams({metroCd:q[0],cityCd:q[1],addrLidong:q[2],apiKey:key,returnType:"json"});if(q[3])p.set("addrLi",q[3]);if(q[4])p.set("addrJibun",q[4]);
+  var t0=Date.now(),line=q.slice(2).join(" ")+" → ";
+  try{var r=await fetch("https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do?"+p.toString());
+   var tx=await r.text();line+="HTTP "+r.status+" ("+(Date.now()-t0)+"ms) ";
+   try{var j=JSON.parse(tx),d=j.data||[];line+=d.length+"건"+(d[0]?" · 예: "+d[0].substNm+" 변전소 여유 "+d[0].vol1+" / 변압기 "+d[0].vol2+" / 선로 "+d[0].vol3:"")}catch(e){line+="응답: "+tx.slice(0,120)}
+  }catch(e){line+="실패: "+e.message+" ("+(Date.now()-t0)+"ms) — 브라우저 차단(CORS)이면 '요청 실패/Failed to fetch'로 나옵니다"}
+  L.push(line);o.textContent=L.join("\n");await new Promise(function(r){setTimeout(r,1500)})}
+ L.push("\n끝. 위 결과를 복사해 보내주세요.");o.textContent=L.join("\n")};
+</script></body></html>
