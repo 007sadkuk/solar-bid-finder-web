@@ -313,7 +313,10 @@ a.link:hover{text-decoration:underline}
       else add("토지비",up<=10000?15:up<=30000?11:up<=60000?6:up<=100000?3:0,15,(p.disposal==="임대"?"임대 물건, ":"")+"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원 기준",false)}
     sc=Math.round(sc*10)/10;
     var g=hard.length?"부적합":sc>=80?"A":sc>=65?"B":sc>=50?"C":"D";
-    return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,provisional:unkMax>0};
+    var cap=null; // 가격이 비싸면 등급 상한
+    if(g!=="부적합"&&ec&&ec.kW&&ec.ratio!==null){if(ec.ratio>2)cap="D";else if(ec.ratio>1)cap="C"}
+    if(cap&&"ABCD".indexOf(g)<"ABCD".indexOf(cap))g=cap;
+    return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,provisional:unkMax>0,cap:cap};
   }
   async function runGeo(p){
     GRUN[p.mgmt_no]=true;render();
@@ -327,7 +330,7 @@ a.link:hover{text-decoration:underline}
     if(r.error){L(r.error);return bx}
     var SC=scoreOf(p);
     if(SC){
-      L("적합도: 등급 "+SC.grade+(SC.provisional?"(잠정)":"")+" · "+SC.score+"점"+(SC.provisional?" (미확인 항목이 모두 만점이면 최대 "+SC.max+"점)":"")+(SC.hard.length?" · 부적합 사유: "+SC.hard.join(", "):""));
+      L("적합도: 등급 "+SC.grade+(SC.provisional?"(잠정)":"")+" · "+SC.score+"점"+(SC.provisional?" (미확인 항목이 모두 만점이면 최대 "+SC.max+"점)":"")+(SC.hard.length?" · 부적합 사유: "+SC.hard.join(", "):"")+(SC.cap?" · 가격이 비싸 등급을 "+SC.cap+" 이하로 제한":""));
       L("점수 내역: "+SC.parts.map(function(x){return x[0]+" "+x[1]+"/"+x[2]+" ("+x[3]+")"}).join(" · "));
     }
     var RPm=r.rep||{};
