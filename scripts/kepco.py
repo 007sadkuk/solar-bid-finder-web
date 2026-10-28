@@ -3,11 +3,12 @@ API: https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do
 요청: metroCd(시도 2자리), cityCd(시군구 3자리), addrLidong(읍면동), addrLi(리), addrJibun(번지), apiKey, returnType=json
 응답: data[] {substNm, vol1(변전소 여유), vol2(변압기 여유), vol3(DL 여유), ...}
 키는 GitHub 시크릿 KEPCO_API_KEY. 표준 라이브러리만 사용."""
-import json, os, re, time, datetime, urllib.parse, urllib.request
+import json, os, re, time, datetime, urllib.parse, urllib.request, urllib.error
 
 URL = "https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do"
 TTL_DAYS = 7          # 같은 물건은 7일마다 다시 조회
 MAX_CALLS = 400       # 한 번 실행에 최대 호출 수(한도 미확인이라 보수적으로)
+RUN_SECONDS = 25 * 60 # 한 번 실행에 최대 25분
 
 EMD_RE = re.compile(r"^[가-힣]+(?:읍|면|동|\d+가|가)$")
 LI_RE = re.compile(r"^[가-힣]+리$")
@@ -62,12 +63,24 @@ def _num(v):
         return None
 
 
-def call(key, q, timeout=20):
+def call(key, q, timeout=30):
     p = {k: v for k, v in q.items() if v}
     p.update({"apiKey": key, "returnType": "json"})
     req = urllib.request.Request(URL + "?" + urllib.parse.urlencode(p), headers={"User-Agent": "solar-bid-finder"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        body = r.read().decode("utf-8", "replace")
+    body = None
+    for attempt in range(3):  # 접속 시간 초과는 잠시 쉬고 재시도
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                body = r.read().decode("utf-8", "replace")
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 404:  # 한전은 해당 주소 자료가 없으면 404를 준다(2026-10-28 실측) → 결과 없음으로 처리
+                return []
+            raise
+        except (urllib.error.URLError, TimeoutError, OSError):
+            if attempt == 2:
+                raise
+            time.sleep(5 * (attempt + 1))
     try:
         j = json.loads(body)
     except ValueError:
@@ -105,8 +118,9 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
     cand.sort(key=age)
     cut = (now - datetime.timedelta(days=TTL_DAYS)).strftime("%Y-%m-%d %H:%M")
     consec_err = 0
+    t0 = time.time()
     for it in cand:
-        if not key or meta["calls"] >= MAX_CALLS or consec_err >= 5:
+        if not key or meta["calls"] >= MAX_CALLS or consec_err >= 5 or time.time() - t0 > RUN_SECONDS:
             break
         c = cache.get(it["mgmt_no"])
         if c and c.get("ts", "") >= cut and not c.get("err"):
@@ -135,7 +149,7 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
                 if len(meta["errors"]) < 8:
                     meta["errors"].append(f"{it['mgmt_no']}: {err}")
                 break
-            time.sleep(0.15)
+            time.sleep(1.0)
         if level:
             meta["ok"] += 1
             cache[it["mgmt_no"]] = {"ts": now.strftime("%Y-%m-%d %H:%M"), "level": level, "q": q, "rows": rows[:30]}
