@@ -165,7 +165,7 @@ a.link:hover{text-decoration:underline}
   <section class="tool" aria-label="검색">
     <label for="q">검색 (물건명·주소)<input id="q" placeholder="예: 영천, 금호읍, 임야"></label>
     <label for="fsido">지역<select id="fsido"><option value="">대구·경북</option><option>대구</option><option>경북</option></select></label>
-    <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="score">적합도 높은 순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
+    <label for="sort">정렬<select id="sort"><option value="end">마감 임박순</option><option value="score">적합도 높은 순</option><option value="room">가격 여유 큰 순</option><option value="new">신규 먼저</option><option value="unit">㎡당 감정가 낮은 순</option><option value="fail">유찰 많은 순</option><option value="area">면적 큰 순</option><option value="areaS">면적 작은 순</option><option value="price">감정가 낮은 순</option><option value="bid">최저입찰가 낮은 순</option></select></label>
   </section>
 
   <details class="fold" id="cond">
@@ -194,6 +194,7 @@ a.link:hover{text-decoration:underline}
       <label for="e_hrs">일 발전시간 h<input id="e_hrs" type="number" step="0.1" value="3.4"></label>
       <label for="e_om">운영비 만원/kW·년<input id="e_om" type="number" step="0.1" value="2"></label>
       <label for="e_years">기간 년<input id="e_years" type="number" value="20"></label>
+      <label for="e_tirr">목표 수익률(IRR) %<input id="e_tirr" type="number" step="0.5" value="8"></label>
     </div>
     <p class="note" style="margin:0">모두 가정값입니다. 판매단가·설치단가는 시기와 계약 방식(SMP+REC, 고정가격 등)에 따라 크게 다릅니다. 배치는 토지를 정사각형으로 보고 남향 30° 2단, 경계 이격 3m, 동지 9~15시 무음영으로 계산한 근사이며, 필지 모양·경사·진입로·인허가·계통은 반영하지 않습니다.</p>
     </div>
@@ -210,7 +211,7 @@ a.link:hover{text-decoration:underline}
     <p class="note" style="margin:0">키는 사이트 코드에 들어 있지 않고 입력한 브라우저에만 저장됩니다. 키는 등록한 주소에서만 동작하며 현재 주소는 <b id="vwdom"></b> 입니다. 등록되지 않았으면 '요청 실패'가 나옵니다.<br>
     경사는 무료 공개 표고 서비스(SRTM 30m, 막히면 Copernicus 90m)로 필지 안을 격자로 읽어 평면으로 근사한 값입니다. 숲 높이가 섞일 수 있어 참고용이고, 지자체 경사 기준(조례)은 별도로 확인해야 합니다. 진입은 '도로 지목 필지와 접하는지'만 봅니다. 현황도로·사도·통행권은 지적도로 알 수 없습니다.</p>
     <p class="note" style="margin:0"><b>적합도 점수 기준 (제가 정한 가정값이며 법적 기준이 아닙니다)</b><br>
-    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 토지가격 15 (감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
+    면적 20 (≥2만㎡ 20, ≥1만 16, ≥5천 11, ≥3천 6) · 경사 20 (≤5° 20, ≤10° 14, ≤15° 8, ≤기준° 3, 초과 0) · 진입 20 (도로 접함 20) · 농업진흥구역 12.5 · 개발제한구역 12.5 (해당 없음일 때만 득점, 해당이면 '부적합') · 토지비 15 (매각: 토지비가 목표 IRR 기준 입찰 상한가의 ≤50% 15, ≤75% 11, ≤100% 6, ≤125% 2, 초과 0 · 임대: 감정가 ㎡당 ≤1만원 15, ≤3만 11, ≤6만 6, ≤10만 3).<br>
     확인하지 못한 항목은 0점으로 두고 등급 뒤에 ?(잠정)를 붙입니다. 등급은 A 80점 이상, B 65점 이상, C 50점 이상, D 그 미만입니다. 용도지역과 지목 불일치는 점수에 넣지 않고 표시만 합니다.</p>
     </div>
   </details>
@@ -233,7 +234,7 @@ a.link:hover{text-decoration:underline}
 </div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261027p"></script>
-<script src="geo.js?v=20261028d"></script>
+<script src="geo.js?v=20261028e"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -272,7 +273,7 @@ a.link:hover{text-decoration:underline}
     if(minA!==null&&p.area_m2<minA) return ["제외","면적 미달("+Math.round(p.area_m2).toLocaleString()+"㎡)"];
     return ["후보","조건 충족"];
   }
-  function won(n){return (n===null||n===undefined)?"-":n.toLocaleString("ko-KR")+"원"}
+  function won(n){if(n===null||n===undefined||!isFinite(n))return "-";n=Math.round(n);return Math.abs(n)>=1e8?(Math.round(n/1e6)/100).toLocaleString("ko-KR")+"억원":Math.abs(n)>=1e4?Math.round(n/1e4).toLocaleString("ko-KR")+"만원":n.toLocaleString("ko-KR")+"원"}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
   var OPEN={}, GOPEN={}, GEO=BFGeo.ls("bf-geo-v1",{}), GRUN={}, STOP=false;
   Object.keys(GEO).forEach(function(k){if(GEO[k]&&GEO[k].error)delete GEO[k]});
@@ -301,9 +302,11 @@ a.link:hover{text-decoration:underline}
       else if(L&&L.status==="edge")add(x[1],0,12.5,"경계 걸침·확인 필요",true)
       else if(L&&L.status==="none")add(x[1],12.5,12.5,"해당 없음",false);
       else add(x[1],0,12.5,"확인 불가",true)});
-    var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
-    if(up===null)add("토지가격",0,15,"정보 없음",true);
-    else add("토지가격",up<=10000?15:up<=30000?11:up<=60000?6:up<=100000?3:0,15,"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원",false);
+    var ec=A?econ(p):null;
+    if(ec&&ec.kW&&ec.ratio!==null){var x=ec.ratio;add("토지비",x<=0.5?15:x<=0.75?11:x<=1?6:x<=1.25?2:0,15,ec.landSrc+" "+won(ec.landWon)+" / 목표 IRR "+Math.round(ec.tirr*1000)/10+"% 상한가 "+won(ec.maxLandWon)+" ("+(x===Infinity?"수익 불가":Math.round(x*100)+"%")+")",false)}
+    else{var up=(p.appraisal!==null&&p.appraisal!==undefined&&A)?p.appraisal/A:null;
+      if(up===null)add("토지비",0,15,"정보 없음",true);
+      else add("토지비",up<=10000?15:up<=30000?11:up<=60000?6:up<=100000?3:0,15,(p.disposal==="임대"?"임대 물건, ":"")+"감정가 ㎡당 "+Math.round(up).toLocaleString()+"원 기준",false)}
     sc=Math.round(sc*10)/10;
     var g=hard.length?"부적합":sc>=80?"A":sc>=65?"B":sc>=50?"C":"D";
     return {score:sc,max:Math.round((sc+unkMax)*10)/10,grade:g,hard:hard,parts:parts,provisional:unkMax>0};
@@ -323,6 +326,9 @@ a.link:hover{text-decoration:underline}
       L("적합도: 등급 "+SC.grade+(SC.provisional?"(잠정)":"")+" · "+SC.score+"점"+(SC.provisional?" (미확인 항목이 모두 만점이면 최대 "+SC.max+"점)":"")+(SC.hard.length?" · 부적합 사유: "+SC.hard.join(", "):""));
       L("점수 내역: "+SC.parts.map(function(x){return x[0]+" "+x[1]+"/"+x[2]+" ("+x[3]+")"}).join(" · "));
     }
+    var RPm=r.rep||{};
+    if(RPm.method&&RPm.method!=="필지번호")L("분석 기준: "+RPm.method+" — 온비드 필지번호가 없거나 불완전해 대표 필지 1개로 검토했습니다.","var(--warn)");
+    if(RPm.multi)L("여러 필지 물건"+(RPm.multi>0?"(외 "+RPm.multi+"필지)":"")+": 규제·진입·경사는 대표 필지 1개 기준입니다. 나머지 필지는 검토하지 않았습니다. 면적·사업성은 온비드 전체 면적 기준입니다.","var(--warn)");
     var P=r.parcel;
     L("지적도: "+P.addr+" "+P.jibun+" · 지목 "+(P.jimok||"-")+" · 경계 기준 면적 "+P.areaGeo.toLocaleString()+"㎡"+(p.area_m2?" (온비드 "+Math.round(p.area_m2).toLocaleString()+"㎡)":"")+(P.polys>1?" · 경계가 여러 조각입니다":""));
     S.flags.forEach(function(t){L("⚠ "+t,"var(--bad)")});
@@ -338,21 +344,39 @@ a.link:hover{text-decoration:underline}
     var rb=el("button","chip","이 필지 다시 조회");rb.type="button";rb.style.justifySelf="start";rb.addEventListener("click",function(){runGeo(p)});bx.appendChild(rb);
     return bx;
   }
+  var KWC=null,ECO={};
+  function kWFor(usable){ // 정사각 부지 배치 결과를 면적별로 미리 계산해 보간(같은 배치 규칙: 30° 2단 세로, 이격 3m)
+    if(!KWC){KWC=[];[30,60,120,250,500,1000,2000,4000,8000,16000,32000,64000,128000,256000].forEach(function(u){var sd=Math.sqrt(u);
+      var l=layout([[0,0],[sd,0],[sd,sd],[0,sd]],{azDeg:0,tiltDeg:30,lat:35.9,k:2,portrait:true,modW:1.134,modL:2.278,modP:580,setback:3,extraGap:0});KWC.push([u,l.kW||0])})}
+    if(!(usable>0))return 0;var c=KWC;
+    if(usable<=c[0][0])return c[0][1]*usable/c[0][0];
+    for(var i=1;i<c.length;i++)if(usable<=c[i][0]){var t=(usable-c[i-1][0])/(c[i][0]-c[i-1][0]),d0=c[i-1][1]/c[i-1][0],d1=c[i][1]/c[i][0];return usable*(d0+(d1-d0)*t)}
+    return usable*c[c.length-1][1]/c[c.length-1][0];
+  }
+  function landWonOf(p){return p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):null}
   function econ(p){
+    if(ECO[p.mgmt_no])return ECO[p.mgmt_no];
     var g=function(i,d){var v=Number($(i).value);return isFinite(v)&&$(i).value!==""?v:d};
-    var use=Math.min(1,Math.max(0.1,g("e_use",60)/100)), usable=p.area_m2*use, side=Math.sqrt(usable);
-    var lay=layout([[0,0],[side,0],[side,side],[0,side]],{azDeg:0,tiltDeg:30,lat:35.9,k:2,portrait:true,modW:1.134,modL:2.278,modP:580,setback:3,extraGap:0});
-    if(!lay.kW||lay.kW<=0)return {kW:0};
+    var use=Math.min(1,Math.max(0.1,g("e_use",60)/100)), usable=(p.area_m2||0)*use;
+    var kW=kWFor(usable);
+    if(!kW||kW<=0)return (ECO[p.mgmt_no]={kW:0});
     var base={hoursPerDay:g("e_hrs",3.4),price:g("e_price",150),capexPerKW:g("e_capex",120),omPerKW:g("e_om",2),degr:0.005,years:Math.round(g("e_years",20))};
-    var e0=economics(Object.assign({kW:lay.kW},base));
-    var landWon=p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):null;
+    var tirr=g("e_tirr",8)/100;
+    var e0=economics(Object.assign({kW:kW},base));
+    var pv=0;for(var t=1;t<e0.cf.length;t++)pv+=e0.cf[t]/Math.pow(1+tirr,t);
+    var maxLandWon=Math.max(0,(pv-e0.capex)*10000); // 목표 IRR을 지키며 낼 수 있는 토지비 상한(원)
+    var landWon=landWonOf(p);
     var landSrc=p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?"최저입찰가":"감정가(최저입찰가 비공개)"):null;
-    var e1=null;
+    var e1=null,ratio=null;
     if(landWon!==null&&landWon!==undefined){
-      var landMan=landWon/10000;
-      e1=economics(Object.assign({},base,{kW:lay.kW,capexPerKW:base.capexPerKW+landMan/lay.kW}));
+      e1=economics(Object.assign({},base,{kW:kW,capexPerKW:base.capexPerKW+(landWon/10000)/kW}));
+      ratio=maxLandWon>0?landWon/maxLandWon:Infinity;
     }
-    return {kW:lay.kW,modules:lay.modules,pitch:lay.pitch,e0:e0,e1:e1,landSrc:landSrc,base:base};
+    return (ECO[p.mgmt_no]={kW:kW,modules:kW*1000/580,e0:e0,e1:e1,landSrc:landSrc,landWon:landWon,base:base,tirr:tirr,maxLandWon:maxLandWon,ratio:ratio});
+  }
+  function priceTag(p){ // 토지비 / 상한가
+    if(!p.area_m2)return null;var r=econ(p);if(!r.kW||r.ratio===null)return null;
+    var x=r.ratio;return {ratio:x,cls:x<=0.75?"c":x<=1?"u":"x",t:x===Infinity?"수익 불가":x<=1?"상한가의 "+Math.round(x*100)+"%":"상한가 초과 "+(x<2?Math.round(x*100)+"%":"×"+(x<10?x.toFixed(1):Math.round(x)))};
   }
   function pct(x){return (x===null||x===undefined||!isFinite(x))?"산출 불가":(x*100).toFixed(1)+"%"}
   function yr(x){return (x===null||x===undefined||!isFinite(x))?"기간 내 회수 불가":x.toFixed(1)+"년"}
@@ -405,24 +429,25 @@ a.link:hover{text-decoration:underline}
     var base=all.filter(function(p){
       if(fs&&nsido(p.sido)!==fs)return false; if(fd&&p.disposal!==fd)return false; if($("fst").value&&p.status!==$("fst").value)return false;
       if(q&&((p.name||"")+" "+(p.address||"")+" "+(p.cat_path||"")).indexOf(q)<0)return false; return true});
-    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"검토":0,"검토-양호":0,"검토-문제":0,"추천(A·B)":0};
-    base.forEach(function(p){cnt[p._v]++;if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
+    var cnt={"후보":0,"판단불가":0,"제외":0,"전체":base.length,"신규":0,"즐겨찾기":0,"검토":0,"검토-양호":0,"검토-문제":0,"추천(A·B)":0,"가격 적정":0};
+    base.forEach(function(p){cnt[p._v]++;if(p._v==="후보"){var pt0=priceTag(p);if(pt0&&pt0.ratio<=1)cnt["가격 적정"]++}if(isNew(p))cnt["신규"]++;if(FAV[p.mgmt_no])cnt["즐겨찾기"]++;var gs=gsum(p);if(gs){cnt["검토"]++;if(gs.level==="양호")cnt["검토-양호"]++;if(gs.level==="문제")cnt["검토-문제"]++;var so=scoreOf(p);if(so&&(so.grade==="A"||so.grade==="B"))cnt["추천(A·B)"]++}});
     var fn=$("funnel");fn.innerHTML="";
     [["전체","전체 공고"],["후보","조건 통과"],["검토","검토 완료"],["추천(A·B)","추천 A·B"]].forEach(function(x){
       var bt=el("button","stage");bt.type="button";bt.setAttribute("aria-pressed",filter===x[0]?"true":"false");
       bt.appendChild(el("b",null,cnt[x[0]].toLocaleString()));bt.appendChild(el("span",null,x[1]));
       bt.addEventListener("click",function(){filter=x[0];render()});fn.appendChild(bt)});
     var vc=$("vchips");vc.innerHTML="";
-    ["판단불가","제외","신규","즐겨찾기","검토-양호","검토-문제"].forEach(function(v){
+    ["가격 적정","판단불가","제외","신규","즐겨찾기","검토-양호","검토-문제"].forEach(function(v){
       var b=el("button","chip",v+" "+cnt[v]);b.type="button";b.setAttribute("aria-pressed",filter===v?"true":"false");
       b.addEventListener("click",function(){filter=filter===v?"후보":v;render()});vc.appendChild(b)});
     var shown=base.filter(function(p){
-      if(filter==="전체")return true; if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
+      if(filter==="전체")return true; if(filter==="가격 적정"){var pt1=p._v==="후보"&&priceTag(p);return !!pt1&&pt1.ratio<=1} if(filter==="신규")return isNew(p); if(filter==="즐겨찾기")return !!FAV[p.mgmt_no]; var gg=gsum(p); if(filter==="검토")return !!gg; if(filter==="추천(A·B)"){var so2=scoreOf(p);return !!so2&&(so2.grade==="A"||so2.grade==="B")} if(filter==="검토-양호")return !!gg&&gg.level==="양호"; if(filter==="검토-문제")return !!gg&&gg.level==="문제"; return p._v===filter});
     var s=$("sort").value;
     shown.sort(function(a,b){
       var INF=1e18;
       function unit(x){return (x.appraisal!==null&&x.area_m2)?x.appraisal/x.area_m2:INF}
       function bidv(x){return x.min_bid===null||x.min_bid===undefined?INF:x.min_bid}
+      if(s==="room"){var ra=priceTag(a),rb=priceTag(b);return (ra?ra.ratio:INF)-(rb?rb.ratio:INF)}
       if(s==="area")return (b.area_m2||0)-(a.area_m2||0);
       if(s==="areaS")return (a.area_m2||INF)-(b.area_m2||INF);
       if(s==="price")return (a.appraisal===null?INF:a.appraisal)-(b.appraisal===null?INF:b.appraisal);
@@ -452,6 +477,8 @@ a.link:hover{text-decoration:underline}
       if(isNew(p))tg.appendChild(el("span","tag n","NEW"));
       if(dd)tg.appendChild(el("span","tag "+dd.cls,dd.t));
       if(gb)tg.appendChild(el("span","tag "+(gb.level==="양호"?"c":gb.level==="문제"?"x":"u"),"검토 "+gb.level));
+      var mc=BFGeo.multiCount(p.name);if(mc)tg.appendChild(el("span","tag u",mc>0?"외 "+mc+"필지":"여러 필지"));
+      var ptg=priceTag(p);if(ptg){var pe=el("span","tag "+ptg.cls,ptg.t);pe.title="토지비(최저입찰가)를 목표 수익률 기준 입찰 상한가와 비교한 값. 100% 이하면 목표 수익률 달성.";tg.appendChild(pe)}
       tg.appendChild(el("span","tag "+(p._v==="후보"?"c":p._v==="판단불가"?"u":"x"),p._v));
       var st=el("button","star",FAV[p.mgmt_no]?"★":"☆");st.type="button";st.title="즐겨찾기";st.setAttribute("aria-label","즐겨찾기");st.setAttribute("aria-pressed",FAV[p.mgmt_no]?"true":"false");
       (function(pp){st.addEventListener("click",function(){if(FAV[pp.mgmt_no])delete FAV[pp.mgmt_no];else FAV[pp.mgmt_no]={memo:"",name:pp.name};saveFav();render()})})(p);
@@ -499,6 +526,7 @@ a.link:hover{text-decoration:underline}
         else{
           var L=function(t){bx.appendChild(el("div",null,t))};
           L("가정 배치: 토지 "+Math.round(p.area_m2).toLocaleString()+"㎡ × 가용률 → 약 "+Math.round(r.modules).toLocaleString()+"장, 설치용량 약 "+r.kW.toFixed(0)+" kW");
+          L("입찰 상한가(목표 IRR "+Math.round(r.tirr*1000)/10+"% 유지): 약 "+won(r.maxLandWon)+(r.landWon!==null&&r.landWon!==undefined?" · "+r.landSrc+" "+won(r.landWon)+" → 상한가의 "+(r.ratio===Infinity?"-":Math.round(r.ratio*100)+"%")+(r.ratio>1?" (목표 수익률 미달)":" (여유 있음)"):""));
           L("연 매출(1년차) 약 "+Math.round(r.e0.rev1).toLocaleString()+" 만원 · 공사비 "+Math.round(r.e0.capex).toLocaleString()+" 만원(토지비 제외)");
           L("토지비 제외: 수익률(IRR) "+pct(r.e0.irr)+" · 회수 "+yr(r.e0.payback));
           if(r.e1)L("토지비 포함("+r.landSrc+" "+won(p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):0)+"): IRR "+pct(r.e1.irr)+" · 회수 "+yr(r.e1.payback));
@@ -535,7 +563,9 @@ a.link:hover{text-decoration:underline}
     if(DATA.fields.length){t.push("\n응답 필드: "+DATA.fields.join(", "));t.push("\n첫 항목:\n"+JSON.stringify(DATA.first_raw,null,1))}
     $("diag").textContent=t.join("\n");
   }
-  ["q","fsido","fdisp","fst","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  $("q").addEventListener("input",render); // change까지 걸면 검색 후 바로 누른 버튼의 첫 클릭이 다시 그리기에 묻힘
+  ["fsido","fdisp","fst","minA","sort"].forEach(function(i){$(i).addEventListener("input",render);$(i).addEventListener("change",render)});
+  ["e_use","e_price","e_capex","e_hrs","e_om","e_years","e_tirr"].forEach(function(i){$(i).addEventListener("change",function(){ECO={};render()})});
   $("exkbtn").addEventListener("click",function(){var v=$("exkadd").value.trim();if(!v)return;EXK[v]=true;$("exkadd").value="";try{localStorage.setItem("bf-exk-v1",JSON.stringify(EXK))}catch(e){}buildExk();render()});
   $("vwdom").textContent=BFGeo.domain();$("gver").textContent="· 코드 버전 "+BFGeo.version;
   try{$("vwkey").value=BFGeo.getKey()}catch(e){}
@@ -548,7 +578,7 @@ a.link:hover{text-decoration:underline}
     if(!BFGeo.getKey()){$("batchmsg").textContent="먼저 '검토 설정'에 V-World 키를 저장하세요.";return}
     var all=DATA.items.map(function(p){var j=judge(p);return Object.assign({},p,{_v:j[0]})});
     var cards=Array.prototype.map.call(document.querySelectorAll(".item .t"),function(e){return e.textContent});
-    var list=all.filter(function(p){return cards.indexOf(p.name)>=0&&p.pnu&&!GEO[p.mgmt_no]}).slice(0,30);
+    var list=all.filter(function(p){return cards.indexOf(p.name)>=0&&!GEO[p.mgmt_no]}).slice(0,30);
     if(!list.length){$("batchmsg").textContent="확인할 새 항목이 없습니다(이미 확인했거나 필지번호가 없음).";return}
     STOP=false;$("batch").disabled=true;$("batchstop").style.display="";
     for(var i=0;i<list.length&&!STOP;i++){$("batchmsg").textContent=(i+1)+" / "+list.length+" 확인 중... "+list[i].name.slice(0,30);

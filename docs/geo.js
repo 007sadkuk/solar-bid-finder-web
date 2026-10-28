@@ -142,13 +142,49 @@ var BFGeo=(function(){
     return {deg:plane(z),relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:z.length,src:src};
   }
 
+  /* ── 대표지번 찾기: 필지번호가 없거나 번지가 0000인 물건 ── */
+  function parseJibun(name){ // 물건명에서 '…리/동/가 (산)본번-부번' 첫 번째를 대표지번으로
+    var m=String(name||"").match(/(?:^|\s)([가-힣]+(?:\d+가|동|리|가))\s*(산\s*)?(\d{1,4})(?:-(\d{1,4}))?(?=$|[\s,()외번])/);
+    if(!m)return null;
+    return {emd:m[1],san:!!m[2],bon:+m[3],bu:m[4]?+m[4]:0,text:m[1]+" "+(m[2]?"산":"")+m[3]+(m[4]?"-"+m[4]:"")};
+  }
+  function parseRoad(name){var m=String(name||"").match(/^(.*?[가-힣0-9]+(?:로|길)\s*\d+(?:-\d+)?)(?=$|[\s,(])/);return m?m[1]:null}
+  function multiCount(name){var m=String(name||"").match(/외\s*(\d+)\s*(?:개\s*)?필지/);if(m)return +m[1];return /외(?=\s|$)|일괄/.test(String(name||""))?-1:0}
+  function pad4(n){return ("0000"+n).slice(-4)}
+  async function geocode(addr,type){
+    var p={service:"address",request:"getcoord",version:"2.0",crs:"epsg:4326",address:addr,refine:"true",simple:"false",format:"json",type:type,key:getKey(),domain:domain()},u="https://api.vworld.kr/req/address",r=null;
+    try{r=await jsonp(u,p,15000)}catch(e){try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e2){throw e}}
+    var R=(r&&r.response)||{};if(R.status!=="OK"||!R.result||!R.result.point)return null;
+    return [+R.result.point.x,+R.result.point.y];
+  }
+  async function resolveParcel(item){ // → {pnus:[...], method, rep}
+    var name=item.name||"",rep={multi:multiCount(name)};
+    var vs=pnuVariants(item.pnu,name);
+    if(vs.length){rep.method="필지번호";return {pnus:vs,rep:rep}}
+    var J=parseJibun(name);
+    var p10=String(item.pnu||"").length===19?String(item.pnu).slice(0,10):"";
+    if(J&&p10&&p10!=="0000000000"){rep.method="물건명 대표지번("+J.text+")";rep.emd=J.emd;
+      return {pnus:[p10+(J.san?"2":"1")+pad4(J.bon)+pad4(J.bu)],rep:rep}}
+    // 주소 좌표 검색 → 그 자리의 필지
+    var addr=null,type=null;
+    if(J){var pre=name.slice(0,name.indexOf(J.emd)+J.emd.length);addr=pre+" "+(J.san?"산":"")+J.bon+(J.bu?"-"+J.bu:"");type="PARCEL";rep.emd=J.emd}
+    else{var rd=parseRoad(name);if(rd){addr=rd;type="ROAD"}}
+    if(!addr){rep.method="불가";rep.why="물건명에서 지번이나 도로명 주소를 찾지 못했습니다";return {pnus:[],rep:rep}}
+    var pt=null;try{pt=await geocode(addr,type)}catch(e){rep.method="불가";rep.why="주소 좌표 검색 실패: "+e.message;return {pnus:[],rep:rep}}
+    if(!pt){rep.method="불가";rep.why="주소 좌표 검색 결과 없음("+addr+")";return {pnus:[],rep:rep}}
+    var q=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"POINT("+pt[0]+" "+pt[1]+")",size:"1",geometry:"false"});
+    if(q.status!=="OK"||!q.features.length){rep.method="불가";rep.why="좌표 위치의 필지를 찾지 못했습니다";return {pnus:[],rep:rep}}
+    rep.method="주소 좌표 검색("+addr+")";
+    return {pnus:[String(q.features[0].properties.pnu)],rep:rep};
+  }
+
   /* ── 필지 하나 점검 ── */
   async function check(item,opt){
     opt=opt||{};
     var out={ts:Date.now(),notes:[],layers:{},road:null,slope:null,parcel:null};
     if(!getKey()){out.error="V-World 인증키를 먼저 입력하세요.";return out}
-    var vs=pnuVariants(item.pnu,item.name);
-    if(!vs.length){out.error="필지번호에 번지 정보가 없습니다(여러 필지 묶음이거나 번지 없음). 자동확인 불가.";return out}
+    var RP=await resolveParcel(item),vs=RP.pnus;out.rep=RP.rep;
+    if(!vs.length){out.error="대표 필지를 정하지 못했습니다: "+(RP.rep.why||"필지번호·지번 정보 없음");return out}
     var f=null,used="";
     for(var i=0;i<vs.length&&!f;i++){
       var r=await vwData("LP_PA_CBND_BUBUN",{attrFilter:"pnu:=:"+vs[i],size:"1"});
@@ -156,7 +192,8 @@ var BFGeo=(function(){
       else if(r.status!=="NOT_FOUND")throw new Error("지적도 조회 오류: "+r.status+" "+r.error);
     }
     if(!f){out.error="지적도에서 이 필지번호를 찾지 못했습니다."+(isSan(item.name)?" (산 번지로 조회)":"");return out}
-    if(isSan(item.name)!==/^산/.test(String((f.properties||{}).jibun||""))){out.error="필지번호와 물건명의 산 번지 여부가 맞지 않아 검토하지 않았습니다(지적도: "+((f.properties||{}).jibun||"")+").";return out}
+    if(out.rep.emd&&String((f.properties||{}).addr||"").indexOf(out.rep.emd)<0){out.error="찾은 필지의 주소("+((f.properties||{}).addr||"")+")에 물건명의 "+out.rep.emd+"이(가) 없어 검토하지 않았습니다.";return out}
+    if(out.rep.method==="필지번호"&&isSan(item.name)!==/^산/.test(String((f.properties||{}).jibun||""))){out.error="필지번호와 물건명의 산 번지 여부가 맞지 않아 검토하지 않았습니다(지적도: "+((f.properties||{}).jibun||"")+").";return out}
     var ps=polys(f.geometry);if(!ps.length){out.error="필지 경계 형식을 읽지 못했습니다.";return out}
     var ring=ps.reduce(function(a,b){return b.length>a.length?b:a});
     var lon0=ring[0][0],lat0=ring[0][1],to=mk(lon0,lat0),P=to(ring);
@@ -243,5 +280,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-p (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-q (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
