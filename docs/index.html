@@ -361,6 +361,15 @@ a.link:hover{text-decoration:underline}
     return usable*c[c.length-1][1]/c[c.length-1][0];
   }
   function landWonOf(p){return p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):null}
+  function lxAddr(p){ // LX에 넣을 대표 주소: 검토한 지적도 주소 > 물건명의 지번까지 > 소재지
+    var r=GEO[p.mgmt_no];if(r&&!r.error&&r.parcel&&r.parcel.addr&&!BFGeo.stale(r,p))return r.parcel.addr;
+    var n=p.name||"",J=BFGeo.parseJibun(n);
+    if(J){var i=n.indexOf(J.emd);if(i>=0){var rest=n.slice(i+J.emd.length),m=rest.match(/^\s*(산\s*)?\d+(?:-\d+)?/);if(m)return (n.slice(0,i+J.emd.length)+m[0]).replace(/\s+/g," ").trim()}}
+    var rd=BFGeo.parseRoad(n);if(rd)return rd;
+    return p.address||n;
+  }
+  var TT=null;function toast(t){var d=$("bftoast");if(!d){d=document.createElement("div");d.id="bftoast";d.setAttribute("role","status");d.style.cssText="position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:92vw;background:#1d2433;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.25)";document.body.appendChild(d)}
+    d.textContent=t;d.style.display="block";clearTimeout(TT);TT=setTimeout(function(){d.style.display="none"},6000)}
   function econ(p){
     if(ECO[p.mgmt_no])return ECO[p.mgmt_no];
     var g=function(i,d){var v=Number($(i).value);return isFinite(v)&&$(i).value!==""?v:d};
@@ -535,6 +544,12 @@ a.link:hover{text-decoration:underline}
         a.title="온비드 물건 상세 페이지로 바로 이동"}
       else{a.href="https://www.onbid.co.kr/";a.title="상세 주소 정보가 아직 없어 온비드 첫 화면으로 이동합니다(다음 수집 후 갱신)"}
       a.target="_blank";a.rel="noopener";ac.appendChild(a);
+      (function(pp){var lx=el("a","link","LX 분석");lx.href="https://land.lx.or.kr/solar/";lx.target="_blank";lx.rel="noopener";
+        lx.title="LX '쨍하고 해뜰날'(무료)을 엽니다. 이 물건의 대표 주소가 복사되니 검색창에 붙여넣기(Ctrl+V) 하세요.";
+        lx.addEventListener("click",function(){var ad=lxAddr(pp);
+          if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ad).then(function(){toast("주소를 복사했습니다: "+ad+" — LX 검색창에 붙여넣기(Ctrl+V)")},function(){toast("복사 실패. 주소: "+ad)});
+          else toast("주소: "+ad)});
+        ac.appendChild(lx)})(p);
       bd.appendChild(ac);
       if(p.area_m2&&GEO[p.mgmt_no]&&GOPEN[p.mgmt_no])bd.appendChild(geoPanel(p));
       if(p.area_m2&&OPEN[p.mgmt_no]){
