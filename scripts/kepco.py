@@ -7,7 +7,7 @@ import json, os, re, time, datetime, urllib.parse, urllib.request, urllib.error
 
 URL = "https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do"
 TTL_DAYS = 7          # 같은 물건은 7일마다 다시 조회
-MAX_CALLS = 400       # 한 번 실행에 최대 호출 수(한도 미확인이라 보수적으로)
+MAX_CALLS = int(os.environ.get("KEPCO_MAX_CALLS", "40"))  # 한 번 실행 호출 수. 한전이 연속 호출을 끊음(2026-10-28: 약 30회 후 연결 끊김) → 매시간 조금씩
 RUN_SECONDS = 25 * 60 # 한 번 실행에 최대 25분
 
 EMD_RE = re.compile(r"^[가-힣]+(?:읍|면|동|\d+가|가)$")
@@ -78,9 +78,7 @@ def call(key, q, timeout=30):
                 return []
             raise
         except (urllib.error.URLError, TimeoutError, OSError):
-            if attempt == 2:
-                raise
-            time.sleep(5 * (attempt + 1))
+            raise  # 접속 차단으로 보이면 즉시 중단(재시도하면 더 오래 막힘)
     try:
         j = json.loads(body)
     except ValueError:
@@ -120,7 +118,7 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
     consec_err = 0
     t0 = time.time()
     for it in cand:
-        if not key or meta["calls"] >= MAX_CALLS or consec_err >= 5 or time.time() - t0 > RUN_SECONDS:
+        if not key or meta["calls"] >= MAX_CALLS or consec_err >= 2 or time.time() - t0 > RUN_SECONDS:
             break
         c = cache.get(it["mgmt_no"])
         if c and c.get("ts", "") >= cut and not c.get("err"):
@@ -149,16 +147,18 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
                 if len(meta["errors"]) < 8:
                     meta["errors"].append(f"{it['mgmt_no']}: {err}")
                 break
-            time.sleep(1.0)
+            time.sleep(float(os.environ.get("KEPCO_GAP", "4")))
         if level:
             meta["ok"] += 1
             cache[it["mgmt_no"]] = {"ts": now.strftime("%Y-%m-%d %H:%M"), "level": level, "q": q, "rows": rows[:30]}
         elif err:
-            cache[it["mgmt_no"]] = {"ts": now.strftime("%Y-%m-%d %H:%M"), "err": err, "q": q}
+            if c and c.get("rows"):
+                continue  # 이전 성공값 유지
+            cache[it["mgmt_no"]] = {"ts": "2000-01-01 00:00", "err": err, "q": q}  # 다음 실행에 먼저 재시도
         else:
             cache[it["mgmt_no"]] = {"ts": now.strftime("%Y-%m-%d %H:%M"), "err": "조회 결과 없음", "q": q}
-    if consec_err >= 5:
-        meta["errors"].append("연속 오류 5회로 중단")
+    if consec_err >= 2:
+        meta["errors"].append("접속 오류 2회로 이번 실행 중단(다음 실행에 이어서)")
     live = {i["mgmt_no"] for i in items}
     cache = {k: v for k, v in cache.items() if k in live}
     meta["cached"] = len(cache)
