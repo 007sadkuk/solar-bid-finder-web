@@ -1,0 +1,32 @@
+name: trades
+on:
+  schedule:
+    - cron: "17 19 * * *"   # 매일 04:17(KST): 토지 실거래가 최근 3개월 갱신 + 빠진 달 채우기
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: collect
+  cancel-in-progress: false
+jobs:
+  trades:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 토지 실거래가 수집
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+        run: python scripts/trades.py
+      - name: 결과 저장
+        run: |
+          git config user.name "collector"
+          git config user.email "collector@users.noreply.github.com"
+          git add docs/trades
+          git diff --cached --quiet && exit 0
+          git commit -m "data: trades"
+          for i in 1 2 3 4 5; do git pull --rebase -X theirs origin main && git push && exit 0; sleep 10; done
+          exit 1
