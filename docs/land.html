@@ -248,7 +248,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
-<script src="site-config.js?v=20261029f"></script>
+<script src="site-config.js?v=20261029g"></script>
 <script src="geo.js?v=20261029c"></script>
 <script>
 (function(){
@@ -470,7 +470,13 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var data={type:"contact",name:f.name.value.trim(),phone:f.phone.value.trim(),relation:f.relation.value,interest:ints.join(", "),memo:f.memo.value.trim(),addr:LAST&&LAST.addr,pnu:LAST&&LAST.pnu,query:LAST&&LAST.query,summary:LAST&&LAST.summary};
     var btn=$("tsend");btn.disabled=true;btn.textContent="보내는 중…";var ok=false;
     try{
-      if(CFG.web3){
+      if(CFG.mailto){
+        var s0=LAST&&LAST.summary||{};
+        var r0=await fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CFG.mailto),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
+          이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s0.zone||"-",면적:s0.area?s0.area+"㎡":"-",가능판정:s0.best||"-"})});
+        var j0=await r0.json().catch(function(){return {}});ok=String(j0.success)==="true"||j0.success===true;
+        send(data);
+      }else if(CFG.web3){
         var s=LAST&&LAST.summary||{};
         var rs=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({access_key:CFG.web3,subject:"[땅의 가치] 상담 신청: "+(data.addr||""),from_name:"땅의 가치",
           이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s.zone||"-",면적:s.area?s.area+"㎡":"-",가능판정:s.best||"-"})});
