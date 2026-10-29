@@ -2,6 +2,7 @@
    붙여넣기 → 저장 → [배포] → [배포 관리] → 연필 → 버전 '새 버전' → 배포.
    웹 앱 주소를 브라우저로 열면 작동 확인 + 기록 시트 주소 표시. */
 var NOTIFY_EMAIL = "kukdas700@gmail.com";
+var DATA_KEY = "여기에_공공데이터포털_인증키";   // 생태자연도 조회용(Decoding 키). 홈페이지에 노출되지 않음
 function book_() {
   var ss = null; try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) {}
   if (ss) return ss;
@@ -14,7 +15,24 @@ function add_(ss, name, head, row) {
   if (sh.getLastRow() === 0) sh.appendRow(head);
   sh.appendRow(row);
 }
+function eco_(bbox) {  // 생태자연도(국립생태원) 조회 중계. bbox: EPSG:5186 minx,miny,maxx,maxy
+  if (!/^[\d.]+,[\d.]+,[\d.]+,[\d.]+$/.test(bbox)) return { error: "bbox" };
+  var c = CacheService.getScriptCache(), hit = c.get("eco" + bbox);
+  if (hit) return JSON.parse(hit);
+  var u = "https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService/wfs/getEcologyzmpWFS?ServiceKey=" + encodeURIComponent(DATA_KEY) +
+    "&typeName=tbl_opn_eczm&srsName=EPSG:5186&outputFormat=application/json&bbox=" + bbox;
+  var r = UrlFetchApp.fetch(u, { muteHttpExceptions: true }), j;
+  try { j = JSON.parse(r.getContentText()); } catch (x) { return { error: "응답 " + r.getResponseCode() }; }
+  var out = { f: (j.features || []).map(function (f) {
+    var g = f.geometry || {}, cs = g.type === "Polygon" ? [g.coordinates] : (g.coordinates || []);
+    return [String(f.properties.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); })];
+  }) };
+  try { c.put("eco" + bbox, JSON.stringify(out), 21600); } catch (x) {}
+  return out;
+}
 function doGet(e) {
+  if (e && e.parameter && e.parameter.action === "eco")
+    return ContentService.createTextOutput(JSON.stringify(eco_(e.parameter.bbox || ""))).setMimeType(ContentService.MimeType.JSON);
   var ss = book_();
   add_(ss, "검색", ["시각","입력 주소","찾은 주소","PNU","찾음","용도지역","면적㎡","가능 판정","오류"], [new Date(), "(접속 확인)"]);
   return ContentService.createTextOutput("정상 작동 중입니다. 기록 시트: " + ss.getUrl());

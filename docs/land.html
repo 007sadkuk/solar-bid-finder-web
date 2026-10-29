@@ -368,6 +368,24 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   var PERM={};
   function permitsFor(pnu){var c=pnu.slice(0,5);if(PERM[c]!==undefined)return Promise.resolve(PERM[c]);
     return fetch("permits/"+c+".json?v=20261029").then(function(r){return r.ok?r.json():null}).catch(function(){return null}).then(function(j){PERM[c]=j;return j})}
+  /* 생태자연도(국립생태원): Apps Script 중계로 조회 → 필지 안 면적 비율 */
+  function tm5186(lon,lat){var a=6378137,f=1/298.257222101,e2=f*(2-f),ep2=e2/(1-e2),lat0=38*Math.PI/180,lon0=127*Math.PI/180;
+    function M(p){return a*((1-e2/4-3*e2*e2/64-5*e2*e2*e2/256)*p-(3*e2/8+3*e2*e2/32+45*e2*e2*e2/1024)*Math.sin(2*p)+(15*e2*e2/256+45*e2*e2*e2/1024)*Math.sin(4*p)-(35*e2*e2*e2/3072)*Math.sin(6*p))}
+    var p=lat*Math.PI/180,l=lon*Math.PI/180,N=a/Math.sqrt(1-e2*Math.pow(Math.sin(p),2)),T=Math.pow(Math.tan(p),2),C=ep2*Math.pow(Math.cos(p),2),A=(l-lon0)*Math.cos(p);
+    return [200000+N*(A+(1-T+C)*Math.pow(A,3)/6+(5-18*T+T*T+72*C-58*ep2)*Math.pow(A,5)/120),
+      600000+(M(p)-M(lat0)+N*Math.tan(p)*(A*A/2+(5-T+9*C+4*C*C)*Math.pow(A,4)/24+(61-58*T+T*T+600*C-330*ep2)*Math.pow(A,6)/720))]}
+  function pip(pt,rg){var x=pt[0],y=pt[1],c=false;for(var i=0,j=rg.length-1;i<rg.length;j=i++){var a=rg[i],b=rg[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+  function ecoFor(rings){if(!CFG.endpoint||!rings||!rings.length)return Promise.resolve(null);
+    var R=rings.filter(function(r){return r&&r.length>2}).map(function(r){return r.map(function(q){return tm5186(q[1],q[0])})});if(!R.length)return Promise.resolve(null);
+    var all=[].concat.apply([],R),xs=all.map(function(p){return p[0]}),ys=all.map(function(p){return p[1]}),bb=[Math.min.apply(0,xs)-1,Math.min.apply(0,ys)-1,Math.max.apply(0,xs)+1,Math.max.apply(0,ys)+1].map(function(v){return v.toFixed(1)}).join(",");
+    var ac=new AbortController(),tm=setTimeout(function(){ac.abort()},20000);
+    return fetch(CFG.endpoint+"?action=eco&bbox="+bb,{signal:ac.signal}).then(function(r){return r.json()}).then(function(j){clearTimeout(tm);
+      if(!j||!j.f){dbg("생태자연도 응답: "+JSON.stringify(j).slice(0,160));return {err:(j&&j.error)||"응답 형식"}}
+      // 필지 안에 고르게 점을 찍어 어느 등급에 들어가는지 셈
+      var nx=24,x0=+bb.split(",")[0],y0=+bb.split(",")[1],x1=+bb.split(",")[2],y1=+bb.split(",")[3],n=0,cnt={};
+      for(var i=0;i<nx;i++)for(var k=0;k<nx;k++){var q=[x0+(x1-x0)*(i+.5)/nx,y0+(y1-y0)*(k+.5)/nx];if(!R.some(function(rg){return pip(q,rg)}))continue;n++;
+        var g=null;j.f.some(function(f){if(f[1].some(function(rg){return pip(q,rg)})){g=f[0];return true}});cnt[g||"-"]=(cnt[g||"-"]||0)+1}
+      if(!n)return {err:"필지 크기 계산 실패"};var sh={};Object.keys(cnt).forEach(function(k){sh[k]=cnt[k]/n});return {share:sh,n:n}}).catch(function(e){clearTimeout(tm);return {err:e.name==="AbortError"?"시간 초과":e.message}})}
   /* 토지 실거래가(국토교통부, 매일 수집) */
   var TRD={};
   function tradesFor(pnu){var c=pnu.slice(0,5);if(TRD[c]!==undefined)return Promise.resolve(TRD[c]);
@@ -468,7 +486,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var M=mergeChecks(cs,prices,lcs),P=Ps[M.idx];
     prog("리포트를 정리하고 있습니다",95);
     var ex=await Promise.all([permitsFor(P.pnu),sunFor(P.point),tradesFor(P.pnu)]);
-    var R=report(P,M.r,M.price,ex[0],{lc:M.lc,sun:ex[1],trd:ex[2],multi:M.rows,mixed:M.mixed});
+    var ECO=await ecoFor(M.r.parcel.rings);
+    var R=report(P,M.r,M.price,ex[0],{lc:M.lc,sun:ex[1],trd:ex[2],eco:ECO,multi:M.rows,mixed:M.mixed});
     var addrs=Ps.map(function(p){return p.addr}).join(" / ");
     LAST={query:q,share:q,pnu:Ps.map(function(p){return p.pnu}).join(","),addr:addrs,summary:R};
     send({type:"search",query:q,pnu:LAST.pnu,addr:addrs,found:true,zone:R.zone,area:R.area,best:R.best});
@@ -488,7 +507,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       var res=await Promise.all([BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{}),BFGeo.landPrice(P.pnu).catch(function(){return null}),permitsFor(P.pnu),BFGeo.landChar(P.pnu).catch(function(){return null}),sunFor(P.point),tradesFor(P.pnu)]);
       clearTimeout(t1);prog("리포트를 정리하고 있습니다",95);
       if(res[0].error){fail("확인 중 문제가 생겼습니다: "+res[0].error);send({type:"search",query:q,pnu:P.pnu,found:true,error:res[0].error});return}
-      var R=report(P,res[0],res[1],res[2],{lc:res[3],sun:res[4],trd:res[5]});
+      prog("생태자연도를 확인하고 있습니다",90);var ECO=await ecoFor([res[0].parcel&&res[0].parcel.ring]);
+      var R=report(P,res[0],res[1],res[2],{lc:res[3],sun:res[4],trd:res[5],eco:ECO});
       (function(){var K=$("rcond"),d=el("div","na");d.appendChild(el("i",null,"–"));var t=el("p");t.style.margin="0";t.appendChild(el("b",null,"주변 거리"));var sp=el("span",null,"찾는 중…");t.appendChild(sp);d.appendChild(t);K.appendChild(d);
         nearFor(P.point).then(function(n){sp.textContent=nearRow(n);dbg("주변: "+JSON.stringify(n).slice(0,200))})})();
       dbg("토지특성 응답: "+JSON.stringify(window.BF_LC_LAST||null).slice(0,300));dbg("일사량: "+JSON.stringify(res[4]));LAST={query:q,pnu:P.pnu,addr:P.addr,summary:R};
@@ -523,6 +543,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var sw=[],sv=0;
     if(GB){sv=2;sw.push("개발제한구역")}if(AGJ){sv=2;sw.push("농업진흥구역")}if(SJ){sv=2;sw.push("보전산지(준보전산지만 가능)")}
     if(sl!==null&&sl>15){sv=2;sw.push("경사 "+sl.toFixed(0)+"°")}
+    var EC0=X.eco,ES=EC0&&EC0.share?EC0.share:null,ebad=ES?(ES["1"]||0)+(ES["2"]||0)+(ES["9"]||0):0,etxt="";
+    if(ES){var parts=[];[["1","1등급"],["2","2등급"],["9","별도관리지역"]].forEach(function(g){if(ES[g[0]]>=0.01)parts.push(g[1]+" "+Math.round(ES[g[0]]*100)+"%")});etxt=parts.join(", ")}
+    if(ES&&ebad>=0.3){sv=2;sw.push("생태자연도 "+etxt+" — 태양광 개발이 어렵습니다")}
+    else if(ES&&ebad>=0.05){sv=Math.max(sv,1);sw.push("일부가 생태자연도 "+etxt+" — 그 부분은 빼고 배치해야 합니다")}
+    else if(!ES)sw.push("생태자연도는 확인하지 못했습니다");
     if(meng){sv=2;sw.push(rs?"맹지(도로접면 '"+rs+"') — 진입로가 없으면 태양광 허가가 나지 않습니다":"맹지로 보임(지적도상 도로와 맞닿지 않음) — 진입로가 없으면 태양광 허가가 나지 않습니다")}
     if(sv<2){if(sl!==null&&sl>10){sv=Math.max(sv,1);sw.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
     var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
@@ -550,6 +575,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       if(SJ){if(u[0]==="factory"||u[0]==="shop")l=2;else l=Math.max(l,1);why.push("보전산지(산지전용 제한)")}
       if(meng&&l<2){l=1;why.push("건축하려면 도로에 접한 진입로(통상 폭 4m 이상) 확보 필요")}
       if(sl!==null&&sl>25){l=2;why.push("경사 "+sl.toFixed(0)+"°로 개발행위허가가 어려움")}else if(sl!==null&&sl>15&&l<2){l=Math.max(l,1);why.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}
+      if(ES&&((ES["1"]||0)+(ES["9"]||0))>=0.3&&l<2){l=Math.max(l,1);why.push("생태자연도 1등급·별도관리지역이 넓어 개발이 크게 제한될 수 있음")}
       var n=pc(CAT[u[0]]);if(n)why.push("이 마을 "+u[1]+" 관련 개발행위허가 "+n+"건(최근 "+lastY(CAT[u[0]])+"년)");
       var k="",calc="";
       if(lim&&l<2){k="바닥 최대 "+Math.round(area*lim[0]/100).toLocaleString()+"㎡("+py(area*lim[0]/100)+"), 연면적 최대 "+Math.round(area*lim[1]/100).toLocaleString()+"㎡";
