@@ -490,6 +490,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       if(CFG.form){var a=el("a",null,"네이버 신청서로 접수하기");a.href=CFG.form;a.target="_blank";a.rel="noopener";a.style.color="#f3c623";D.appendChild(a);if(data.addr&&navigator.clipboard)navigator.clipboard.writeText(data.addr).catch(function(){})}
       else if(CFG.kakao)D.appendChild(document.createTextNode("카카오톡으로 문의해 주세요."))}
   });
+  if(!CFG.kakao)$("kakao").style.display="none"; // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
   (function(){var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
   $("again").addEventListener("click",function(){$("rep").style.display="none";$("addr").value="";window.scrollTo({top:0,behavior:"smooth"});setTimeout(function(){$("addr").focus()},400)});
