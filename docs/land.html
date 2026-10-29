@@ -95,6 +95,7 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .use h3{margin:0;font-size:18px;letter-spacing:-.01em}
 .use .v{font-weight:800;font-size:15px;padding:3px 10px;border-radius:6px;white-space:nowrap}
 .v.go{background:var(--go-bg);color:var(--go)}.v.may{background:var(--may-bg);color:var(--may)}.v.no{background:var(--no-bg);color:var(--no)}
+.mlt{margin:18px 0 0}.mlt h3{margin:0 0 6px;font-size:16px}.mlt ul{list-style:none;margin:0;padding:0}.mlt li{font-size:14.5px;padding:7px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.mlt li b{font-weight:700}
 .trd{margin:18px 0 0;padding:16px 18px;border:1px solid var(--rule);border-radius:12px}.trd h3{margin:0 0 4px;font-size:16px}
 .trd .th{margin:0;font-size:17px;font-weight:700}.trd .th small{display:block;font-weight:500;color:var(--sub);font-size:14px}
 .trd ul{list-style:none;margin:10px 0 0;padding:0}.trd li{font-size:14.5px;padding:6px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.trd li b{font-weight:700}
@@ -232,7 +233,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   <form class="ask" id="f" autocomplete="off">
     <label for="addr">땅 주소(지번)</label>
     <div class="in"><div class="acw"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="acl"><ul class="acl" id="acl" role="listbox" hidden></ul></div><button class="btn" id="go" type="submit">리포트 보기</button></div>
-    <p class="tip">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다.</p>
+    <p class="tip">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다. 여러 필지는 쉼표로 이어 적습니다(예: …도암리 100, 101, 102-1).</p>
     <div class="ex" id="ex"></div>
     <button class="pickb" type="button" id="pickb" aria-expanded="false" aria-controls="pickw">지도에서 땅 눌러서 고르기</button>
     <div class="pickw" id="pickw" hidden>
@@ -251,6 +252,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="tags" id="rtags"></div>
       <div class="lead" id="rlead"></div>
       <dl class="nums" id="rnums"></dl>
+      <div class="mlt" id="rmlt" hidden><h3 id="rmlth"></h3><ul id="rmltl"></ul></div>
       <div class="trd" id="rtrd" hidden><h3>주변 실거래가</h3><p class="th" id="rtrdh"></p><ul id="rtrdl"></ul><p class="tn">국토교통부 토지 매매 실거래가. 지번은 일부 가려져 공개되며, 지분 거래와 해제된 거래는 뺐습니다.</p></div>
       <div class="quick" id="rquick"></div>
       <div class="qcond" id="rqcond" hidden></div>
@@ -415,10 +417,52 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   var P0=0;function prog(msg,p){$("prog").style.display="block";$("pmsg").textContent=msg;$("pbar").style.width=p+"%"}
   function fail(t){$("err").textContent=t;$("err").style.display="block";$("prog").style.display="none"}
   var MAP=null,LAST=null;
+  /* 여러 필지: "도암리 100, 101, 102-1" → 앞 주소를 이어 붙임 */
+  function splitParcels(q){var ps=q.split(/\s*[,，\n]\s*/).filter(Boolean);if(ps.length<2)return [q];
+    var pre=ps[0].replace(/\s+\S+$/,"");return ps.slice(0,10).map(function(p,i){return i&&/^(산\s*)?\d+(-\d+)?$/.test(p)?pre+" "+p.replace(/\s+/g,""):p})}
+  function mergeChecks(cs,prices,lcs){
+    var idx=0;cs.forEach(function(c,i){if((c.parcel.areaGeo||0)>(cs[idx].parcel.areaGeo||0))idx=i});
+    var rep=cs[idx],r=JSON.parse(JSON.stringify(rep)),sum=0;cs.forEach(function(c){sum+=c.parcel.areaGeo||0});
+    r.parcel.areaGeo=sum;r.parcel.multiN=cs.length;r.parcel.rings=cs.map(function(c){return c.parcel.ring});
+    var RK={overlap:3,edge:2,none:1};
+    ["gb","agri","sanji"].forEach(function(id){var w=null,names=[];cs.forEach(function(c){var x=c.layers&&c.layers[id];if(!x)return;(x.names||[]).forEach(function(n){if(names.indexOf(n)<0)names.push(n)});if(!w||(RK[x.status]||0)>(RK[w.status]||0))w=x});
+      if(w){r.layers[id]=JSON.parse(JSON.stringify(w));if(w.status==="overlap")r.layers[id].names=names}});
+    var zs=[];[rep].concat(cs).forEach(function(c){((c.layers&&c.layers.zone&&c.layers.zone.names)||[]).forEach(function(n){if(zs.indexOf(n)<0)zs.push(n)})});
+    if(r.layers.zone)r.layers.zone.names=zs;
+    var ned=[];cs.forEach(function(c){(c.ned||[]).forEach(function(x){if(!ned.some(function(y){return y[0]===x[0]}))ned.push(x)})});r.ned=ned;
+    if(cs.some(function(c){return c.road&&c.road.status==="touch"}))r.road=JSON.parse(JSON.stringify(cs.filter(function(c){return c.road&&c.road.status==="touch"})[0].road));
+    var sw=0,sa=0;cs.forEach(function(c){if(c.slope&&c.slope.status==="ok"&&c.slope.deg!==null){sw+=c.slope.deg*(c.parcel.areaGeo||0);sa+=c.parcel.areaGeo||0}});if(sa)r.slope={status:"ok",deg:sw/sa};
+    var pw=0,pa=0,py0=null;cs.forEach(function(c,i){var p=prices[i];if(p&&p.won){pw+=p.won*(c.parcel.areaGeo||0);pa+=c.parcel.areaGeo||0;py0=py0||p.year}});
+    var lc=lcs[idx];var good=lcs.filter(function(x){return x&&x.road&&!/맹지|세로\(불\)|세로불/.test(x.road)});if(lc&&/맹지|세로\(불\)|세로불/.test(lc.road||"")&&good.length)lc=good[0];
+    var zone0=function(c){return (c.layers&&c.layers.zone&&c.layers.zone.names||[])[0]||""};
+    var rows=cs.map(function(c,i){return {name:(c.parcel.addr||"").split(" ").slice(-2).join(" "),jimok:c.parcel.jimok,zone:zone0(c),area:c.parcel.areaGeo||0,won:prices[i]&&prices[i].won}});
+    var first=rows.splice(idx,1)[0];rows.unshift(first);
+    return {r:r,idx:idx,price:pa?{year:py0,won:pw/pa}:null,lc:lc,rows:rows,mixed:cs.some(function(c){return zone0(c)!==zone0(rep)})}}
+  async function runMulti(q,list){
+    prog("지적도에서 땅 "+list.length+"필지를 찾고 있습니다",12);
+    var Ps=await Promise.all(list.map(function(a){return BFGeo.findParcel(a).catch(function(){return null})}));
+    var miss=list.filter(function(a,i){return !Ps[i]});
+    if(miss.length){fail("이 지번을 찾지 못했습니다: "+miss.join(", ")+". 번지를 확인해 주세요.");send({type:"search",query:q,found:false,error:"여러 필지 중 못 찾음"});return}
+    var seen={};Ps=Ps.filter(function(p){if(seen[p.pnu])return false;seen[p.pnu]=1;return true});
+    prog("용도지역과 규제를 확인하고 있습니다",40);await LRP;
+    var cs=await Promise.all(Ps.map(function(P){return BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{})}));
+    var bad=cs.filter(function(c){return c.error});if(bad.length){fail("확인 중 문제가 생겼습니다: "+bad[0].error);return}
+    var prices=await Promise.all(Ps.map(function(P){return BFGeo.landPrice(P.pnu).catch(function(){return null})}));
+    var lcs=await Promise.all(Ps.map(function(P){return BFGeo.landChar(P.pnu).catch(function(){return null})}));
+    var M=mergeChecks(cs,prices,lcs),P=Ps[M.idx];
+    prog("리포트를 정리하고 있습니다",95);
+    var ex=await Promise.all([permitsFor(P.pnu),sunFor(P.point),tradesFor(P.pnu)]);
+    var R=report(P,M.r,M.price,ex[0],{lc:M.lc,sun:ex[1],trd:ex[2],multi:M.rows,mixed:M.mixed});
+    var addrs=Ps.map(function(p){return p.addr}).join(" / ");
+    LAST={query:q,share:q,pnu:Ps.map(function(p){return p.pnu}).join(","),addr:addrs,summary:R};
+    send({type:"search",query:q,pnu:LAST.pnu,addr:addrs,found:true,zone:R.zone,area:R.area,best:R.best});
+  }
   $("f").addEventListener("submit",async function(ev){
     ev.preventDefault();var q=$("addr").value.trim();if(!q)return;
     if(!/\d/.test(q)){$("rep").style.display="none";fail("정확한 지번(번지)까지 넣어 주세요. 아래 후보에서 골라도 됩니다.");send({type:"search",query:q,found:false,error:"번지 없이 검색"});if(window.AC_OPEN)AC_OPEN(q,true);return}
     $("go").disabled=true;$("err").style.display="none";$("rep").style.display="none";prog("지적도에서 땅을 찾고 있습니다",12);
+    var LIST=splitParcels(q);
+    if(LIST.length>1){try{await runMulti(q,LIST)}catch(e){fail("확인 중 문제가 생겼습니다: "+e.message+". 잠시 뒤 다시 시도해 주세요.")}finally{$("go").disabled=false}return}
     try{
       var P=await BFGeo.findParcel(q);
       if(!P){fail("이 주소로 땅을 찾지 못했습니다. 시·군과 번지까지 적었는지, 산에 있는 땅이면 번지 앞에 '산'을 붙였는지 확인해 주세요.");send({type:"search",query:q,found:false});return}
@@ -497,8 +541,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     });
 
     /* 머리 */
-    $("raddr").textContent=par.addr||P.addr;
-    var T=$("rtags");T.innerHTML="";[jm?"지목 "+jm:"",zones.join(", "),r.rep&&r.rep.multi?"여러 필지":""].filter(Boolean).forEach(function(t){T.appendChild(el("span",null,t))});
+    $("raddr").textContent=(par.addr||P.addr)+(X.multi?" 외 "+(X.multi.length-1)+"필지":"");
+    var T=$("rtags");T.innerHTML="";[jm?"지목 "+jm:"",zones.join(", "),X.multi?X.multi.length+"필지 합산":r.rep&&r.rep.multi?"여러 필지":""].filter(Boolean).forEach(function(t){T.appendChild(el("span",null,t))});
     var goods=U.filter(function(u){return u.l===0}),mays=U.filter(function(u){return u.l===1});
     var Ld=$("rlead");Ld.innerHTML="";
     if(goods.length){Ld.appendChild(document.createTextNode(goods.map(function(u){return u.name}).join(", ")+"에 쓰기 좋은 땅입니다."));Ld.appendChild(el("small",null,mays.length?"조건을 갖추면 "+mays.map(function(u){return u.name}).join(", ")+"도 가능합니다.":"아래에서 용도별 근거를 확인하세요."))}
@@ -511,6 +555,10 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     num("공시지가 총액",price?won(price.won*area):"-","거래가와는 다릅니다");
     num("건폐율 · 용적률",lim?lim[0]+"% · "+lim[1]+"%":"-",lim?"법정 상한":"");
 
+    /* 여러 필지 */
+    var MB=$("rmlt");MB.hidden=!X.multi;if(X.multi){$("rmlth").textContent=X.multi.length+"필지 합계 "+Math.round(area).toLocaleString()+"㎡("+py(area)+")";var ML=$("rmltl");ML.innerHTML="";
+      X.multi.forEach(function(m){var li=el("li");li.appendChild(el("b",null,m.name+" "));li.appendChild(document.createTextNode([m.jimok,m.zone,Math.round(m.area).toLocaleString()+"㎡("+py(m.area)+")",m.won?"공시지가 "+Math.round(m.won).toLocaleString()+"원/㎡":""].filter(Boolean).join(" · ")));ML.appendChild(li)});
+      if(X.mixed)ML.appendChild(el("li",null,"필지마다 용도지역이 달라, 개발 판정은 가장 큰 필지("+X.multi[0].name+") 기준입니다. 상담 때 필지별로 다시 확인해 드립니다."))}
     /* 주변 실거래가 */
     var TV=tradeView(X.trd,par.addr||P.addr,jm,price),TB=$("rtrd");TB.hidden=true;
     if(TV){TB.hidden=false;var H=$("rtrdh"),UL=$("rtrdl");H.innerHTML="";UL.innerHTML="";
@@ -586,18 +634,18 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var svs=document.querySelectorAll("svg.plot");if(!svs.length||!par.ring||par.ring.length<3){$("pcard").classList.remove("on");return}
     var W=300,H=240,NS="http://www.w3.org/2000/svg",lat0=par.ring[0][0],kx=Math.cos(lat0*Math.PI/180);
     function xy(p){return [p[1]*kx,-p[0]]}
-    var T=par.ring.map(xy),xs=T.map(function(p){return p[0]}),ys=T.map(function(p){return p[1]});
+    var RG=par.rings&&par.rings.length?par.rings:[par.ring],T=[].concat.apply([],RG).map(xy),xs=T.map(function(p){return p[0]}),ys=T.map(function(p){return p[1]});
     var x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
     var sc=Math.min(W*0.5/((x1-x0)||1e-6),H*0.5/((y1-y0)||1e-6)),cx=(x0+x1)/2,cy=(y0+y1)/2;
     function pt(p){var q=xy(p);return [(W/2+(q[0]-cx)*sc).toFixed(1),(H/2-12+(q[1]-cy)*sc).toFixed(1)]}
     function d(r){return r.map(function(p,i){var q=pt(p);return (i?"L":"M")+q[0]+" "+q[1]}).join(" ")+" Z"}
     var h='<defs><clipPath id="pclip"><rect x="0" y="0" width="'+W+'" height="'+H+'" rx="14"/></clipPath></defs><g clip-path="url(#pclip)"><rect width="'+W+'" height="'+H+'" rx="14" fill="rgba(255,255,255,.03)"/>';
     (par.nb||[]).forEach(function(n,i){if(n.r.length<3)return;h+='<path class="nb'+(n.c==="도"?" rd":"")+'" style="animation-delay:'+(i*0.012).toFixed(2)+'s" d="'+d(n.r)+'"/>'});
-    var td=d(par.ring),len=0,P=par.ring.map(pt);for(var i=0;i<P.length;i++){var a=P[i],b=P[(i+1)%P.length];len+=Math.hypot(a[0]-b[0],a[1]-b[1])}
-    h+='<path class="t" style="--len:'+Math.ceil(len+2)+'" d="'+td+'"/></g>';
+    RG.forEach(function(rg){if(!rg||rg.length<3)return;var td=d(rg),len=0,P=rg.map(pt);for(var i=0;i<P.length;i++){var a=P[i],b=P[(i+1)%P.length];len+=Math.hypot(a[0]-b[0],a[1]-b[1])}
+      h+='<path class="t" style="--len:'+Math.ceil(len+2)+'" d="'+td+'"/>'});h+='</g>';
     var c=pt(par.center||par.ring[0]);
     h+='<circle class="ring" cx="'+c[0]+'" cy="'+c[1]+'" r="10"/><circle class="pin" cx="'+c[0]+'" cy="'+c[1]+'" r="4" fill="#f3c623"/>';
-    var jb=String(par.jibun||"").replace(/\s*[가-힣]$/,""),dong=(String(par.addr||"").match(/([가-힣0-9]+(?:리|동|가))\s/)||[])[1]||"";jb=(dong?dong+" ":"")+jb;var sub=[zone,par.jimok,par.areaGeo?Math.round(par.areaGeo).toLocaleString()+"㎡":""].filter(Boolean).join(" · ");
+    var jb=String(par.jibun||"").replace(/\s*[가-힣]$/,""),dong=(String(par.addr||"").match(/([가-힣0-9]+(?:리|동|가))\s/)||[])[1]||"";jb=(dong?dong+" ":"")+jb+(par.multiN>1?" 외 "+(par.multiN-1)+"필지":"");var sub=[zone,par.jimok,par.areaGeo?Math.round(par.areaGeo).toLocaleString()+"㎡":""].filter(Boolean).join(" · ");
     function esc(t){return String(t).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
     h+='<text x="150" y="'+(H-26)+'" text-anchor="middle">'+esc(jb)+'</text><text class="s" x="150" y="'+(H-9)+'" text-anchor="middle">'+esc(sub)+'</text>';
     $("pcard").classList.add("on");
@@ -611,7 +659,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     if(!MAP){MAP=L.map("map",{scrollWheelZoom:false});var k=BFGeo.getKey();
       (k?L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}):L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})).addTo(MAP)}
     if(MAP._bfPoly)MAP.removeLayer(MAP._bfPoly);
-    MAP._bfPoly=L.polygon(par.ring,{color:"#f3c623",weight:3,fillOpacity:.12,dashArray:"6 4"}).addTo(MAP);
+    MAP._bfPoly=L.polygon(par.rings&&par.rings.length>1?par.rings.map(function(x){return [x]}):par.ring,{color:"#f3c623",weight:3,fillOpacity:.12,dashArray:"6 4"}).addTo(MAP);
     setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
   }
 
@@ -625,7 +673,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에 붙여넣어 보내 주세요.":"";
   });
   function copy(t,msg){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){$("tmsg").textContent=msg},function(){window.prompt("복사하세요",t)})}
-  function shareUrl(){return location.origin+location.pathname+"?addr="+encodeURIComponent(LAST&&LAST.addr||"")}
+  function shareUrl(){return location.origin+location.pathname+"?addr="+encodeURIComponent(LAST&&(LAST.share||LAST.addr)||"")}
   $("share").addEventListener("click",function(){if(!LAST)return;copy(shareUrl(),"링크를 복사했습니다. 카카오톡이나 문자로 보내면 이 리포트가 바로 열립니다.");send({type:"share",addr:LAST.addr,pnu:LAST.pnu})});
   $("print").addEventListener("click",function(){if(!LAST)return;send({type:"print",addr:LAST.addr,pnu:LAST.pnu});window.print()});
   /* 상담 신청: 페이지 안에서 작성 → 연결된 수신처(Web3Forms 또는 구글 시트)로 전송 */
@@ -690,7 +738,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
     function run(q,n,head){var my=++seqA;show([], "찾는 중…");
         BFGeo.searchAddr(q,n).then(function(L){if(my!==seqA)return;L.sort(acCmp);show(L,head&&L.length?"번지를 골라 주세요":L.length?"":"후보가 없습니다. 리·동 이름과 번지를 함께 적어 보세요")}).catch(function(){if(my===seqA)show([],"후보를 불러오지 못했습니다")})}
     window.AC_OPEN=function(q,head){clearTimeout(tm);I.focus();run(q,100,head)};
-    I.addEventListener("input",function(){clearTimeout(tm);var q=I.value.trim();if(q.length<2||!/[가-힣]/.test(q)){close();return}
+    I.addEventListener("input",function(){clearTimeout(tm);var q=I.value.trim();if(q.length<2||!/[가-힣]/.test(q)||/[,，]/.test(q)){close();return}
       tm=setTimeout(function(){var my=++seqA;show([], "찾는 중…");
         BFGeo.searchAddr(q,/\d/.test(q)?10:100).then(function(L){if(my!==seqA)return;
           L.sort(acCmp);
