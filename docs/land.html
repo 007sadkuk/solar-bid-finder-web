@@ -474,7 +474,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
         var s0=LAST&&LAST.summary||{};
         var r0=await fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CFG.mailto),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
           이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s0.zone||"-",면적:s0.area?s0.area+"㎡":"-",가능판정:s0.best||"-"})});
-        var j0=await r0.json().catch(function(){return {}});ok=String(j0.success)==="true"||j0.success===true;
+        var j0=await r0.json().catch(function(){return {}});ok=String(j0.success)==="true"||j0.success===true;if(!ok)window.__formMsg="HTTP "+r0.status+" "+(j0.message||JSON.stringify(j0)).slice(0,200);
         send(data);
       }else if(CFG.web3){
         var s=LAST&&LAST.summary||{};
@@ -483,12 +483,13 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
         var j=await rs.json().catch(function(){return {}});ok=!!j.success;
         send(data);
       }else if(CFG.endpoint){ok=await send(data)}
-    }catch(e){ok=false}
+    }catch(e){ok=false;window.__formMsg="전송 실패: "+e.message}
     if(ok){D.textContent="상담 신청을 보냈습니다. 금호테크닉스 담당자가 남겨 주신 번호로 연락드리겠습니다.";btn.textContent="보냈습니다"}
     else{btn.disabled=false;btn.textContent="상담 신청 보내기";
       D.innerHTML="";D.appendChild(document.createTextNode("지금은 온라인 접수가 연결되지 않았습니다. "));
       if(CFG.form){var a=el("a",null,"네이버 신청서로 접수하기");a.href=CFG.form;a.target="_blank";a.rel="noopener";a.style.color="#f3c623";D.appendChild(a);if(data.addr&&navigator.clipboard)navigator.clipboard.writeText(data.addr).catch(function(){})}
-      else if(CFG.kakao)D.appendChild(document.createTextNode("카카오톡으로 문의해 주세요."))}
+      else if(CFG.kakao)D.appendChild(document.createTextNode("카카오톡으로 문의해 주세요."))
+      if(window.__formMsg){var sm=el("small",null," (접수 서버 응답: "+window.__formMsg+")");sm.style.cssText="display:block;opacity:.7;margin-top:6px;font-size:12px";D.appendChild(sm);window.__formMsg=""}}
   });
   if(!CFG.kakao)$("kakao").style.display="none";else $("kakao").href=kakaoUrl(); // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
