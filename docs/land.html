@@ -250,7 +250,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029e"></script>
+<script src="geo.js?v=20261029f"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -291,11 +291,23 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     return Promise.race([fetch(u).then(function(r){return r.json()}).then(function(j){var v=j&&j.properties&&j.properties.parameter&&j.properties.parameter.ALLSKY_SFC_SW_DWN;v=v&&(v.ANN||v.ann);return v>0?{ghi:v,hrs:Math.round(v*0.88*100)/100}:null}),new Promise(function(r){setTimeout(function(){r(null)},8000)})]).catch(function(){return null})}
   /* 주변 거리: 오픈스트리트맵(Overpass). 누락이 있을 수 있음 */
   function nearFor(pt){if(!pt)return Promise.resolve(null);
-    var lo=pt[0],la=pt[1],q="[out:json][timeout:15];(node(around:15000,"+la+","+lo+")[highway=motorway_junction];way(around:5000,"+la+","+lo+")[highway~\"^(trunk|primary)$\"];node(around:15000,"+la+","+lo+")[power=substation];way(around:15000,"+la+","+lo+")[power=substation];node(around:5000,"+la+","+lo+")[place~\"^(village|hamlet|town)$\"];);out center 200;";
-    return Promise.race([fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}}).then(function(r){return r.json()}).then(function(j){
-      function d(a,b){var R=6371,x=(b[0]-a[0])*Math.PI/180*Math.cos((a[1]+b[1])/2*Math.PI/180),y=(b[1]-a[1])*Math.PI/180;return R*Math.sqrt(x*x+y*y)}
-      var best={};(j.elements||[]).forEach(function(e){var c=e.center||{lat:e.lat,lon:e.lon};if(!c||c.lat==null)return;var t=e.tags||{},k=t.highway==="motorway_junction"?"ic":t.power==="substation"?"sub":t.place?"town":(t.highway?"road":null);if(!k)return;
-        var km=d([lo,la],[c.lon,c.lat]);if(!best[k]||km<best[k].km)best[k]={km:km,name:t.name||t.ref||""}});return best}),new Promise(function(r){setTimeout(function(){r(null)},12000)})]).catch(function(){return null})}
+    var lo=pt[0],la=pt[1],A2=function(r){return "(around:"+r+","+la+","+lo+")"};
+    var q="[out:json][timeout:25];node"+A2(15000)+"[highway=motorway_junction];out;way"+A2(3000)+"[highway~\"^(trunk|primary)$\"];out center;nwr"+A2(20000)+"[power=substation];out center;node"+A2(5000)+"[place~\"^(village|hamlet|town)$\"];out;";
+    var hosts=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://overpass.private.coffee/api/interpreter"];
+    function d(a,b){var x=(b[0]-a[0])*Math.PI/180*Math.cos((a[1]+b[1])/2*Math.PI/180),y=(b[1]-a[1])*Math.PI/180;return 6371*Math.sqrt(x*x+y*y)}
+    function parse(j){var best={};(j.elements||[]).forEach(function(e){var c=e.center||{lat:e.lat,lon:e.lon};if(!c||c.lat==null)return;var t=e.tags||{},k=t.highway==="motorway_junction"?"ic":t.power==="substation"?"sub":t.place?"town":(t.highway?"road":null);if(!k)return;
+        var km=d([lo,la],[c.lon,c.lat]);if(!best[k]||km<best[k].km)best[k]={km:km,name:t.name||t.ref||""}});return best}
+    function one(h){var ac=new AbortController(),tm=setTimeout(function(){ac.abort()},20000);
+      return fetch(h+"?data="+encodeURIComponent(q),{signal:ac.signal}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){clearTimeout(tm);return parse(j)})}
+    var i=0;function next(e){if(e)dbg("주변 거리 실패("+hosts[i-1]+"): "+e.message);if(i>=hosts.length)return null;return one(hosts[i++]).catch(next)}
+    return next();
+  }
+  function nearRow(NR){function km(o){return o.km<1?Math.round(o.km*1000)+"m":o.km.toFixed(1)+"km"}var parts=[];if(!NR)return "불러오지 못했습니다(지도 서버 응답 없음)";
+    if(NR.ic)parts.push("IC "+km(NR.ic)+(NR.ic.name?"("+NR.ic.name+")":""));else parts.push("IC 15km 안에 없음");
+    if(NR.road)parts.push("국도·간선도로 "+km(NR.road));else parts.push("국도·간선도로 3km 안에 없음");
+    if(NR.town)parts.push("마을 "+km(NR.town)+(NR.town.name?"("+NR.town.name+")":""));
+    if(NR.sub)parts.push("변전소 "+km(NR.sub)+(NR.sub.name?"("+NR.sub.name+")":""));else parts.push("변전소 20km 안에서 못 찾음");
+    return parts.join(", ")+" · 직선거리, 오픈스트리트맵 기준"}
   var KEPI=null;
   fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(!j)return;KEPI={};
     Object.keys(j.items||{}).forEach(function(k){var v=j.items[k];if(!v.rows||!v.q)return;var key=v.q.addrLidong+"|"+(v.q.addrLi||"");(KEPI[key]=KEPI[key]||[]).push(v)})}).catch(function(){});
@@ -330,11 +342,13 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       prog("용도지역과 규제를 확인하고 있습니다",40);
       await LRP;
       var t1=setTimeout(function(){prog("진입로와 경사를 확인하고 있습니다",70)},2500);
-      var res=await Promise.all([BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{}),BFGeo.landPrice(P.pnu).catch(function(){return null}),permitsFor(P.pnu),BFGeo.landChar(P.pnu).catch(function(){return null}),sunFor(P.point),nearFor(P.point)]);
+      var res=await Promise.all([BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{}),BFGeo.landPrice(P.pnu).catch(function(){return null}),permitsFor(P.pnu),BFGeo.landChar(P.pnu).catch(function(){return null}),sunFor(P.point)]);
       clearTimeout(t1);prog("리포트를 정리하고 있습니다",95);
       if(res[0].error){fail("확인 중 문제가 생겼습니다: "+res[0].error);send({type:"search",query:q,pnu:P.pnu,found:true,error:res[0].error});return}
-      var R=report(P,res[0],res[1],res[2],{lc:res[3],sun:res[4],near:res[5]});
-      dbg("토지특성 응답: "+JSON.stringify(window.BF_LC_LAST||null).slice(0,300));dbg("일사량: "+JSON.stringify(res[4]));dbg("주변: "+JSON.stringify(res[5]).slice(0,200));LAST={query:q,pnu:P.pnu,addr:P.addr,summary:R};
+      var R=report(P,res[0],res[1],res[2],{lc:res[3],sun:res[4]});
+      (function(){var K=$("rcond"),d=el("div","na");d.appendChild(el("i",null,"–"));var t=el("p");t.style.margin="0";t.appendChild(el("b",null,"주변 거리"));var sp=el("span",null,"찾는 중…");t.appendChild(sp);d.appendChild(t);K.appendChild(d);
+        nearFor(P.point).then(function(n){sp.textContent=nearRow(n);dbg("주변: "+JSON.stringify(n).slice(0,200))})})();
+      dbg("토지특성 응답: "+JSON.stringify(window.BF_LC_LAST||null).slice(0,300));dbg("일사량: "+JSON.stringify(res[4]));LAST={query:q,pnu:P.pnu,addr:P.addr,summary:R};
       send({type:"search",query:q,pnu:P.pnu,addr:P.addr,found:true,zone:R.zone,area:R.area,best:R.best});
     }catch(e){fail("확인 중 문제가 생겼습니다: "+e.message+". 잠시 뒤 다시 시도해 주세요.")}
     finally{$("go").disabled=false}
@@ -356,7 +370,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     // 도로접면(토지특성): 맹지면 맹지, 세로(불)은 차량 통행 불가, 나머지는 도로에 접한 것으로 판단
     if(rs){if(/맹지/.test(rs)){meng=true;roadTxt="도로접면 '맹지'(토지특성 "+LC.year+"년)"}
       else if(/세로\(불\)|세로불/.test(rs)){meng=true;roadTxt="도로접면 '"+rs+"' — 차량이 다닐 수 없는 좁은 길에만 접함"}
-      else{meng=false;roadTxt="도로접면 '"+rs+"'"}}
+      else{meng=false;roadTxt="도로접면 '"+rs+"'"}
+      var lcYr=LC.year&&!/맹지/.test(rs)?" · "+LC.year+"년 토지특성조사":""}
     var HRS=X.sun&&X.sun.hrs>2&&X.sun.hrs<5?X.sun.hrs:A.hrs;
 
     /* 개발 판정 */
@@ -430,15 +445,12 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     reg("gb","개발제한구역");reg("agri","농업진흥·보호구역");reg("sanji","보전산지");
     var RW={"광대":"폭 25m 이상 큰 도로","중로":"폭 12~25m 도로","소로":"폭 8~12m 도로","세로(가)":"폭 8m 미만, 차량 통행 가능한 길","세로(불)":"차량 통행이 안 되는 좁은 길"};
     var rwd="";Object.keys(RW).forEach(function(k){if(!rwd&&rs.indexOf(k.replace(/[()]/g,""))>=0||rs.indexOf(k)>=0)rwd=RW[k]});
-    if(rs)C.push([meng?"may":"go","진입로",roadTxt+(rwd&&roadTxt.indexOf("—")<0?" ("+rwd+")":"")+(rd&&rd.status==="no"&&!meng?". 지적도상 도로 필지와는 떨어져 있지만 현황 도로에 접한 것으로 조사됨":"")]);
+    if(rs)C.push([meng?"may":"go","진입로",roadTxt+(rwd&&roadTxt.indexOf("—")<0?" ("+rwd+")":"")+(typeof lcYr==="string"?lcYr:"")+(rd&&rd.status==="no"&&!meng?". 지적도상 도로 필지와는 떨어져 있지만 현황 도로에 접한 것으로 조사됨":"")]);
     else C.push(rd&&rd.status==="touch"?["go","진입로","도로와 맞닿아 있습니다"]:meng?["may","진입로","지적도상 도로와 맞닿아 있지 않습니다(맹지 가능성)"]:["na","진입로","확인하지 못했습니다"]);
     if(LC&&(LC.height||LC.shape||LC.use))C.push(["na","땅 모양·높이",[LC.use?"이용상황 "+LC.use:"",LC.height?"지형 "+LC.height:"",LC.shape?"형상 "+LC.shape:""].filter(Boolean).join(", ")]);
     if(X.sun)C.push(["na","일사량","연평균 하루 "+X.sun.ghi.toFixed(2)+"kWh/㎡ → 태양광 발전 약 "+HRS.toFixed(1)+"시간/일"]);
     C.push(sl===null?["na","경사","확인하지 못했습니다"]:sl<=15?["go","경사","평균 약 "+sl.toFixed(1)+"°"]:sl<=25?["may","경사","평균 약 "+sl.toFixed(1)+"°, 토목비 증가"]:["no","경사","평균 약 "+sl.toFixed(1)+"°, 개발 어려움"]);
     C.push(g?[g.free>=kW?"go":"may","전력망",g.area+" 선로 여유 약 "+Math.round(g.free).toLocaleString()+"kW"]:["na","전력망","이 지역 정보가 아직 없습니다"]);
-    var NR=X.near;if(NR){var parts=[];function km(o){return o.km<1?Math.round(o.km*1000)+"m":o.km.toFixed(1)+"km"}
-      if(NR.ic)parts.push("IC "+km(NR.ic)+(NR.ic.name?"("+NR.ic.name+")":""));if(NR.road)parts.push("국도·간선도로 "+km(NR.road));if(NR.town)parts.push("마을 "+km(NR.town)+(NR.town.name?"("+NR.town.name+")":""));if(NR.sub)parts.push("변전소 "+km(NR.sub)+(NR.sub.name?"("+NR.sub.name+")":""));
-      if(parts.length)C.push(["na","주변 거리",parts.join(", ")])}
     if(r.ned){var etc=Array.from(new Set(r.ned.filter(function(x){return !LIM[x[0]]&&!/도시지역|개발제한|농업진흥|농업보호|임업용산지|공익용산지/.test(x[0])}).map(function(x){return x[0]})));if(etc.length)C.push(["na","그 밖의 지정",etc.join(", ")])}
     var PS=$("rperm");PS.innerHTML="";
     if(liP){var LBL={solar:"태양광",house:"주택",warehouse:"창고",shop:"근린생활·상가",factory:"공장"};
