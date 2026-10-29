@@ -24,6 +24,8 @@ a{color:inherit}
 
 /* 머리 */
 .top{background:var(--pine);color:#eef4ef}
+.pcard{display:none;background:var(--pine);border-radius:16px;margin:0 0 18px;padding:10px;justify-content:center}
+.pcard.on{display:flex}.pcard .plot{max-width:340px;justify-self:auto}
 .bar{display:flex;align-items:center;justify-content:space-between;padding:16px 0}
 .logo{text-decoration:none;color:inherit;font-weight:800;font-size:18px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
 .logo svg{width:26px;height:26px}
@@ -150,7 +152,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 }
 @media (max-width:640px){
   body{font-size:16px}
-  .hero{grid-template-columns:1fr}.plot{display:none}.plot.live{display:block;justify-self:center;max-width:260px;margin-top:6px}
+  .hero{grid-template-columns:1fr}.plot{display:none}.pcard .plot{display:block;max-width:100%}
   .in{flex-direction:column}.btn{width:100%}
   .nums{grid-template-columns:1fr 1fr}
   .use{grid-template-columns:40px 1fr}.use .v{grid-column:2;justify-self:start}.use .body{grid-column:1/-1}
@@ -192,6 +194,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 
   <section id="rep" aria-live="polite">
     <div class="sheet">
+      <div class="pcard" id="pcard"><svg class="plot rp" viewBox="0 0 300 240" aria-hidden="true"></svg></div>
       <h1 class="h-addr" id="raddr"></h1>
       <div class="tags" id="rtags"></div>
       <div class="lead" id="rlead"></div>
@@ -258,7 +261,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029g"></script>
+<script src="geo.js?v=20261029h"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -483,13 +486,13 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 
     $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
     $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);
-    $("raddr").scrollIntoView({behavior:"smooth",block:"start"});
+    $("rep").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};
   }
 
   /* 첫 화면 그림을 검색한 땅으로 다시 그림: 주변 필지 → 내 땅 경계 → 채움 → 표시 */
   function drawPlot(par,zone){
-    var sv=document.querySelector("svg.plot");if(!sv||!par.ring||par.ring.length<3)return;
+    var svs=document.querySelectorAll("svg.plot");if(!svs.length||!par.ring||par.ring.length<3){$("pcard").classList.remove("on");return}
     var W=300,H=240,NS="http://www.w3.org/2000/svg",lat0=par.ring[0][0],kx=Math.cos(lat0*Math.PI/180);
     function xy(p){return [p[1]*kx,-p[0]]}
     var T=par.ring.map(xy),xs=T.map(function(p){return p[0]}),ys=T.map(function(p){return p[1]});
@@ -506,7 +509,10 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var jb=String(par.jibun||"").replace(/\s*[가-힣]$/,""),dong=(String(par.addr||"").match(/([가-힣0-9]+(?:리|동|가))\s/)||[])[1]||"";jb=(dong?dong+" ":"")+jb;var sub=[zone,par.jimok,par.areaGeo?Math.round(par.areaGeo).toLocaleString()+"㎡":""].filter(Boolean).join(" · ");
     function esc(t){return String(t).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
     h+='<text x="150" y="'+(H-26)+'" text-anchor="middle">'+esc(jb)+'</text><text class="s" x="150" y="'+(H-9)+'" text-anchor="middle">'+esc(sub)+'</text>';
-    sv.classList.remove("live");sv.innerHTML=h;void sv.getBoundingClientRect();sv.classList.add("live");
+    $("pcard").classList.add("on");
+    // 화면이 리포트로 내려가므로, 내려간 뒤 애니메이션이 시작되게 약간 늦춤
+    svs.forEach(function(sv,k){var go=function(){sv.classList.remove("live");sv.innerHTML="";void sv.getBoundingClientRect();sv.classList.add("live");sv.innerHTML=k?h.replace(/pclip/g,"pclip"+k):h};
+      if(sv.classList.contains("rp")){sv.classList.remove("live");sv.innerHTML="";setTimeout(go,450)}else go()});
   }
   function drawMap(par){
     if(typeof L==="undefined"||!par.ring||par.ring.length<3){$("map").style.display="none";return}
