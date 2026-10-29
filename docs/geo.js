@@ -192,6 +192,12 @@ var BFGeo=(function(){
     var pr=q.features[0].properties||{};
     return {pnu:String(pr.pnu),addr:String(pr.addr||addr),jibun:String(pr.jibun||""),point:pt};
   }
+  async function parcelAt(lon,lat){ // 지도에서 누른 위치의 필지 {pnu, addr, jibun, point, ring:[[lat,lon]...]}
+    var q=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"POINT("+lon+" "+lat+")",size:"1"});
+    if(q.status!=="OK"||!q.features.length)return null;
+    var f=q.features[0],pr=f.properties||{},ps=polys(f.geometry),ring=ps.length?ps.reduce(function(a,b){return b.length>a.length?b:a}):[];
+    return {pnu:String(pr.pnu),addr:String(pr.addr||""),jibun:String(pr.jibun||""),point:[lon,lat],ring:ring.map(function(p){return [p[1],p[0]]})};
+  }
   async function resolveParcel(item){ // → {pnus:[...], method, rep}
     var name=item.name||"",rep={multi:multiCount(name)};
     var vs=pnuVariants(item.pnu,name);
@@ -318,5 +324,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,parcelAt:parcelAt,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();

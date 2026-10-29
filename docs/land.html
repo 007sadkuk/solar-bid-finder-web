@@ -58,6 +58,11 @@ a{color:inherit}
 .btn{font:inherit;font-weight:800;border:0;border-radius:12px;padding:14px 24px;background:var(--mark);color:#1d1600;cursor:pointer;white-space:nowrap}
 .btn:disabled{opacity:.6;cursor:wait}
 .tip{color:var(--sub);font-size:14.5px;margin:10px 0 0}
+.pickb{margin:14px 0 0;font:inherit;font-size:15px;font-weight:700;color:var(--pine2);background:transparent;border:1.5px dashed var(--rule);border-radius:10px;padding:10px 14px;width:100%;cursor:pointer}
+.pickb:hover{background:var(--field)}
+.pickw{margin:10px 0 0}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
+.pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 0;font-size:15px}.pbar .btn{white-space:nowrap}
+@media (max-width:640px){#pmap{height:320px}.pbar{flex-direction:column;align-items:stretch}}
 .ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .ex button{font:inherit;font-size:13.5px;border:1px solid var(--rule);background:transparent;color:var(--sub);border-radius:8px;padding:4px 10px;cursor:pointer}
 
@@ -152,6 +157,7 @@ details.src p.s2{background:none;padding:0;font-size:13px}
 .foot-n p{margin:4px 0}
 footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--sub)}
 @media print{
+  .pickb,.pickw{display:none!important}
   #rmore{display:block!important}.foot-d>*{display:block!important}.moreb{display:none!important}
   body{background:#fff;color:#000;font-size:12pt}
   .top .hero,.ask,.prog,.talkbtns,.tmsg,details.src summary,footer .w p:first-child{display:none!important}
@@ -199,6 +205,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     <div class="in"><div class="acw"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="acl"><ul class="acl" id="acl" role="listbox" hidden></ul></div><button class="btn" id="go" type="submit">리포트 보기</button></div>
     <p class="tip">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다.</p>
     <div class="ex" id="ex"></div>
+    <button class="pickb" type="button" id="pickb" aria-expanded="false" aria-controls="pickw">지도에서 땅 눌러서 고르기</button>
+    <div class="pickw" id="pickw" hidden>
+      <div id="pmap" aria-label="땅 고르기 지도"></div>
+      <div class="pbar" id="pbar2"><span id="ptxt">지도를 확대한 뒤 땅을 눌러 주세요.</span><button class="btn" type="button" id="pgo" hidden>이 땅 리포트 보기</button></div>
+    </div>
   </form>
 
   <div class="prog" id="prog"><b id="pmsg">지적도에서 땅을 찾고 있습니다</b><div class="track"><i id="pbar"></i></div></div>
@@ -274,7 +285,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029i"></script>
+<script src="geo.js?v=20261029j"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -634,6 +645,26 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
       else if(e.key==="Enter"&&sel>=0){e.preventDefault();pick(sel)}else if(e.key==="Escape")close()});
     I.addEventListener("blur",function(){setTimeout(close,150)});
     $("f").addEventListener("submit",function(){if(/\d/.test(I.value)){seqA++;close()}});
+  })();
+  /* 지도에서 땅 고르기 */
+  (function(){var PM=null,poly=null,picked=null,busy=0;
+    function init(){if(PM||typeof L==="undefined")return;var k=BFGeo.getKey();
+      PM=L.map("pmap",{zoomControl:true}).setView([36.2,128.7],9);
+      if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(PM);
+        L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(PM)}
+      else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(PM);
+      PM.on("click",async function(e){
+        if(PM.getZoom()<15){PM.setView(e.latlng,Math.min(PM.getZoom()+3,16));$("ptxt").textContent="조금 더 확대한 뒤 땅을 눌러 주세요.";return}
+        var my=++busy;$("ptxt").textContent="땅을 찾는 중…";$("pgo").hidden=true;
+        try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;
+          if(!x){$("ptxt").textContent="이 위치에서 땅을 찾지 못했습니다. 다른 곳을 눌러 주세요.";return}
+          picked=x;if(poly)PM.removeLayer(poly);if(x.ring.length>2)poly=L.polygon(x.ring,{color:"#f3c623",weight:3,fillOpacity:.2}).addTo(PM);
+          var jm=BFGeo.jibunInfo(x.jibun).name;$("ptxt").textContent="선택: "+x.addr+(jm?" ("+jm+")":"");$("pgo").hidden=false}
+        catch(err){if(my===busy)$("ptxt").textContent="땅 정보를 불러오지 못했습니다: "+err.message}});
+    }
+    $("pickb").addEventListener("click",function(){var w=$("pickw"),o=w.hidden;w.hidden=!o;this.setAttribute("aria-expanded",String(o));this.textContent=o?"지도 닫기":"지도에서 땅 눌러서 고르기";
+      if(o){init();setTimeout(function(){PM&&PM.invalidateSize();w.scrollIntoView({behavior:"smooth",block:"center"})},60)}});
+    $("pgo").addEventListener("click",function(){if(!picked)return;$("addr").value=picked.addr;$("pickw").hidden=true;$("pickb").textContent="지도에서 땅 눌러서 고르기";$("pickb").setAttribute("aria-expanded","false");$("f").requestSubmit?$("f").requestSubmit():$("go").click()});
   })();
   $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
     if(o&&MAP&&MAP._bfPoly)setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
