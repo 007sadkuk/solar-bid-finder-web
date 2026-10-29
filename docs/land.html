@@ -90,6 +90,13 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .use h3{margin:0;font-size:18px;letter-spacing:-.01em}
 .use .v{font-weight:800;font-size:15px;padding:3px 10px;border-radius:6px;white-space:nowrap}
 .v.go{background:var(--go-bg);color:var(--go)}.v.may{background:var(--may-bg);color:var(--may)}.v.no{background:var(--no-bg);color:var(--no)}
+.quick{margin:18px 0 0;border-top:2px solid var(--ink)}
+.quick .q{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule2)}
+.quick .q b{font-size:16px}.quick .q span.s{color:var(--sub);font-size:14px;grid-column:1/3}.quick .q .v{font-weight:800;font-size:13.5px;padding:2px 9px;border-radius:6px;grid-row:1;grid-column:3}
+.qcond{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}.qcond span{font-size:13.5px;padding:4px 10px;border-radius:999px;background:var(--field)}
+.qcond span.go{background:var(--go-bg);color:var(--go)}.qcond span.may{background:var(--may-bg);color:var(--may)}.qcond span.no{background:var(--no-bg);color:var(--no)}
+.foot-d{margin:18px 0 0}.foot-d summary{cursor:pointer;color:var(--sub);font-size:14px;padding:6px 0}
+.btn.ghost.moreb{margin:18px 0 0;width:100%;justify-content:center;color:var(--ink);border:1.5px solid var(--ink);background:transparent}.btn.ghost.moreb:hover{background:var(--field)}
 .use .body{grid-column:2/4}
 .use .k{font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:2px 0}
 .use .why{color:var(--sub);font-size:15px;margin:2px 0 0}
@@ -141,6 +148,7 @@ details.src p.s2{background:none;padding:0;font-size:13px}
 .foot-n p{margin:4px 0}
 footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--sub)}
 @media print{
+  #rmore{display:block!important}.foot-d>*{display:block!important}.moreb{display:none!important}
   body{background:#fff;color:#000;font-size:12pt}
   .top .hero,.ask,.prog,.talkbtns,.tmsg,details.src summary,footer .w p:first-child{display:none!important}
   .top{background:#fff;color:#000;border-bottom:2px solid #000}.top .bar{padding:6px 0}.logo svg path{stroke:#000}.co{color:#000}
@@ -199,7 +207,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="tags" id="rtags"></div>
       <div class="lead" id="rlead"></div>
       <dl class="nums" id="rnums"></dl>
+      <div class="quick" id="rquick"></div>
+      <div class="qcond" id="rqcond"></div>
+      <button class="btn ghost moreb" type="button" id="moreb" aria-expanded="false" aria-controls="rmore">자세한 분석 보기</button>
     </div>
+    <div id="rmore" hidden>
 
     <div class="sheet">
       <h2 class="t">할 수 있는 개발</h2>
@@ -220,6 +232,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     </div>
 
     <div id="map" aria-label="필지 위치 지도"></div>
+    </div>
 
     <div class="talk" id="talk">
       <h2>이 땅, 직접 상담받아 보세요</h2>
@@ -248,7 +261,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <p class="tmsg" id="tmsg" role="status"></p>
     </div>
 
-    <div class="foot-n" id="rnotes"></div>
+    <details class="foot-d"><summary>계산 기준과 자료 출처</summary><div class="foot-n" id="rnotes"></div></details>
   </section>
 </main>
 
@@ -439,6 +452,13 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     num("공시지가 총액",price?won(price.won*area):"-","거래가와는 다릅니다");
     num("건폐율 · 용적률",lim?lim[0]+"% · "+lim[1]+"%":"-",lim?"법정 상한":"");
 
+    /* 한눈에 보기 */
+    var Q=$("rquick");Q.innerHTML="";
+    U.forEach(function(u){var d=el("div","q"),t;
+      if(u.key==="solar")t=u.l<2?u.k:(u.why.split(", ")[0]||"현재 규제로 어려움");
+      else if(u.l===2)t=(u.why.split(", ")[0])||"용도지역 기준상 어려움";
+      else{var m=(u.calc||"").match(/약 (\d+)필지/);t=m?"나눠서 약 "+m[1]+"필지 마을 조성 가능":(lim?"건물 바닥 최대 "+Math.round(area*lim[0]/100).toLocaleString()+"㎡("+py(area*lim[0]/100)+")":"조건 확인 필요")}
+      d.appendChild(el("b",null,u.name));d.appendChild(el("span","v "+["go","may","no"][u.l],["가능","조건부","어려움"][u.l]));d.appendChild(el("span","s",t));Q.appendChild(d)});
     /* 개발 목록 */
     var W=$("ruses");W.innerHTML="";var topL=Math.min.apply(0,U.map(function(u){return u.l}));
     U.forEach(function(u){
@@ -468,6 +488,10 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       Object.keys(LBL).forEach(function(k){var e=liP.ex&&liP.ex[k];if(!e)return;var d=el("div","pm");d.appendChild(el("b",null,LBL[k]+" "+liP.n[k]+"건"));
         e.forEach(function(x){d.appendChild(el("span",null,x[0].slice(0,4)+"."+x[0].slice(4,6)+" · "+x[1]+" · "+x[2]))});PS.appendChild(d)});
       $("permw").style.display="block"}else $("permw").style.display="none";
+    var QC=$("rqcond");QC.innerHTML="";C.forEach(function(c){if(!/^(진입로|경사|전력망|개발제한구역|농업진흥·보호구역|보전산지)$/.test(c[1]))return;if(/구역|산지/.test(c[1])&&c[0]==="go")return;
+      var w=c[1]==="진입로"?(c[0]==="go"?"도로 접함":c[0]==="may"?"진입로 확인 필요":"진입로 미확인"):c[1]==="경사"?(c[2].match(/약 [\d.]+°/)||["경사 미확인"])[0].replace("약 ","경사 "):c[1]==="전력망"?(c[0]==="go"?"전력망 여유 있음":c[0]==="may"?"전력망 여유 부족 가능":"전력망 정보 없음"):c[1]+" 해당";
+      QC.appendChild(el("span",c[0],w))});
+    $("rmore").hidden=true;$("moreb").textContent="자세한 분석 보기";$("moreb").setAttribute("aria-expanded","false");
     var K=$("rcond");K.innerHTML="";C.forEach(function(c){var d=el("div",c[0]);d.appendChild(el("i",null,c[0]==="go"?"✓":c[0]==="may"?"!":c[0]==="no"?"✕":"–"));var t=el("p");t.style.margin="0";t.appendChild(el("b",null,c[1]));t.appendChild(el("span",null,c[2]));d.appendChild(t);K.appendChild(d)});
 
 
@@ -582,6 +606,10 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   if(!CFG.kakao)$("kakao").style.display="none";else $("kakao").href=kakaoUrl(); // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
   (function(){var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
+  $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
+    if(o&&MAP&&MAP._bfPoly)setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
+    if(o)m.scrollIntoView({behavior:"smooth",block:"start"})});
+  window.addEventListener("beforeprint",function(){if(MAP&&MAP._bfPoly){MAP.invalidateSize()}});
   $("again").addEventListener("click",function(){$("rep").style.display="none";$("addr").value="";window.scrollTo({top:0,behavior:"smooth"});setTimeout(function(){$("addr").focus()},400)});
 })();
 </script>
