@@ -5,7 +5,7 @@
 window.KT_CFG = {
   endpoint: "",
   kakao: "",
-  web3: "",           // Web3Forms 접근 키(상담 신청을 메일로 받기). endpoint와 함께 써도 됨
+  web3: "1c6559f24-a596-49c1-9f93-f6e7f64b56a3",  // Web3Forms 접근 키(상담 신청을 메일로 받기). endpoint와 함께 써도 됨
   form: "https://naver.me/xllw2knD",  // 네이버폼 등 상담 신청서 주소(비우면 버튼 숨김)
   company: "금호테크닉스"
 };
