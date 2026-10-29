@@ -368,9 +368,36 @@ a.link:hover{text-decoration:underline}
     return usable*c[c.length-1][1]/c[c.length-1][0];
   }
   function landWonOf(p){return p.disposal==="매각"?(p.min_bid!==null&&p.min_bid!==undefined?p.min_bid:p.appraisal):null}
+  function groupRounds(items){ // 같은 물건의 입찰 회차(관리번호 # 앞부분이 같음)를 카드 하나로
+    var now=new Date(Date.now()+9*3600e3).toISOString().slice(0,16).replace("T"," ");
+    var G={},order=[];
+    items.forEach(function(p){var k=String(p.mgmt_no).split("#")[0];if(!G[k]){G[k]=[];order.push(k)}G[k].push(p)});
+    return order.map(function(k){
+      var rs=G[k].slice().sort(function(a,b){return String(a.bid_start||"").localeCompare(String(b.bid_start||""))});
+      var live=rs.filter(function(r){return (r.bid_end||"9")>=now&&!/마감|종료|낙찰|취소/.test(r.status||"")});
+      var rep=Object.assign({},live[0]||rs[rs.length-1]);
+      rep.gkey=k;
+      rep.rounds=rs.map(function(r){return {s:r.bid_start,e:r.bid_end,min:r.min_bid,st:r.status,id:r.mgmt_no,past:!((r.bid_end||"9")>=now&&!/마감|종료|낙찰|취소/.test(r.status||""))}});
+      var fs=rs.map(function(r){return r.first_seen||""}).filter(Boolean).sort();if(fs.length)rep.first_seen=fs[0];
+      // 다른 회차로 저장된 검토·즐겨찾기 결과 이어받기
+      if(!GEO[rep.mgmt_no])for(var i=0;i<rs.length;i++){var g=GEO[rs[i].mgmt_no];if(g&&!g.error){GEO[rep.mgmt_no]=g;break}}
+      if(!FAV[rep.mgmt_no])for(var j2=0;j2<rs.length;j2++){if(FAV[rs[j2].mgmt_no]){FAV[rep.mgmt_no]=FAV[rs[j2].mgmt_no];break}}
+      return rep});
+  }
+  function roundLine(p){
+    var rs=(p.rounds||[]).filter(function(r){return !r.past});if(rs.length<2)return null;
+    var f=function(r){return String(r.s||"").slice(5,10).replace("-","/")};
+    var t="입찰 회차 "+rs.length+"개 남음: 다음 "+f(rs[0])+" "+won(rs[0].min)+" → 마지막 "+f(rs[rs.length-1])+" "+won(rs[rs.length-1].min);
+    var ec=p.area_m2&&p.disposal==="매각"?econ(p):null;
+    if(ec&&ec.kW&&ec.maxLandWon>0){var hit=null;for(var i=0;i<rs.length;i++)if(rs[i].min!==null&&rs[i].min!==undefined&&rs[i].min<=ec.maxLandWon){hit=rs[i];break}
+      t+=hit?(hit===rs[0]?" · 지금 회차부터 상한가 이내":" · "+f(hit)+" 회차("+won(hit.min)+")부터 상한가 이내"):" · 마지막 회차까지 상한가("+won(ec.maxLandWon)+") 초과"}
+    return t;
+  }
   var KEP=null;
   function gridOf(p){ // 한전 분산전원 연계 여유용량. 여유 = min(변전소, 변압기, DL) — 단위 kW로 가정(명세에 단위 없음)
-    var e=KEP&&KEP.items&&KEP.items[p.mgmt_no];if(!e)return null;
+    var e=KEP&&KEP.items&&KEP.items[p.mgmt_no];
+    if((!e||e.err)&&KEP&&KEP.items&&p.rounds)for(var ri=0;ri<p.rounds.length;ri++){var e2=KEP.items[p.rounds[ri].id];if(e2&&!e2.err){e=e2;break}if(e2&&!e)e=e2}
+    if(!e)return null;
     if(e.err)return {err:e.err,ts:e.ts};
     var best=null,row=null;(e.rows||[]).forEach(function(r){if(r.v1===null||r.v2===null||r.v3===null)return;var f=Math.min(r.v1,r.v2,r.v3);if(best===null||f>best){best=f;row=r}});
     var need=p.area_m2?econ(p).kW:null;
@@ -540,6 +567,7 @@ a.link:hover{text-decoration:underline}
       add("최저입찰가",p.min_bid!==null?won(p.min_bid):"비공개");
       add("유찰",(p.fail_count||0)+"회");
       bd.appendChild(n);
+      var rl=roundLine(p);if(rl)bd.appendChild(el("div","why",rl));
       bd.appendChild(el("div","why","입찰 "+(p.bid_start?p.bid_start.slice(0,10):"-")+" ~ "+(p.bid_end?p.bid_end.slice(0,10):"-")+(p.status?"  |  "+p.status:"")+"  |  판정: "+p._r));
       var ac=el("div","acts");
       if(p.area_m2){
@@ -671,7 +699,7 @@ a.link:hover{text-decoration:underline}
   try{var EO=JSON.parse(localStorage.getItem("bf-econ")||"{}");Object.keys(EO).forEach(function(i){if($(i)&&EO[i]!=="")$(i).value=EO[i]})}catch(e){}
   fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(j){KEP=j;ECO={};if(DATA){diag();render()}}}).catch(function(){});
   fetch("data.json?"+Date.now()).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(function(j){
-    DATA=j;buildCats();buildExk();try{$("autogeo").checked=localStorage.getItem("bf-autogeo")!=="0"}catch(e){}if($("autogeo").checked)setTimeout(function(){batchAll(true)},1500);$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
+    j.raw_count=(j.items||[]).length;j.items=groupRounds(j.items||[]);DATA=j;buildCats();buildExk();try{$("autogeo").checked=localStorage.getItem("bf-autogeo")!=="0"}catch(e){}if($("autogeo").checked)setTimeout(function(){batchAll(true)},1500);$("asof").textContent="온비드 공고 기준 · 마지막 수집 "+j.fetched_at+" · 매일 9시·15시 자동 갱신 · NEW는 처음 발견 후 3일간 표시"+(j.stale?" · ⚠ 최근 수집이 실패해 이전 목록을 보여 줍니다":"");diag();render();
   }).catch(function(e){$("asof").textContent="데이터를 불러오지 못했습니다 ("+e.message+"). 첫 수집이 끝났는지 확인하세요.";$("list").appendChild(el("div","empty","아직 수집된 데이터가 없습니다."))});
 })();
 </script></body></html>

@@ -110,6 +110,14 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
         meta["errors"].append("KEPCO_API_KEY 시크릿이 설정되지 않았습니다")
     # 대상: 토지·매각, 면적 있는 물건. 오래된 캐시 먼저
     cand = [i for i in items if "토지" in str(i.get("cat_path") or "") and i.get("disposal") == "매각" and i.get("area_m2")]
+    # 같은 물건의 입찰 회차(관리번호 # 앞이 같음)는 한 번만 조회. 이미 값이 있는 회차가 있으면 그 회차를 대표로
+    groups = {}
+    for i in cand:
+        groups.setdefault(str(i["mgmt_no"]).split("#")[0], []).append(i)
+    cand = []
+    for g in groups.values():
+        have = [i for i in g if (cache.get(i["mgmt_no"]) or {}).get("rows")]
+        cand.append(have[0] if have else g[0])
     def age(i):
         c = cache.get(i["mgmt_no"])
         return c.get("ts", "") if c else ""
@@ -159,8 +167,8 @@ def run(items, out_path, key, scrub=lambda s: s, log=print):
             cache[it["mgmt_no"]] = {"ts": now.strftime("%Y-%m-%d %H:%M"), "err": "조회 결과 없음", "q": q}
     if consec_err >= 2:
         meta["errors"].append("접속 오류 2회로 이번 실행 중단(다음 실행에 이어서)")
-    live = {i["mgmt_no"] for i in items}
-    cache = {k: v for k, v in cache.items() if k in live}
+    live = {str(i["mgmt_no"]).split("#")[0] for i in items}
+    cache = {k: v for k, v in cache.items() if str(k).split("#")[0] in live}
     meta["cached"] = len(cache)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump({"meta": meta, "items": cache}, f, ensure_ascii=False)
