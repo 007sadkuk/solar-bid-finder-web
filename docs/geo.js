@@ -276,10 +276,11 @@ var BFGeo=(function(){
     if(opt.road!==false)try{
       var nb=await vwData("LP_PA_CBND_BUBUN",{geomFilter:box(0.0003),size:"60"});
       if(nb.status==="OK"){
-        var roadTouch=[],others=[];
+        var roadTouch=[],others=[];out.parcel.nb=[];
         nb.features.forEach(function(ft){
           if(ft.properties&&ft.properties.pnu===used)return;
           var nj=jibunInfo(ft.properties&&ft.properties.jibun);
+          polys(ft.geometry).forEach(function(pg){var st=Math.max(1,Math.ceil(pg.length/30));out.parcel.nb.push({c:nj.code,r:pg.filter(function(_,i){return i%st===0}).map(function(q){return [+q[1].toFixed(6),+q[0].toFixed(6)]})})});
           var d=Math.min.apply(0,polys(ft.geometry).map(function(pg){return minDist(P,to(pg))}));
           if(d<=2){if(nj.code==="도")roadTouch.push(ft.properties.jibun);else if(nj.code==="구"||nj.code==="천"||nj.code==="제"||nj.code==="철")others.push(nj.name+" "+ft.properties.jibun)}
         });

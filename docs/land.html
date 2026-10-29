@@ -33,11 +33,19 @@ a{color:inherit}
 .hero p{margin:0;color:#c7d6cc;font-size:17.5px;max-width:30em}
 .plot{width:100%;max-width:300px;justify-self:end}
 .plot path.b{fill:none;stroke:var(--mark);stroke-width:2.5;stroke-linejoin:round;stroke-dasharray:900;stroke-dashoffset:900;animation:draw 1.8s ease-out .2s forwards}
+.plot.live path.nb{fill:none;stroke:#4f7563;stroke-width:1;opacity:0;animation:fadein .5s ease-out forwards}
+.plot.live path.rd{fill:rgba(238,244,239,.10);stroke:#6f9483}
+.plot.live path.t{fill:rgba(243,198,35,0);stroke:var(--mark);stroke-width:2.6;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1.6s ease-out .6s forwards,fillin .8s ease-out 2.1s forwards}
+.plot.live .pin{opacity:0;animation:fadein .5s ease-out 2.3s forwards}
+.plot.live .ring{fill:none;stroke:var(--mark);stroke-width:1.5;transform-origin:center;transform-box:fill-box;animation:pulse 2s ease-out 2.4s infinite;opacity:0}
+.plot.live text{opacity:0;animation:fadein .6s ease-out 2.4s forwards;paint-order:stroke;stroke:#14261d;stroke-width:4px;stroke-linejoin:round}
+@keyframes fadein{to{opacity:1}}@keyframes fillin{to{fill:rgba(243,198,35,.22)}}
+@keyframes pulse{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
 .plot path.n{fill:none;stroke:#4f7563;stroke-width:1.2}
 .plot text{fill:#eef4ef;font:700 15px var(--font)}
 .plot text.s{fill:#9fb7a8;font-weight:500;font-size:12px}
 @keyframes draw{to{stroke-dashoffset:0}}
-@media (prefers-reduced-motion:reduce){.plot path.b{animation:none;stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.plot path.b,.plot.live path.t{animation:none;stroke-dashoffset:0}.plot.live *{animation:none!important;opacity:1!important}}
 
 /* 입력 */
 .ask{background:var(--sheet);border-radius:18px;padding:22px;margin-top:-22px;position:relative;box-shadow:0 18px 40px -24px rgba(16,36,28,.45)}
@@ -142,7 +150,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 }
 @media (max-width:640px){
   body{font-size:16px}
-  .hero{grid-template-columns:1fr}.plot{display:none}
+  .hero{grid-template-columns:1fr}.plot{display:none}.plot.live{display:block;justify-self:center;max-width:260px;margin-top:6px}
   .in{flex-direction:column}.btn{width:100%}
   .nums{grid-template-columns:1fr 1fr}
   .use{grid-template-columns:40px 1fr}.use .v{grid-column:2;justify-self:start}.use .body{grid-column:1/-1}
@@ -250,7 +258,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029f"></script>
+<script src="geo.js?v=20261029g"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -474,11 +482,32 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     notes.forEach(function(t){NN.appendChild(el("p",null,t))});
 
     $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
-    $("prog").style.display="none";$("rep").style.display="block";drawMap(par);
+    $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);
     $("raddr").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};
   }
 
+  /* 첫 화면 그림을 검색한 땅으로 다시 그림: 주변 필지 → 내 땅 경계 → 채움 → 표시 */
+  function drawPlot(par,zone){
+    var sv=document.querySelector("svg.plot");if(!sv||!par.ring||par.ring.length<3)return;
+    var W=300,H=240,NS="http://www.w3.org/2000/svg",lat0=par.ring[0][0],kx=Math.cos(lat0*Math.PI/180);
+    function xy(p){return [p[1]*kx,-p[0]]}
+    var T=par.ring.map(xy),xs=T.map(function(p){return p[0]}),ys=T.map(function(p){return p[1]});
+    var x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
+    var sc=Math.min(W*0.5/((x1-x0)||1e-6),H*0.5/((y1-y0)||1e-6)),cx=(x0+x1)/2,cy=(y0+y1)/2;
+    function pt(p){var q=xy(p);return [(W/2+(q[0]-cx)*sc).toFixed(1),(H/2-12+(q[1]-cy)*sc).toFixed(1)]}
+    function d(r){return r.map(function(p,i){var q=pt(p);return (i?"L":"M")+q[0]+" "+q[1]}).join(" ")+" Z"}
+    var h='<defs><clipPath id="pclip"><rect x="0" y="0" width="'+W+'" height="'+H+'" rx="14"/></clipPath></defs><g clip-path="url(#pclip)"><rect width="'+W+'" height="'+H+'" rx="14" fill="rgba(255,255,255,.03)"/>';
+    (par.nb||[]).forEach(function(n,i){if(n.r.length<3)return;h+='<path class="nb'+(n.c==="도"?" rd":"")+'" style="animation-delay:'+(i*0.012).toFixed(2)+'s" d="'+d(n.r)+'"/>'});
+    var td=d(par.ring),len=0,P=par.ring.map(pt);for(var i=0;i<P.length;i++){var a=P[i],b=P[(i+1)%P.length];len+=Math.hypot(a[0]-b[0],a[1]-b[1])}
+    h+='<path class="t" style="--len:'+Math.ceil(len+2)+'" d="'+td+'"/></g>';
+    var c=pt(par.center||par.ring[0]);
+    h+='<circle class="ring" cx="'+c[0]+'" cy="'+c[1]+'" r="10"/><circle class="pin" cx="'+c[0]+'" cy="'+c[1]+'" r="4" fill="#f3c623"/>';
+    var jb=String(par.jibun||"").replace(/\s*[가-힣]$/,""),dong=(String(par.addr||"").match(/([가-힣0-9]+(?:리|동|가))\s/)||[])[1]||"";jb=(dong?dong+" ":"")+jb;var sub=[zone,par.jimok,par.areaGeo?Math.round(par.areaGeo).toLocaleString()+"㎡":""].filter(Boolean).join(" · ");
+    function esc(t){return String(t).replace(/[&<>"]/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]})}
+    h+='<text x="150" y="'+(H-26)+'" text-anchor="middle">'+esc(jb)+'</text><text class="s" x="150" y="'+(H-9)+'" text-anchor="middle">'+esc(sub)+'</text>';
+    sv.classList.remove("live");sv.innerHTML=h;void sv.getBoundingClientRect();sv.classList.add("live");
+  }
   function drawMap(par){
     if(typeof L==="undefined"||!par.ring||par.ring.length<3){$("map").style.display="none";return}
     $("map").style.display="block";
