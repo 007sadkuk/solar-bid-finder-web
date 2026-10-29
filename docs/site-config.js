@@ -1,6 +1,8 @@
-/* 땅의 가치 설정. endpoint를 채우면 검색 기록과 상담 신청이 그 주소로 전송됩니다(예: Google Apps Script 웹앱 주소). 비워 두면 전송하지 않습니다. */
+/* 땅의 가치 설정
+   endpoint: 검색 기록을 받을 주소(구글 Apps Script 웹앱 URL). 비우면 기록하지 않음.
+   kakao: 카카오톡 채널 주소(예: https://pf.kakao.com/_xxxxx). 비우면 '준비 중'으로 표시. */
 window.KT_CFG = {
   endpoint: "",
-  phone: "",          // 상담 전화번호(있으면 상담 칸에 표시)
+  kakao: "",
   company: "금호테크닉스"
 };

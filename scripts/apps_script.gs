@@ -16,6 +16,11 @@ function doPost(e) {
     sh.appendRow([new Date(), d.name, "'" + (d.phone || ""), d.relation, d.interest, d.memo, d.addr, "'" + (d.pnu || ""), s.zone, s.area, s.best]);
     if (NOTIFY_EMAIL) MailApp.sendEmail(NOTIFY_EMAIL, "[땅의 가치] 상담 신청: " + (d.addr || ""),
       "이름: " + d.name + "\n연락처: " + d.phone + "\n관계: " + d.relation + "\n관심: " + d.interest + "\n땅: " + d.addr + "\n문의: " + (d.memo || "-"));
+  } else if (d.type === "kakao_click") {
+    var sh3 = ss.getSheetByName("카톡 상담 클릭") || ss.insertSheet("카톡 상담 클릭");
+    if (sh3.getLastRow() === 0) sh3.appendRow(["시각", "땅 주소", "PNU", "용도지역", "면적㎡", "가능 판정"]);
+    var k = d.summary || {};
+    sh3.appendRow([new Date(), d.addr, "'" + (d.pnu || ""), k.zone, k.area, k.best]);
   } else {
     var sh2 = ss.getSheetByName("검색") || ss.insertSheet("검색");
     if (sh2.getLastRow() === 0) sh2.appendRow(["시각", "입력 주소", "찾은 주소", "PNU", "찾음", "용도지역", "면적㎡", "가능 판정", "오류"]);
