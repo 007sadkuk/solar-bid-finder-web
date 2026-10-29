@@ -60,7 +60,7 @@ a{color:inherit}
 .tip{color:var(--sub);font-size:14.5px;margin:10px 0 0}
 .pickb{margin:14px 0 0;font:inherit;font-size:15px;font-weight:700;color:var(--pine2);background:transparent;border:1.5px dashed var(--rule);border-radius:10px;padding:10px 14px;width:100%;cursor:pointer}
 .pickb:hover{background:var(--field)}
-.pickw{margin:10px 0 0}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
+.pickw{margin:10px 0 0}.pickw .leaflet-control-layers{font-size:13px;line-height:1.5}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
 .pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 0;font-size:15px}.pbar .btn{white-space:nowrap}
 @media (max-width:640px){#pmap{height:320px}.pbar{flex-direction:column;align-items:stretch}}
 .ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -208,7 +208,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     <button class="pickb" type="button" id="pickb" aria-expanded="false" aria-controls="pickw">지도에서 땅 눌러서 고르기</button>
     <div class="pickw" id="pickw" hidden>
       <div id="pmap" aria-label="땅 고르기 지도"></div>
-      <div class="pbar" id="pbar2"><span id="ptxt">지도를 확대한 뒤 땅을 눌러 주세요.</span><button class="btn" type="button" id="pgo" hidden>이 땅 리포트 보기</button></div>
+      <div class="pbar" id="pbar2"><span id="ptxt">지도를 확대하면 필지 경계(지적도)가 나옵니다. 땅을 눌러 주세요.</span><button class="btn" type="button" id="pgo" hidden>이 땅 리포트 보기</button></div>
     </div>
   </form>
 
@@ -650,15 +650,19 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   (function(){var PM=null,poly=null,picked=null,busy=0;
     function init(){if(PM||typeof L==="undefined")return;var k=BFGeo.getKey();
       PM=L.map("pmap",{zoomControl:true}).setView([36.2,128.7],9);
-      if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(PM);
-        L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(PM)}
+      if(k){var sat=L.layerGroup([L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}),L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19})]).addTo(PM),
+          base=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Base/{z}/{y}/{x}.png",{maxZoom:19,attribution:"V-World"});
+        // 연속지적도(필지 경계·지번), 확대했을 때만 표시
+        var cad=L.tileLayer.wms("https://api.vworld.kr/req/wms",{layers:"lp_pa_cbnd_bubun",styles:"lp_pa_cbnd_bubun",format:"image/png",transparent:true,version:"1.3.0",key:k,domain:BFGeo.domain(),minZoom:15,maxZoom:19,attribution:"지적도 V-World"}).addTo(PM);
+        L.control.layers({"위성":sat,"일반 지도":base},{"지적도(필지 경계)":cad},{collapsed:false,position:"topright"}).addTo(PM);
+        PM.on("zoomend",function(){if(PM.getZoom()<15)$("ptxt").textContent="지도를 확대하면 필지 경계(지적도)가 나옵니다. 땅을 눌러 주세요.";else if(!picked)$("ptxt").textContent="필지 경계선 안의 땅을 눌러 주세요."})}
       else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(PM);
       PM.on("click",async function(e){
         if(PM.getZoom()<15){PM.setView(e.latlng,Math.min(PM.getZoom()+3,16));$("ptxt").textContent="조금 더 확대한 뒤 땅을 눌러 주세요.";return}
         var my=++busy;$("ptxt").textContent="땅을 찾는 중…";$("pgo").hidden=true;
         try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;
           if(!x){$("ptxt").textContent="이 위치에서 땅을 찾지 못했습니다. 다른 곳을 눌러 주세요.";return}
-          picked=x;if(poly)PM.removeLayer(poly);if(x.ring.length>2)poly=L.polygon(x.ring,{color:"#f3c623",weight:3,fillOpacity:.2}).addTo(PM);
+          picked=x;if(poly)PM.removeLayer(poly);if(x.ring.length>2)poly=L.polygon(x.ring,{color:"#ff4d3d",weight:4,fillColor:"#ff4d3d",fillOpacity:.25}).addTo(PM);
           var jm=BFGeo.jibunInfo(x.jibun).name;$("ptxt").textContent="선택: "+x.addr+(jm?" ("+jm+")":"");$("pgo").hidden=false}
         catch(err){if(my===busy)$("ptxt").textContent="땅 정보를 불러오지 못했습니다: "+err.message}});
     }
