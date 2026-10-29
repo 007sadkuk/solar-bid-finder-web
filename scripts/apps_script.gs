@@ -3,7 +3,7 @@
    2) 이 코드를 통째로 붙여넣고 NOTIFY_EMAIL을 상담 알림 받을 메일로 바꿉니다.
    3) [배포] → [새 배포] → 유형 '웹 앱' / 실행 사용자 '나' / 액세스 '모든 사용자' → 배포.
    4) 나오는 '웹 앱 URL'을 docs/site-config.js 의 endpoint 에 넣습니다. */
-var NOTIFY_EMAIL = "";   // 예: "name@company.com" (비우면 메일 알림 없음)
+var NOTIFY_EMAIL = "kukdas700@gmail.com";   // 상담 신청 알림 메일(비우면 알림 없음)
 
 function doPost(e) {
   var d = {};

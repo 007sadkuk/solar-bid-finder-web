@@ -470,7 +470,8 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
     var data={type:"contact",name:f.name.value.trim(),phone:f.phone.value.trim(),relation:f.relation.value,interest:ints.join(", "),memo:f.memo.value.trim(),addr:LAST&&LAST.addr,pnu:LAST&&LAST.pnu,query:LAST&&LAST.query,summary:LAST&&LAST.summary};
     var btn=$("tsend");btn.disabled=true;btn.textContent="보내는 중…";var ok=false;
     try{
-      if(CFG.mailto){
+      if(CFG.endpoint){ok=await send(data)}
+      else if(CFG.mailto){
         // 일반 폼 제출(숨은 iframe)로 보냄: 브라우저 CORS 제한을 받지 않음
         var s0=LAST&&LAST.summary||{};
         var fields={_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
@@ -490,7 +491,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
           이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s.zone||"-",면적:s.area?s.area+"㎡":"-",가능판정:s.best||"-"})});
         var j=await rs.json().catch(function(){return {}});ok=!!j.success;
         send(data);
-      }else if(CFG.endpoint){ok=await send(data)}
+      }
     }catch(e){ok=false;window.__formMsg="전송 실패: "+e.message}
     if(ok){D.textContent="상담 신청을 보냈습니다. 금호테크닉스 담당자가 남겨 주신 번호로 연락드리겠습니다.";btn.textContent="보냈습니다"}
     else{btn.disabled=false;btn.textContent="상담 신청 보내기";
