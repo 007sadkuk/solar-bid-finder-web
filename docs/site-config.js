@@ -3,7 +3,7 @@
    kakao: 카카오톡 채널 주소(예: https://pf.kakao.com/_xxxxx). 비우면 '준비 중'으로 표시.
    form: 네이버폼 등 상담 신청서 주소. */
 window.KT_CFG = {
-  endpoint: "",
+  endpoint: "https://script.google.com/macros/s/AKfycbyuWl0KpvrrBSiVVgifKAnbLGwevtR37DK8X4Ir0V-8NhPzF7zKT--5dwiDbgr6KgGB/exec",
   kakao: "https://pf.kakao.com/_ihBWX",
   mailto: "kukdas700@gmail.com",  // 상담 신청을 받을 메일 주소(FormSubmit). 첫 신청 때 오는 활성화 메일에서 Activate 1회
   web3: "",           // (선택) Web3Forms 접근 키
