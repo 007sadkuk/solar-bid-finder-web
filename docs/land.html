@@ -248,7 +248,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
-<script src="site-config.js?v=20261029k"></script>
+<script src="site-config.js?v=20261029l"></script>
 <script src="geo.js?v=20261029c"></script>
 <script>
 (function(){
@@ -296,10 +296,14 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   }
 
   /* 기록 전송: 설정된 주소로만 보냄 */
+  var DBG=/[?&]debug=1/.test(location.search);
+  function dbg(t){if(!DBG)return;var d=document.getElementById("dbg");if(!d){d=document.createElement("div");d.id="dbg";d.style.cssText="position:fixed;left:8px;bottom:8px;z-index:9999;background:#000;color:#0f0;font:12px monospace;padding:6px 8px;border-radius:6px;max-width:90vw";document.body.appendChild(d)}d.textContent=t}
+  if(DBG)setTimeout(function(){dbg("설정 endpoint: "+(CFG.endpoint?CFG.endpoint.slice(0,48)+"…":"(비어 있음)"))},500);
   function send(payload){
-    if(!CFG.endpoint)return Promise.resolve(false);
+    if(!CFG.endpoint){dbg("기록 안 보냄: endpoint 비어 있음");return Promise.resolve(false)}
+    dbg("기록 보내는 중: "+payload.type);
     payload.ts=new Date().toISOString();payload.page=location.href;
-    return fetch(CFG.endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)}).then(function(){return true}).catch(function(){return false});
+    return fetch(CFG.endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)}).then(function(){dbg("기록 보냄: "+payload.type+" ("+new Date().toLocaleTimeString()+")");return true}).catch(function(e){dbg("기록 전송 실패: "+e.message);return false});
   }
 
   var P0=0;function prog(msg,p){$("prog").style.display="block";$("pmsg").textContent=msg;$("pbar").style.width=p+"%"}
