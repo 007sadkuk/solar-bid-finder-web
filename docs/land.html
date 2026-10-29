@@ -452,7 +452,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     send({type:"kakao_click",addr:a,pnu:LAST&&LAST.pnu,summary:LAST&&LAST.summary});
     if(a&&navigator.clipboard)navigator.clipboard.writeText(a).catch(function(){});
     if(!u){ev.preventDefault();$("tmsg").textContent="카카오톡 상담 창구를 준비하고 있습니다.";return}
-    this.href=u;$("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에 붙여넣어 보내 주세요.":"";
+$("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에 붙여넣어 보내 주세요.":"";
   });
   function copy(t,msg){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){$("tmsg").textContent=msg},function(){window.prompt("복사하세요",t)})}
   function shareUrl(){return location.origin+location.pathname+"?addr="+encodeURIComponent(LAST&&LAST.addr||"")}
@@ -490,7 +490,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       if(CFG.form){var a=el("a",null,"네이버 신청서로 접수하기");a.href=CFG.form;a.target="_blank";a.rel="noopener";a.style.color="#f3c623";D.appendChild(a);if(data.addr&&navigator.clipboard)navigator.clipboard.writeText(data.addr).catch(function(){})}
       else if(CFG.kakao)D.appendChild(document.createTextNode("카카오톡으로 문의해 주세요."))}
   });
-  if(!CFG.kakao)$("kakao").style.display="none"; // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
+  if(!CFG.kakao)$("kakao").style.display="none";else $("kakao").href=kakaoUrl(); // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
   (function(){var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
   $("again").addEventListener("click",function(){$("rep").style.display="none";$("addr").value="";window.scrollTo({top:0,behavior:"smooth"});setTimeout(function(){$("addr").focus()},400)});
