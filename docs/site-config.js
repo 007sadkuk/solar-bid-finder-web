@@ -5,7 +5,7 @@
 window.KT_CFG = {
   endpoint: "",
   kakao: "",
-  mailto: "",         // 상담 신청을 받을 메일 주소(FormSubmit). 첫 신청 때 오는 활성화 메일에서 Activate 1회
+  mailto: "kukdas700@naver.com",  // 상담 신청을 받을 메일 주소(FormSubmit). 첫 신청 때 오는 활성화 메일에서 Activate 1회
   web3: "",           // (선택) Web3Forms 접근 키
   form: "https://naver.me/xllw2knD",  // 네이버폼 등 상담 신청서 주소(비우면 버튼 숨김)
   company: "금호테크닉스"
