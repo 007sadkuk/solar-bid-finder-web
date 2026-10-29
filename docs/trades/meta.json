@@ -1,8 +1,24 @@
 {
  "source": "https://apis.data.go.kr/1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade",
- "run_at": "2026-10-29 16:09",
- "errors": [
-  "27110 202610: HTTP 403"
- ],
- "calls": 1
+ "run_at": "2026-10-29 16:12",
+ "errors": [],
+ "calls": 900,
+ "keys": [
+  "cdealDay",
+  "cdealType",
+  "dealAmount",
+  "dealArea",
+  "dealDay",
+  "dealMonth",
+  "dealYear",
+  "dealingGbn",
+  "estateAgentSggNm",
+  "jibun",
+  "jimok",
+  "landUse",
+  "sggCd",
+  "sggNm",
+  "shareDealingType",
+  "umdNm"
+ ]
 }
