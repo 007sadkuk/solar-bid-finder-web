@@ -359,7 +359,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   var MAP=null,LAST=null;
   $("f").addEventListener("submit",async function(ev){
     ev.preventDefault();var q=$("addr").value.trim();if(!q)return;
-    if(!/\d/.test(q)){$("rep").style.display="none";fail("정확한 지번(번지)까지 넣어 주세요. 아래 후보에서 골라도 됩니다.");if(window.AC_OPEN)AC_OPEN(q,true);return}
+    if(!/\d/.test(q)){$("rep").style.display="none";fail("정확한 지번(번지)까지 넣어 주세요. 아래 후보에서 골라도 됩니다.");send({type:"search",query:q,found:false,error:"번지 없이 검색"});if(window.AC_OPEN)AC_OPEN(q,true);return}
     $("go").disabled=true;$("err").style.display="none";$("rep").style.display="none";prog("지적도에서 땅을 찾고 있습니다",12);
     try{
       var P=await BFGeo.findParcel(q);
