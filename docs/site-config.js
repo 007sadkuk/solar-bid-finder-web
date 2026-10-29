@@ -5,6 +5,6 @@
 window.KT_CFG = {
   endpoint: "",
   kakao: "",
-  form: "",           // 네이버폼 등 상담 신청서 주소(비우면 버튼 숨김)
+  form: "https://naver.me/xllw2knD",  // 네이버폼 등 상담 신청서 주소(비우면 버튼 숨김)
   company: "금호테크닉스"
 };
