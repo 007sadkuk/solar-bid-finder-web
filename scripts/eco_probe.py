@@ -1,31 +1,26 @@
 """생태자연도 API(국립생태원) 응답 형식 확인용. 키는 로그에서 가림."""
-import os, re, urllib.parse, urllib.request
+import os, re, json, urllib.parse, urllib.request
 from pyproj import Transformer
 K = urllib.parse.unquote(os.environ.get("DATA_GO_KR_KEY", "").strip())
-B = "https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService"
+B = "https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService/wfs/getEcologyzmpWFS"
 t = Transformer.from_crs("EPSG:4326", "EPSG:5186", always_xy=True)
-pts = {"소백산": (128.48, 36.95), "김천어모": (128.07, 36.17), "대구시내": (128.60, 35.87)}
 def get(u):
     try:
-        with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "probe"}), timeout=30) as r:
-            b = r.read(); ct = r.headers.get("Content-Type", "")
-            return r.status, ct, b
+        with urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "probe", "Origin": "https://007sadkuk.github.io"}), timeout=30) as r:
+            return r.status, dict(r.headers), r.read()
     except urllib.error.HTTPError as e:
-        return e.code, e.headers.get("Content-Type", ""), e.read()
-    except Exception as e:  # noqa: BLE001
-        return 0, "", str(e).encode()
-def show(name, u):
-    s, ct, b = get(u)
-    txt = b[:600].decode("utf-8", "replace") if "image" not in ct else f"<image {len(b)} bytes>"
-    print(f"== {name}: {s} {ct}\n{re.sub(r'\\s+', ' ', txt)}\n".replace(K, "KEY"))
-for nm, (lo, la) in pts.items():
+        return e.code, dict(e.headers), e.read()
+for nm, (lo, la, d) in {"김천어모": (128.07, 36.17, 50), "소백산": (128.48, 36.95, 300), "가야산": (128.12, 35.82, 300)}.items():
     x, y = t.transform(lo, la)
-    d = 50
-    bb = f"{y-d},{x-d},{y+d},{x+d}"
-    q = lambda **kw: urllib.parse.urlencode(dict({"ServiceKey": K}, **kw))
-    show(nm + " WMS", B + "/wms/getEcologyzmpWMS?" + q(layers="tbl_opn_eczm", srs="EPSG:5186", bbox=bb, width=2, height=2, format="png", transparent="true"))
-    show(nm + " WMS GetFeatureInfo", B + "/wms/getEcologyzmpWMS?" + q(request="GetFeatureInfo", layers="tbl_opn_eczm", query_layers="tbl_opn_eczm", srs="EPSG:5186", bbox=bb, width=3, height=3, x=1, y=1, info_format="application/json"))
-    for op in ["wfs/getEcologyzmpWFS", "wfs/getEcologyzmpWfs", "attr/getEcologyzmpAttr", "getEcologyzmpAttr", "attribute/getEcologyzmpAttribute"]:
-        show(nm + " " + op, B + "/" + op + "?" + q(typeName="tbl_opn_eczm", layers="tbl_opn_eczm", srsName="EPSG:5186", srs="EPSG:5186", bbox=bb, outputFormat="application/json", type="json", numOfRows=5, pageNo=1))
-    if nm != "소백산":
-        break
+    for lab, bb, extra in [("5186", f"{y-d},{x-d},{y+d},{x+d}", {}), ("5186-xy", f"{x-d},{y-d},{x+d},{y+d}", {}), ("4326out", f"{y-d},{x-d},{y+d},{x+d}", {"srsName": "EPSG:4326"})]:
+        q = dict({"ServiceKey": K, "typeName": "tbl_opn_eczm", "srsName": "EPSG:5186", "bbox": bb, "outputFormat": "application/json"}, **extra)
+        s, h, b = get(B + "?" + urllib.parse.urlencode(q))
+        try:
+            j = json.loads(b)
+            fs = j.get("features", [])
+            print(nm, lab, s, "CORS:", h.get("Access-Control-Allow-Origin"), "n=", len(fs))
+            for f in fs[:3]:
+                c = f["geometry"]["coordinates"][0][0][0]
+                print("   props:", json.dumps(f["properties"], ensure_ascii=False)[:400], "first:", c)
+        except Exception as e:  # noqa: BLE001
+            print(nm, lab, s, b[:200])
