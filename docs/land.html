@@ -165,7 +165,7 @@ footer{padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px;font
     "보전녹지지역":"mmmx","생산녹지지역":"ommm","자연녹지지역":"omom","보전관리지역":"ommx","생산관리지역":"ommm","계획관리지역":"oooo","농림지역":"mmxx","자연환경보전지역":"mxxx","관리지역":"ommx"};
   M["일반공업지역"]="mooo";M["준공업지역"]="mooo";
   var USES=["전원주택","창고","근린생활시설","공장"];
-  var A={use:0.6,hrs:3.4,rentLo:20000,rentHi:25000,lot:330,road:0.25};
+  var A={use:0.6,hrs:3.4,rentLo:20000,rentHi:25000,lot:330,road:0.25,price:147,capex:120,om:2};
   var KWC=null;
   function kWFor(usable){
     if(!KWC){KWC=[];[30,60,120,250,500,1000,2000,4000,8000,16000,32000,64000,128000,256000].forEach(function(u){var sd=Math.sqrt(u);
@@ -252,12 +252,14 @@ footer{padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px;font
     if(GB)sw.push("개발제한구역");if(AGJ)sw.push("농업진흥구역");if(SJ)sw.push("보전산지(준보전산지만 가능)");if(sl!==null&&sl>15)sw.push("경사 "+sl.toFixed(0)+"°");
     if(meng)sw.push("진입로 확보 필요");if(kW<20)sw.push("규모가 작음");if(g&&g.free<kW)sw.push("전력망 여유 부족 가능");
     if(!sw.length)sw.push("큰 규제가 보이지 않음");
-    U.unshift({name:"태양광 발전",l:sv,why:sw,big:sv<2?"임대 시 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",sub:sv<2?"약 "+Math.round(kW).toLocaleString()+"kW 설치 가능"+(g?" · 지역 전력망 여유 약 "+Math.round(g.free).toLocaleString()+"kW":""):""});
+    var EC=kW>0?economics({kW:kW,hoursPerDay:A.hrs,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
+    var dir=EC&&sv<2?"직접 하면: 총 사업비 약 "+won(EC.capex*1e4)+" · 연 순수익 약 "+won((EC.rev1-EC.om1)*1e4)+" · 수익률(IRR) "+(EC.irr!==null?(EC.irr*100).toFixed(1)+"%":"-")+" · 회수 약 "+(EC.payback?EC.payback.toFixed(1)+"년":"-"):"";
+    U.unshift({name:"태양광 발전",l:sv,why:sw,big:sv<2?"임대 시 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",sub:sv<2?"약 "+Math.round(kW).toLocaleString()+"kW 설치 가능"+(g?" · 지역 전력망 여유 약 "+Math.round(g.free).toLocaleString()+"kW":""):"",extra:dir});
     var bestL=Math.min.apply(0,U.map(function(u){return u.l}));
     var W=$("uses");W.innerHTML="";
     U.forEach(function(u){var c=el("div","card use"+(u.l===bestL&&bestL<2?" best":""));var hd=el("div","hd");hd.appendChild(el("h3",null,u.name));
       hd.appendChild(el("span","badge "+["b-ok","b-mid","b-no"][u.l],["가능성 높음","조건부 가능","어려움"][u.l]));c.appendChild(hd);
-      if(u.big)c.appendChild(el("div","big",u.big));if(u.sub)c.appendChild(el("p",null,u.sub));c.appendChild(el("p",null,u.why.join(" · ")));W.appendChild(c)});
+      if(u.big)c.appendChild(el("div","big",u.big));if(u.sub)c.appendChild(el("p",null,u.sub));if(u.extra){var ex=el("p",null,u.extra);ex.style.cssText="color:var(--ink);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:14px";c.appendChild(ex)}c.appendChild(el("p",null,u.why.join(" · ")));W.appendChild(c)});
 
     /* 조건 점검 */
     var C=[];
@@ -278,6 +280,7 @@ footer{padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px;font
     notes.push("개발 가능성은 용도지역별 일반 기준으로 판단한 1차 결과입니다. 같은 용도지역이라도 지자체 도시계획 조례, 지구단위계획, 세부 용도(예: 음식점, 업종별 공장)에 따라 달라집니다.");
     notes.push("건폐율·용적률은 국토계획법 시행령의 법정 상한이며 지자체 조례가 더 낮을 수 있습니다. 바닥·연면적은 면적에 이 비율을 곱한 최대치입니다.");
     notes.push("공시지가는 브이월드 개별공시지가 정보입니다. 실제 거래 가격과 다를 수 있습니다.");
+    notes.push("태양광 직접 사업 계산: 판매단가 kWh당 147원(2026년 1차 고정가격계약 낙찰 평균, SMP+1REC), 설치비 kW당 120만원(100kW 투자비 1.1~1.4억원 수준 참고), 하루 3.4시간 발전, 운영비 kW당 연 2만원, 연 0.5% 효율 저하, 20년. 토지비는 본인 땅이라 0원, 계통 연계비·인허가비·금융비용·세금은 빠져 있어 실제 수익률은 이보다 낮아질 수 있습니다.");
     notes.push("태양광 임대료는 설치 용량 1kW당 연 2만~2.5만원으로 계산한 참고 범위입니다(지자체 공유재산 임대 기준 등 참고).");
     notes.forEach(function(t){N.appendChild(el("p",null,"· "+t))});
 
