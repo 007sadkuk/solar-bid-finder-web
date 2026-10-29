@@ -47,6 +47,14 @@ var BFGeo=(function(){
     f.forEach(function(x){var n=x.prposAreaDstrcCodeNm||"",c=String(x.cnflcAt||"");if(!n)return;var k=n+"|"+c;if(seen[k])return;seen[k]=1;out.push([n,c])});
     return out;
   }
+  async function landPrice(pnu){ // 개별공시지가(원/㎡) 최근 연도. 응답 형식은 NED 공통 형식으로 가정
+    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getIndvdLandPriceAttr",r=null;
+    try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
+    if(!r)r=await jsonp(u,p);
+    var f=r&&r.indvdLandPrices&&r.indvdLandPrices.field;if(!f)return null;if(!Array.isArray(f))f=[f];
+    var best=null;f.forEach(function(x){var y=+x.stdrYear,v=+String(x.pblntfPclnd||"").replace(/,/g,"");if(v>0&&(!best||y>best.year))best={year:y,won:v}});
+    return best;
+  }
   // 코드: 1·2는 레이어 대조에서 거의 전부 겹침이 확인됨(2026-10-28 전수 3,353필지). 3은 의미 미확정 → '경계 걸침'으로 따로 취급
   function nedGroup(list,test,label,kind){
     var hit=list.filter(function(x){return test(x[0])});
@@ -292,5 +300,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
