@@ -471,10 +471,18 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
     var btn=$("tsend");btn.disabled=true;btn.textContent="보내는 중…";var ok=false;
     try{
       if(CFG.mailto){
+        // 일반 폼 제출(숨은 iframe)로 보냄: 브라우저 CORS 제한을 받지 않음
         var s0=LAST&&LAST.summary||{};
-        var r0=await fetch("https://formsubmit.co/ajax/"+encodeURIComponent(CFG.mailto),{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
-          이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s0.zone||"-",면적:s0.area?s0.area+"㎡":"-",가능판정:s0.best||"-"})});
-        var j0=await r0.json().catch(function(){return {}});ok=String(j0.success)==="true"||j0.success===true;if(!ok)window.__formMsg="HTTP "+r0.status+" "+(j0.message||JSON.stringify(j0)).slice(0,200);
+        var fields={_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
+          이름:data.name,연락처:data.phone,관계:data.relation,관심:data.interest,문의:data.memo||"-",땅주소:data.addr||"-",필지번호:data.pnu||"-",용도지역:s0.zone||"-",면적:s0.area?s0.area+"㎡":"-",가능판정:s0.best||"-"};
+        ok=await new Promise(function(res){
+          var ifr=document.getElementById("fs-ifr");if(!ifr){ifr=document.createElement("iframe");ifr.name="fs-ifr";ifr.id="fs-ifr";ifr.style.display="none";document.body.appendChild(ifr)}
+          var fm=document.createElement("form");fm.method="POST";fm.action="https://formsubmit.co/"+encodeURIComponent(CFG.mailto);fm.target="fs-ifr";fm.acceptCharset="UTF-8";fm.style.display="none";
+          Object.keys(fields).forEach(function(k){var i=document.createElement("input");i.type="hidden";i.name=k;i.value=fields[k];fm.appendChild(i)});
+          document.body.appendChild(fm);var done=false;
+          ifr.onload=function(){if(done)return;done=true;fm.remove();res(true)};
+          setTimeout(function(){if(done)return;done=true;fm.remove();res(true)},6000); // 응답 페이지를 읽을 수 없으므로 전송 완료로 봄
+          fm.submit()});
         send(data);
       }else if(CFG.web3){
         var s=LAST&&LAST.summary||{};
