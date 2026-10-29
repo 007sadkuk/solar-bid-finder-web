@@ -62,7 +62,7 @@ a{color:inherit}
 .pickb:hover{background:var(--field)}
 .pickw{margin:10px 0 0}.pickw .leaflet-control-layers{font-size:13px;line-height:1.5}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
 .pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 0;font-size:15px}.pbar .btn{white-space:nowrap}
-@media (max-width:640px){#pmap{height:320px}.pbar{flex-direction:column;align-items:stretch}}
+@media (max-width:640px){#pmap{height:440px}.pbar{flex-direction:column;align-items:stretch}}
 .ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .ex button{font:inherit;font-size:13.5px;border:1px solid var(--rule);background:transparent;color:var(--sub);border-radius:8px;padding:4px 10px;cursor:pointer}
 
@@ -156,6 +156,31 @@ details.src p.s2{background:none;padding:0;font-size:13px}
 .foot-n{font-size:13.5px;color:var(--sub);margin:0 0 24px}
 .foot-n p{margin:4px 0}
 footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;color:var(--sub)}
+/* 큰 화면: 전체를 넓고 크게 */
+@media (min-width:900px){
+  .w{max-width:1120px;padding:0 24px}
+  body{font-size:18.5px}
+  .logo{font-size:21px}
+  .hero{gap:40px;padding:44px 0 60px}
+  .hero h1{font-size:clamp(48px,5.4vw,72px)}
+  .hero p{font-size:20.5px}
+  .plot{max-width:440px}
+  .pcard .plot{max-width:520px}
+  .in input{font-size:21px;padding:18px 20px}
+  .btn{font-size:19px;padding:16px 26px}
+  .tip{font-size:16px}.ex button{font-size:15px;padding:6px 12px}
+  .pickb{font-size:17px;padding:14px 16px}
+  #pmap{height:620px}
+  .pbar{font-size:17px}
+  .lead{font-size:22px;padding:20px 24px}
+  .nums dt{font-size:15.5px}.nums dd{font-size:28px}.nums dd small{font-size:14px}
+  .quick .q{padding:14px 0}.quick .q b{font-size:19px}.quick .q span.s{font-size:16px}.quick .q .v{font-size:15px}
+  p.t{font-size:16.5px}
+  .use h3{font-size:21px}.use .why{font-size:16.5px}
+  #map{height:520px}
+  .acl li{font-size:17px}.acl li small{font-size:14px}
+  .talk input,.talk select,.talk textarea{font-size:18px}
+}
 @media print{
   .pickb,.pickw{display:none!important}
   #rmore{display:block!important}.foot-d>*{display:block!important}.moreb{display:none!important}
