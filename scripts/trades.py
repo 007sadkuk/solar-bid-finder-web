@@ -58,6 +58,8 @@ def call(key, sgg, ymd, page):
 
 def main():
     key = os.environ.get("DATA_GO_KR_KEY", "").strip()
+    if "%" in key:  # Encoding 키를 넣은 경우 → Decoding 값으로 바꿔 사용(이중 인코딩 방지)
+        key = urllib.parse.unquote(key)
     os.makedirs(OUT, exist_ok=True)
     KST = datetime.timezone(datetime.timedelta(hours=9))
     now = datetime.datetime.now(KST)
@@ -117,7 +119,12 @@ def main():
                     page += 1
                     time.sleep(0.3)
             except urllib.error.HTTPError as e:
-                meta["errors"].append(f"{sgg} {ym}: HTTP {e.code}")
+                try:
+                    body = e.read().decode("utf-8", "replace")
+                except Exception:  # noqa: BLE001
+                    body = ""
+                body = re.sub(r"\s+", " ", body)[:200]
+                meta["errors"].append(f"{sgg} {ym}: HTTP {e.code} {body}")
                 if e.code in (401, 403, 429):
                     stop = True
                 continue
