@@ -1,0 +1,8 @@
+{
+ "source": "https://apis.data.go.kr/1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade",
+ "run_at": "2026-10-29 16:09",
+ "errors": [
+  "27110 202610: HTTP 403"
+ ],
+ "calls": 1
+}
