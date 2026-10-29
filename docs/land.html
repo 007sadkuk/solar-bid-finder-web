@@ -359,6 +359,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   var MAP=null,LAST=null;
   $("f").addEventListener("submit",async function(ev){
     ev.preventDefault();var q=$("addr").value.trim();if(!q)return;
+    if(!/\d/.test(q)){$("rep").style.display="none";fail("정확한 지번(번지)까지 넣어 주세요. 아래 후보에서 골라도 됩니다.");if(window.AC_OPEN)AC_OPEN(q,true);return}
     $("go").disabled=true;$("err").style.display="none";$("rep").style.display="none";prog("지적도에서 땅을 찾고 있습니다",12);
     try{
       var P=await BFGeo.findParcel(q);
@@ -616,16 +617,23 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
       items.forEach(function(x,i){var li=el("li");li.setAttribute("role","option");var a=x.addr.split(" "),tail=a.slice(-2).join(" "),head=a.slice(0,-2).join(" ");li.appendChild(document.createTextNode(tail));li.appendChild(el("small",null,head));
         li.addEventListener("mousedown",function(e){e.preventDefault();pick(i)});Lst.appendChild(li)});
       Lst.hidden=!Lst.children.length;I.setAttribute("aria-expanded",String(!Lst.hidden))}
+    // 정렬: 대구·경북 먼저 → 같은 리·동끼리 → 일반 번지 먼저, 산 번지 뒤 → 본번·부번 숫자 순
+    function jb(a){var t=a.split(" ").pop(),m=t.match(/^(산)?(\d+)(?:-(\d+))?/);return m?[m[1]?1:0,+m[2],+(m[3]||0)]:[2,0,0]}
+    function acCmp(a,b){var A=/^(경상북도|대구광역시)/.test(a.addr)?0:1,B=/^(경상북도|대구광역시)/.test(b.addr)?0:1;if(A!==B)return A-B;
+      var ha=a.addr.replace(/\s\S+$/,""),hb=b.addr.replace(/\s\S+$/,"");if(ha!==hb)return ha<hb?-1:1;var x=jb(a.addr),y=jb(b.addr);return x[0]-y[0]||x[1]-y[1]||x[2]-y[2]}
+    function run(q,n,head){var my=++seqA;show([], "찾는 중…");
+        BFGeo.searchAddr(q,n).then(function(L){if(my!==seqA)return;L.sort(acCmp);show(L,head&&L.length?"번지를 골라 주세요":L.length?"":"후보가 없습니다. 리·동 이름과 번지를 함께 적어 보세요")}).catch(function(){if(my===seqA)show([],"후보를 불러오지 못했습니다")})}
+    window.AC_OPEN=function(q,head){clearTimeout(tm);I.focus();run(q,100,head)};
     I.addEventListener("input",function(){clearTimeout(tm);var q=I.value.trim();if(q.length<2||!/[가-힣]/.test(q)){close();return}
       tm=setTimeout(function(){var my=++seqA;show([], "찾는 중…");
-        BFGeo.searchAddr(q,10).then(function(L){if(my!==seqA)return;
-          L.sort(function(a,b){var A=/^(경상북도|대구광역시)/.test(a.addr)?0:1,B=/^(경상북도|대구광역시)/.test(b.addr)?0:1;return A-B});
+        BFGeo.searchAddr(q,/\d/.test(q)?10:100).then(function(L){if(my!==seqA)return;
+          L.sort(acCmp);
           show(L,L.length?"":"후보가 없습니다. 리·동 이름과 번지를 함께 적어 보세요")}).catch(function(){if(my===seqA)show([],"후보를 불러오지 못했습니다")})},300)});
     I.addEventListener("keydown",function(e){if(Lst.hidden||!items.length)return;
       if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%items.length;mark()}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+items.length)%items.length;mark()}
       else if(e.key==="Enter"&&sel>=0){e.preventDefault();pick(sel)}else if(e.key==="Escape")close()});
     I.addEventListener("blur",function(){setTimeout(close,150)});
-    $("f").addEventListener("submit",function(){seqA++;close()});
+    $("f").addEventListener("submit",function(){if(/\d/.test(I.value)){seqA++;close()}});
   })();
   $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
     if(o&&MAP&&MAP._bfPoly)setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
