@@ -474,8 +474,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
     var data={type:"contact",name:f.name.value.trim(),phone:f.phone.value.trim(),relation:f.relation.value,interest:ints.join(", "),memo:f.memo.value.trim(),addr:LAST&&LAST.addr,pnu:LAST&&LAST.pnu,query:LAST&&LAST.query,summary:LAST&&LAST.summary};
     var btn=$("tsend");btn.disabled=true;btn.textContent="보내는 중…";var ok=false;
     try{
-      if(CFG.endpoint){ok=await send(data)}
-      else if(CFG.mailto){
+      if(CFG.mailto){
         // 일반 폼 제출(숨은 iframe)로 보냄: 브라우저 CORS 제한을 받지 않음
         var s0=LAST&&LAST.summary||{};
         var fields={_subject:"[땅의 가치] 상담 신청: "+(data.addr||""),_template:"table",_captcha:"false",
@@ -489,6 +488,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
           setTimeout(function(){if(done)return;done=true;fm.remove();res(true)},6000); // 응답 페이지를 읽을 수 없으므로 전송 완료로 봄
           fm.submit()});
         send(data);
+      }else if(CFG.endpoint){ok=await send(data)
       }else if(CFG.web3){
         var s=LAST&&LAST.summary||{};
         var rs=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({access_key:CFG.web3,subject:"[땅의 가치] 상담 신청: "+(data.addr||""),from_name:"땅의 가치",
