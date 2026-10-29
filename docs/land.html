@@ -523,7 +523,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var sw=[],sv=0;
     if(GB){sv=2;sw.push("개발제한구역")}if(AGJ){sv=2;sw.push("농업진흥구역")}if(SJ){sv=2;sw.push("보전산지(준보전산지만 가능)")}
     if(sl!==null&&sl>15){sv=2;sw.push("경사 "+sl.toFixed(0)+"°")}
-    if(sv<2){if(meng){sv=1;sw.push("진입로 확보 필요")}if(sl!==null&&sl>10){sv=Math.max(sv,1);sw.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
+    if(meng){sv=2;sw.push(rs?"맹지(도로접면 '"+rs+"') — 진입로가 없으면 태양광 허가가 나지 않습니다":"맹지로 보임(지적도상 도로와 맞닿지 않음) — 진입로가 없으면 태양광 허가가 나지 않습니다")}
+    if(sv<2){if(sl!==null&&sl>10){sv=Math.max(sv,1);sw.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
     var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
     U.push({key:"solar",name:"태양광 발전",ic:SUN,l:sv,
       k:sv<2?"땅을 빌려주면 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",
