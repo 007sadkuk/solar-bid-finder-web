@@ -123,7 +123,7 @@ details.src p.s2{background:none;padding:0;font-size:13px}
 .talk .btn{grid-column:1/-1;font-size:18px}
 .talkbtns{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;padding-top:16px;border-top:1px solid #3f6352}
 .btn.kakao{background:#fee500;color:#191600;text-decoration:none;display:inline-flex;align-items:center}
-.btn.ghost{background:transparent;color:#eef4ef;border:1.5px solid #3f6352}
+.btn.ghost{text-decoration:none;display:inline-flex;align-items:center;background:transparent;color:#eef4ef;border:1.5px solid #3f6352}
 .tmsg{margin:10px 0 0;color:#c7d6cc;font-size:14.5px;min-height:1em}
 .hp{position:absolute;left:-9999px}
 .done{display:none;grid-column:1/-1;background:#173027;border-left:4px solid var(--mark);padding:12px 14px;border-radius:4px 10px 10px 4px}
@@ -231,6 +231,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
         <a class="btn kakao" id="kakao" href="#" target="_blank" rel="noopener">카카오톡으로 상담하기</a>
         <button class="btn ghost" type="button" id="share">리포트 링크 복사</button>
         <button class="btn ghost" type="button" id="print">리포트 저장(PDF·인쇄)</button>
+        <a class="btn ghost" id="eum" href="https://www.eum.go.kr/" target="_blank" rel="noopener">토지이용계획확인서 보기</a>
         <button class="btn ghost" type="button" id="again">다른 땅 진단하기</button>
       </div>
       <p class="tmsg" id="tmsg" role="status"></p>
@@ -249,7 +250,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029c"></script>
+<script src="geo.js?v=20261029d"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -284,6 +285,17 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   var PERM={};
   function permitsFor(pnu){var c=pnu.slice(0,5);if(PERM[c]!==undefined)return Promise.resolve(PERM[c]);
     return fetch("permits/"+c+".json?v=20261029").then(function(r){return r.ok?r.json():null}).catch(function(){return null}).then(function(j){PERM[c]=j;return j})}
+  /* 지역 일사량: NASA POWER 연평균 수평면 일사량(kWh/㎡·일) → 발전시간 근사(×0.88, 한국 평균 3.86 ≈ 3.4시간에 맞춘 계수) */
+  function sunFor(pt){if(!pt)return Promise.resolve(null);
+    var u="https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude="+pt[0].toFixed(3)+"&latitude="+pt[1].toFixed(3)+"&format=JSON";
+    return Promise.race([fetch(u).then(function(r){return r.json()}).then(function(j){var v=j&&j.properties&&j.properties.parameter&&j.properties.parameter.ALLSKY_SFC_SW_DWN;v=v&&(v.ANN||v.ann);return v>0?{ghi:v,hrs:Math.round(v*0.88*100)/100}:null}),new Promise(function(r){setTimeout(function(){r(null)},8000)})]).catch(function(){return null})}
+  /* 주변 거리: 오픈스트리트맵(Overpass). 누락이 있을 수 있음 */
+  function nearFor(pt){if(!pt)return Promise.resolve(null);
+    var lo=pt[0],la=pt[1],q="[out:json][timeout:15];(node(around:15000,"+la+","+lo+")[highway=motorway_junction];way(around:5000,"+la+","+lo+")[highway~\"^(trunk|primary)$\"];node(around:15000,"+la+","+lo+")[power=substation];way(around:15000,"+la+","+lo+")[power=substation];node(around:5000,"+la+","+lo+")[place~\"^(village|hamlet|town)$\"];);out center 200;";
+    return Promise.race([fetch("https://overpass-api.de/api/interpreter",{method:"POST",body:"data="+encodeURIComponent(q),headers:{"Content-Type":"application/x-www-form-urlencoded"}}).then(function(r){return r.json()}).then(function(j){
+      function d(a,b){var R=6371,x=(b[0]-a[0])*Math.PI/180*Math.cos((a[1]+b[1])/2*Math.PI/180),y=(b[1]-a[1])*Math.PI/180;return R*Math.sqrt(x*x+y*y)}
+      var best={};(j.elements||[]).forEach(function(e){var c=e.center||{lat:e.lat,lon:e.lon};if(!c||c.lat==null)return;var t=e.tags||{},k=t.highway==="motorway_junction"?"ic":t.power==="substation"?"sub":t.place?"town":(t.highway?"road":null);if(!k)return;
+        var km=d([lo,la],[c.lon,c.lat]);if(!best[k]||km<best[k].km)best[k]={km:km,name:t.name||t.ref||""}});return best}),new Promise(function(r){setTimeout(function(){r(null)},12000)})]).catch(function(){return null})}
   var KEPI=null;
   fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){if(!j)return;KEPI={};
     Object.keys(j.items||{}).forEach(function(k){var v=j.items[k];if(!v.rows||!v.q)return;var key=v.q.addrLidong+"|"+(v.q.addrLi||"");(KEPI[key]=KEPI[key]||[]).push(v)})}).catch(function(){});
@@ -318,16 +330,16 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       prog("용도지역과 규제를 확인하고 있습니다",40);
       await LRP;
       var t1=setTimeout(function(){prog("진입로와 경사를 확인하고 있습니다",70)},2500);
-      var res=await Promise.all([BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{}),BFGeo.landPrice(P.pnu).catch(function(){return null}),permitsFor(P.pnu)]);
+      var res=await Promise.all([BFGeo.check({name:P.addr,pnu:P.pnu,address:P.addr},{}),BFGeo.landPrice(P.pnu).catch(function(){return null}),permitsFor(P.pnu),BFGeo.landChar(P.pnu).catch(function(){return null}),sunFor(P.point),nearFor(P.point)]);
       clearTimeout(t1);prog("리포트를 정리하고 있습니다",95);
       if(res[0].error){fail("확인 중 문제가 생겼습니다: "+res[0].error);send({type:"search",query:q,pnu:P.pnu,found:true,error:res[0].error});return}
-      var R=report(P,res[0],res[1],res[2]);LAST={query:q,pnu:P.pnu,addr:P.addr,summary:R};
+      var R=report(P,res[0],res[1],res[2],{lc:res[3],sun:res[4],near:res[5]});LAST={query:q,pnu:P.pnu,addr:P.addr,summary:R};
       send({type:"search",query:q,pnu:P.pnu,addr:P.addr,found:true,zone:R.zone,area:R.area,best:R.best});
     }catch(e){fail("확인 중 문제가 생겼습니다: "+e.message+". 잠시 뒤 다시 시도해 주세요.")}
     finally{$("go").disabled=false}
   });
 
-  function report(P,r,price,perm){
+  function report(P,r,price,perm,X){X=X||{};
     var par=r.parcel||{},area=par.areaGeo||0,L=r.layers||{},jm=par.jimok||"";
     var zones=(L.zone&&L.zone.names)||[],zone=zones[0]||"",lim=LIM[zone];
     var RS=rulesFor(P.pnu)||{rules:{},src:""},ZR=(RS.rules||{})[zone]||null;
@@ -339,6 +351,12 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     function hit(id,re){var x=L[id];return !!(x&&x.status==="overlap"&&(x.names||[]).some(function(n){return re.test(n)}))}
     var GB=hit("gb",/개발제한/),AGJ=hit("agri",/농업진흥구역/),AGB=hit("agri",/농업보호구역/),SJ=hit("sanji",/./);
     var rd=r.road,meng=rd&&rd.status==="no",sl=r.slope&&r.slope.status==="ok"&&r.slope.deg!==null?r.slope.deg:null;
+    var LC=X.lc,rs=LC&&LC.road||"",roadTxt="";
+    // 도로접면(토지특성): 맹지면 맹지, 세로(불)은 차량 통행 불가, 나머지는 도로에 접한 것으로 판단
+    if(rs){if(/맹지/.test(rs)){meng=true;roadTxt="도로접면 '맹지'(토지특성 "+LC.year+"년)"}
+      else if(/세로\(불\)|세로불/.test(rs)){meng=true;roadTxt="도로접면 '"+rs+"' — 차량이 다닐 수 없는 좁은 길에만 접함"}
+      else{meng=false;roadTxt="도로접면 '"+rs+"'"}}
+    var HRS=X.sun&&X.sun.hrs>2&&X.sun.hrs<5?X.sun.hrs:A.hrs;
 
     /* 개발 판정 */
     var U=[];
@@ -347,7 +365,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     if(GB){sv=2;sw.push("개발제한구역")}if(AGJ){sv=2;sw.push("농업진흥구역")}if(SJ){sv=2;sw.push("보전산지(준보전산지만 가능)")}
     if(sl!==null&&sl>15){sv=2;sw.push("경사 "+sl.toFixed(0)+"°")}
     if(sv<2){if(meng){sv=1;sw.push("진입로 확보 필요")}if(sl!==null&&sl>10){sv=Math.max(sv,1);sw.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
-    var EC=kW>0?economics({kW:kW,hoursPerDay:A.hrs,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
+    var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
     U.push({key:"solar",name:"태양광 발전",ic:SUN,l:sv,
       k:sv<2?"땅을 빌려주면 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",
       why:(sw.length?sw.join(", "):"큰 규제가 보이지 않습니다")+(pc("solar")?", 이 마을 태양광 개발행위허가 "+pc("solar")+"건(최근 "+lastY("solar")+"년)":""),
@@ -409,9 +427,17 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       else if(x.status==="overlap"){var n=(x.names||[]).filter(function(s){return !/영농여건불리/.test(s)});C.push(n.length?["no",name,n.join(", ")+" 해당"]:["go",name,"해당 없음"])}
       else if(x.status==="edge")C.push(["may",name,"경계에 일부 걸침, 확인 필요"]);else C.push(["go",name,"해당 없음"])}
     reg("gb","개발제한구역");reg("agri","농업진흥·보호구역");reg("sanji","보전산지");
-    C.push(rd&&rd.status==="touch"?["go","진입로","도로와 맞닿아 있습니다"]:meng?["may","진입로","지적도상 도로와 맞닿아 있지 않습니다(맹지 가능성)"]:["na","진입로","확인하지 못했습니다"]);
+    var RW={"광대":"폭 25m 이상 큰 도로","중로":"폭 12~25m 도로","소로":"폭 8~12m 도로","세로(가)":"폭 8m 미만, 차량 통행 가능한 길","세로(불)":"차량 통행이 안 되는 좁은 길"};
+    var rwd="";Object.keys(RW).forEach(function(k){if(!rwd&&rs.indexOf(k.replace(/[()]/g,""))>=0||rs.indexOf(k)>=0)rwd=RW[k]});
+    if(rs)C.push([meng?"may":"go","진입로",roadTxt+(rwd&&roadTxt.indexOf("—")<0?" ("+rwd+")":"")+(rd&&rd.status==="no"&&!meng?". 지적도상 도로 필지와는 떨어져 있지만 현황 도로에 접한 것으로 조사됨":"")]);
+    else C.push(rd&&rd.status==="touch"?["go","진입로","도로와 맞닿아 있습니다"]:meng?["may","진입로","지적도상 도로와 맞닿아 있지 않습니다(맹지 가능성)"]:["na","진입로","확인하지 못했습니다"]);
+    if(LC&&(LC.height||LC.shape||LC.use))C.push(["na","땅 모양·높이",[LC.use?"이용상황 "+LC.use:"",LC.height?"지형 "+LC.height:"",LC.shape?"형상 "+LC.shape:""].filter(Boolean).join(", ")]);
+    if(X.sun)C.push(["na","일사량","연평균 하루 "+X.sun.ghi.toFixed(2)+"kWh/㎡ → 태양광 발전 약 "+HRS.toFixed(1)+"시간/일"]);
     C.push(sl===null?["na","경사","확인하지 못했습니다"]:sl<=15?["go","경사","평균 약 "+sl.toFixed(1)+"°"]:sl<=25?["may","경사","평균 약 "+sl.toFixed(1)+"°, 토목비 증가"]:["no","경사","평균 약 "+sl.toFixed(1)+"°, 개발 어려움"]);
     C.push(g?[g.free>=kW?"go":"may","전력망",g.area+" 선로 여유 약 "+Math.round(g.free).toLocaleString()+"kW"]:["na","전력망","이 지역 정보가 아직 없습니다"]);
+    var NR=X.near;if(NR){var parts=[];function km(o){return o.km<1?Math.round(o.km*1000)+"m":o.km.toFixed(1)+"km"}
+      if(NR.ic)parts.push("IC "+km(NR.ic)+(NR.ic.name?"("+NR.ic.name+")":""));if(NR.road)parts.push("국도·간선도로 "+km(NR.road));if(NR.town)parts.push("마을 "+km(NR.town)+(NR.town.name?"("+NR.town.name+")":""));if(NR.sub)parts.push("변전소 "+km(NR.sub)+(NR.sub.name?"("+NR.sub.name+")":""));
+      if(parts.length)C.push(["na","주변 거리",parts.join(", ")])}
     if(r.ned){var etc=Array.from(new Set(r.ned.filter(function(x){return !LIM[x[0]]&&!/도시지역|개발제한|농업진흥|농업보호|임업용산지|공익용산지/.test(x[0])}).map(function(x){return x[0]})));if(etc.length)C.push(["na","그 밖의 지정",etc.join(", ")])}
     var PS=$("rperm");PS.innerHTML="";
     if(liP){var LBL={solar:"태양광",house:"주택",warehouse:"창고",shop:"근린생활·상가",factory:"공장"};
@@ -430,10 +456,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     notes.push("건축 판정은 국토교통부 토지이음의 토지이용규제 행위제한정보(2026년 9월 18일 기준)에서 "+(RS.src||"법령 기준")+"을 적용했습니다. 지구단위계획, 세부 업종·규모, 관련 법령(농지법·산지관리법 등) 협의에 따라 달라질 수 있습니다.");
     if(liP)notes.push("마을 개발 사례는 토지이음 개발행위허가정보(2026년 10월 19일 공개분)입니다. 지자체마다 등록된 기간이 달라 빠진 허가가 있을 수 있습니다.");
     notes.push("건폐율·용적률은 국토계획법 시행령 제84·85조의 법정 상한입니다. 지자체 조례가 더 낮을 수 있습니다.");
-    notes.push("태양광 직접 사업 계산: kWh당 147원(2026년 1차 고정가격계약 낙찰 평균), 설치비 kW당 120만원, 하루 3.4시간 발전, 운영비 kW당 연 2만원, 20년. 계통 연계비·인허가비·금융비용·세금은 빠져 있습니다. 임대료는 kW당 연 2만~2.5만원으로 계산한 참고 범위입니다.");
+    notes.push("태양광 직접 사업 계산: kWh당 147원(2026년 1차 고정가격계약 낙찰 평균), 설치비 kW당 120만원, 하루 "+HRS.toFixed(1)+"시간 발전("+(X.sun?"NASA POWER 지역 일사량 기준 근사":"전국 평균 가정")+"), 운영비 kW당 연 2만원, 20년. 계통 연계비·인허가비·금융비용·세금은 빠져 있습니다. 임대료는 kW당 연 2만~2.5만원으로 계산한 참고 범위입니다.");
     notes.push("공시지가는 국토교통부 개별공시지가입니다. 실제 거래 가격과 다릅니다.");
     notes.forEach(function(t){NN.appendChild(el("p",null,t))});
 
+    $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
     $("prog").style.display="none";$("rep").style.display="block";drawMap(par);
     $("raddr").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};

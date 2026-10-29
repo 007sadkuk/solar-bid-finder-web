@@ -47,6 +47,15 @@ var BFGeo=(function(){
     f.forEach(function(x){var n=x.prposAreaDstrcCodeNm||"",c=String(x.cnflcAt||"");if(!n)return;var k=n+"|"+c;if(seen[k])return;seen[k]=1;out.push([n,c])});
     return out;
   }
+  async function landChar(pnu){ // 토지특성(도로접면·지형높이·지형형상·이용상황). 응답 키 이름이 달라도 찾도록 느슨하게 처리
+    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getLandCharacteristics",r=null;
+    try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
+    if(!r)r=await jsonp(u,p);
+    var arr=null;(function find(o){if(arr||!o||typeof o!=="object")return;if(o.field){arr=Array.isArray(o.field)?o.field:[o.field];return}Object.keys(o).forEach(function(k){find(o[k])})})(r);
+    if(!arr||!arr.length)return null;
+    arr.sort(function(a,b){return (+b.stdrYear||0)-(+a.stdrYear||0)});var x=arr[0];
+    return {year:x.stdrYear,road:x.roadSideCodeNm||"",height:x.tpgrphHgCodeNm||"",shape:x.tpgrphFrmCodeNm||"",use:x.ladUseSittnNm||"",raw:x};
+  }
   async function landPrice(pnu){ // 개별공시지가(원/㎡) 최근 연도. 응답 형식은 NED 공통 형식으로 가정
     var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getIndvdLandPriceAttr",r=null;
     try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
@@ -300,5 +309,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
