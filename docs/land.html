@@ -15,7 +15,7 @@
   --pine:#0f211a;--pine2:#1a3529;--ink:#e6eee8;--sub:#a4b6ab;--field:#0b1712;--sheet:#13241c;--rule:#2b4136;--rule2:#203329;
   --mark:#f3c623;--mark-ink:#f3c623;--go:#7fd1a3;--go-bg:#16362a;--may:#f0c55e;--may-bg:#3a2f12;--no:#f0a29a;--no-bg:#3d1f1d;
 }}
-*{box-sizing:border-box}
+*{box-sizing:border-box}[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--field);color:var(--ink);font:17px/1.7 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
 a{color:inherit}
@@ -96,6 +96,10 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .qcond{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}.qcond span{font-size:13.5px;padding:4px 10px;border-radius:999px;background:var(--field)}
 .qcond span.go{background:var(--go-bg);color:var(--go)}.qcond span.may{background:var(--may-bg);color:var(--may)}.qcond span.no{background:var(--no-bg);color:var(--no)}
 .foot-d{margin:18px 0 0}.foot-d summary{cursor:pointer;color:var(--sub);font-size:14px;padding:6px 0}
+.acw{position:relative;flex:1;min-width:0;display:flex}.acw input{flex:1;min-width:0;width:100%}
+.acl{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:50;margin:0;padding:6px;list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:320px;overflow:auto}
+.acl li{padding:10px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.35;color:var(--ink)}.acl li small{display:block;color:var(--sub);font-size:12.5px}
+.acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
 .btn.ghost.moreb{margin:18px 0 0;width:100%;justify-content:center;color:var(--ink);border:1.5px solid var(--ink);background:transparent}.btn.ghost.moreb:hover{background:var(--field)}
 .use .body{grid-column:2/4}
 .use .k{font-size:19px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:2px 0}
@@ -192,7 +196,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <main class="w">
   <form class="ask" id="f" autocomplete="off">
     <label for="addr">땅 주소(지번)</label>
-    <div class="in"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required><button class="btn" id="go" type="submit">리포트 보기</button></div>
+    <div class="in"><div class="acw"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="acl"><ul class="acl" id="acl" role="listbox" hidden></ul></div><button class="btn" id="go" type="submit">리포트 보기</button></div>
     <p class="tip">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다.</p>
     <div class="ex" id="ex"></div>
   </form>
@@ -208,7 +212,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="lead" id="rlead"></div>
       <dl class="nums" id="rnums"></dl>
       <div class="quick" id="rquick"></div>
-      <div class="qcond" id="rqcond"></div>
+      <div class="qcond" id="rqcond" hidden></div>
       <button class="btn ghost moreb" type="button" id="moreb" aria-expanded="false" aria-controls="rmore">자세한 분석 보기</button>
     </div>
     <div id="rmore" hidden>
@@ -225,11 +229,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="perm" id="rperm"></div>
     </div>
 
-    <div class="sheet">
-      <h2 class="t">땅 조건</h2>
-      <p class="t">개발 판정에 쓴 조건입니다.</p>
-      <div class="cond" id="rcond"></div>
-    </div>
+    <div class="cond" id="rcond" hidden></div>
 
     <div id="map" aria-label="필지 위치 지도"></div>
     </div>
@@ -274,7 +274,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029h"></script>
+<script src="geo.js?v=20261029i"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -606,6 +606,27 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   if(!CFG.kakao)$("kakao").style.display="none";else $("kakao").href=kakaoUrl(); // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
   (function(){var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
+  /* 주소 자동완성: 일부만 입력해도 지번 후보를 보여줌 */
+  (function(){var I=$("addr"),Lst=$("acl"),tm=null,seqA=0,items=[],sel=-1;
+    function close(){Lst.hidden=true;I.setAttribute("aria-expanded","false");sel=-1}
+    function mark(){Array.from(Lst.children).forEach(function(li,i){li.setAttribute("aria-selected",String(i===sel))})}
+    function pick(i){var x=items[i];if(!x)return;I.value=x.addr;close();$("f").requestSubmit?$("f").requestSubmit():$("go").click()}
+    function show(list,msg){Lst.innerHTML="";items=list||[];sel=-1;
+      if(msg){var m=el("li","m",msg);Lst.appendChild(m)}
+      items.forEach(function(x,i){var li=el("li");li.setAttribute("role","option");var a=x.addr.split(" "),tail=a.slice(-2).join(" "),head=a.slice(0,-2).join(" ");li.appendChild(document.createTextNode(tail));li.appendChild(el("small",null,head));
+        li.addEventListener("mousedown",function(e){e.preventDefault();pick(i)});Lst.appendChild(li)});
+      Lst.hidden=!Lst.children.length;I.setAttribute("aria-expanded",String(!Lst.hidden))}
+    I.addEventListener("input",function(){clearTimeout(tm);var q=I.value.trim();if(q.length<2||!/[가-힣]/.test(q)){close();return}
+      tm=setTimeout(function(){var my=++seqA;show([], "찾는 중…");
+        BFGeo.searchAddr(q,10).then(function(L){if(my!==seqA)return;
+          L.sort(function(a,b){var A=/^(경상북도|대구광역시)/.test(a.addr)?0:1,B=/^(경상북도|대구광역시)/.test(b.addr)?0:1;return A-B});
+          show(L,L.length?"":"후보가 없습니다. 리·동 이름과 번지를 함께 적어 보세요")}).catch(function(){if(my===seqA)show([],"후보를 불러오지 못했습니다")})},300)});
+    I.addEventListener("keydown",function(e){if(Lst.hidden||!items.length)return;
+      if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%items.length;mark()}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+items.length)%items.length;mark()}
+      else if(e.key==="Enter"&&sel>=0){e.preventDefault();pick(sel)}else if(e.key==="Escape")close()});
+    I.addEventListener("blur",function(){setTimeout(close,150)});
+    $("f").addEventListener("submit",function(){seqA++;close()});
+  })();
   $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
     if(o&&MAP&&MAP._bfPoly)setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
     if(o)m.scrollIntoView({behavior:"smooth",block:"start"})});

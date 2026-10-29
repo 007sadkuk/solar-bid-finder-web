@@ -58,6 +58,12 @@ var BFGeo=(function(){
     function pick(rx){var k=Object.keys(x).find(function(k){return rx.test(k)&&x[k]});return k?String(x[k]):""}
     return {year:x.stdrYear||"",road:pick(/roadSide.*Nm|road.*Nm/i),height:pick(/tpgrphHg.*Nm|Hg.*Nm/i),shape:pick(/tpgrphFrm.*Nm|Frm.*Nm/i),use:pick(/ladUse.*Nm|UseSittn.*Nm/i),raw:x};
   }
+  async function searchAddr(q,size){ // 지번 주소 후보(V-World 검색 API). [{addr,pnu,pt:[lon,lat]}]
+    var p={service:"search",request:"search",version:"2.0",crs:"EPSG:4326",query:q,type:"address",category:"parcel",format:"json",errorformat:"json",size:String(size||10),page:"1",key:getKey(),domain:domain()},u="https://api.vworld.kr/req/search",r=null;
+    try{r=await jsonp(u,p,10000)}catch(e){try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e2){throw e}}
+    var R=(r&&r.response)||{};if(R.status!=="OK"||!R.result)return [];
+    return (R.result.items||[]).map(function(x){return {addr:(x.address&&x.address.parcel)||x.title||"",pnu:x.id||"",pt:x.point?[+x.point.x,+x.point.y]:null}}).filter(function(x){return x.addr});
+  }
   async function landPrice(pnu){ // 개별공시지가(원/㎡) 최근 연도. 응답 형식은 NED 공통 형식으로 가정
     var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getIndvdLandPriceAttr",r=null;
     try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
@@ -312,5 +318,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
