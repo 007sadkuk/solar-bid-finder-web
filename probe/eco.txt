@@ -1,0 +1,96 @@
+== 소백산 WMS: 200 image/png
+<image 75 bytes>
+
+== 소백산 WMS GetFeatureInfo: 200 application/json;charset=UTF-8
+{"type":"FeatureCollection","totalFeatures":"unknown","features":[],"crs":null}
+
+== 소백산 wfs/getEcologyzmpWFS: 200 application/json;charset=UTF-8
+{"type":"FeatureCollection","totalFeatures":0,"features":[],"crs":null}
+
+== 소백산 wfs/getEcologyzmpWfs: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
+== 소백산 attr/getEcologyzmpAttr: 200 application/json
+{"header":{"description":"생태‧자연도 속성정보","resultCode":"10","resultMsg":"INVALID_REQUEST_PARAMETER_ERROR:시도/시군구/읍면동 코드 중 한 항목 이상은 필수 입력 입니다."},"body":{}}
+
+== 소백산 getEcologyzmpAttr: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
+== 소백산 attribute/getEcologyzmpAttribute: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
+== 김천어모 WMS: 200 image/png
+<image 84 bytes>
+
+== 김천어모 WMS GetFeatureInfo: 200 application/json;charset=UTF-8
+{"type":"FeatureCollection","totalFeatures":"unknown","features":[{"type":"Feature","id":"tbl_opn_eczm.202607050777866961","geometry":{"type":"MultiPolygon","coordinates":[[[[397433.2260999996,296323.5256999992],[397452.04000000004,296249.4511999991],[397462.98369999975,296314.84520000033],[397530.1484000003,296222.07210000046],[397480.5133999996,296068.73509999923],[397498.2937000003,295971.3155000005],[397461.53780000005,296193.0310999993],[397388.79449999984,296219.4057],[397433.2260999996,296323.5256999992]]]]},"geometry_name":"geom","properties":{"eczm_grad":"2","vtn_evl_grad":"2","amplt_
+
+== 김천어모 wfs/getEcologyzmpWFS: 200 application/json;charset=UTF-8
+{"type":"FeatureCollection","totalFeatures":3,"features":[{"type":"Feature","id":"tbl_opn_eczm.202607050777866961","geometry":{"type":"MultiPolygon","coordinates":[[[[397433.2260999996,296323.5256999992],[397433.6325000003,296321.59520000033],[397433.79389999993,296315.8160999995],[397433.69990000036,296315.5342999995],[397432.4319000002,296312.4923999999],[397430.9685000004,296309.82459999993],[397429.69710000046,296306.9712000005],[397429.42200000025,296306.57159999944],[397429.9798999997,296304.64690000005],[397430.55950000044,296301.7625999991],[397430.81539999973,296299.68769999966],[3974
+
+== 김천어모 wfs/getEcologyzmpWfs: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
+== 김천어모 attr/getEcologyzmpAttr: 200 application/json
+{"header":{"description":"생태‧자연도 속성정보","resultCode":"10","resultMsg":"INVALID_REQUEST_PARAMETER_ERROR:시도/시군구/읍면동 코드 중 한 항목 이상은 필수 입력 입니다."},"body":{}}
+
+== 김천어모 getEcologyzmpAttr: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
+== 김천어모 attribute/getEcologyzmpAttribute: 400 application/json
+{
+  "OpenAPI_ServiceResponse": {
+    "cmmMsgHeader": {
+      "errMsg": "NO_OPENAPI_SERVICE_ERROR",
+      "returnAuthMsg": "해당 오픈API 서비스가 없거나 폐기됨",
+      "returnReasonCode": "12"
+    }
+  }
+}
+
+
