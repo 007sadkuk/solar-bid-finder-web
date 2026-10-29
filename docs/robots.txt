@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /solar-bid-finder-web/land.html
+Disallow: /solar-bid-finder-web/verify.html
+Disallow: /solar-bid-finder-web/gbtest.html
+Disallow: /solar-bid-finder-web/kepcotest.html
+Sitemap: https://007sadkuk.github.io/solar-bid-finder-web/sitemap.xml
