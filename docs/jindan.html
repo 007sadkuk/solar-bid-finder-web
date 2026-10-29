@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>내 땅 태양광 진단 | 금호테크닉스</title>
+<meta name="description" content="주소만 넣으면 내 땅에 태양광 발전소를 지을 수 있는지 규제·진입로·경사·전력망 여유를 진단합니다. 금호테크닉스">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#f4f1ea;--paper:#fffdf8;--ink:#14231c;--sub:#5d6b63;--line:#e3ddd0;--line2:#efe9dd;
+  --green:#1d5c43;--green2:#2c7a5a;--green-soft:#e2efe7;--sun:#e9a92b;--sun-soft:#fbefd2;
+  --warn:#8a5a00;--warn-soft:#fbefd2;--bad:#9b2c2c;--bad-soft:#f7e1df;--ok:#1d6b4a;--ok-soft:#dcefe4;
+  --shadow:0 1px 2px rgba(20,35,28,.05),0 12px 32px -16px rgba(20,35,28,.25);
+  --font:"Pretendard Variable",Pretendard,system-ui,-apple-system,"Malgun Gothic",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1713;--paper:#16211b;--ink:#e9efe9;--sub:#a3b2a9;--line:#2a3a31;--line2:#1f2c25;
+  --green:#7cc9a3;--green2:#8fd6b2;--green-soft:#1c3328;--sun:#f0bd55;--sun-soft:#3a2f14;
+  --warn:#f0c46a;--warn-soft:#3a2f14;--bad:#f19a92;--bad-soft:#3d1f1d;--ok:#7cc9a3;--ok-soft:#173326;
+}}
+:root[data-theme="dark"]{--bg:#0f1713;--paper:#16211b;--ink:#e9efe9;--sub:#a3b2a9;--line:#2a3a31;--line2:#1f2c25;--green:#7cc9a3;--green2:#8fd6b2;--green-soft:#1c3328;--sun:#f0bd55;--sun-soft:#3a2f14;--warn:#f0c46a;--warn-soft:#3a2f14;--bad:#f19a92;--bad-soft:#3d1f1d;--ok:#7cc9a3;--ok-soft:#173326}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 var(--font);-webkit-font-smoothing:antialiased;word-break:keep-all}
+a{color:var(--green2)}
+.wrap{max-width:880px;margin:0 auto;padding:0 16px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em}
+.brand i{width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 50% 50%,var(--sun) 0 38%,transparent 39%),conic-gradient(from 0deg,var(--sun) 0 4%,transparent 4% 12.5%,var(--sun) 12.5% 16.5%,transparent 16.5% 25%,var(--sun) 25% 29%,transparent 29% 37.5%,var(--sun) 37.5% 41.5%,transparent 41.5% 50%,var(--sun) 50% 54%,transparent 54% 62.5%,var(--sun) 62.5% 66.5%,transparent 66.5% 75%,var(--sun) 75% 79%,transparent 79% 87.5%,var(--sun) 87.5% 91.5%,transparent 91.5%)}
+.brand small{display:block;font-weight:500;color:var(--sub);font-size:12px;letter-spacing:0}
+.hero{padding:28px 0 8px}
+.hero h1{font-size:clamp(30px,6vw,46px);line-height:1.18;letter-spacing:-.03em;margin:0 0 12px;font-weight:800}
+.hero h1 em{font-style:normal;color:var(--green);background:linear-gradient(transparent 62%,var(--sun-soft) 62%)}
+.hero p{color:var(--sub);margin:0;font-size:17px;max-width:620px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.ask{padding:20px;margin:24px 0 10px}
+.ask label{font-weight:700;display:block;margin-bottom:8px}
+.row{display:flex;gap:10px}
+.row input{flex:1;min-width:0;font:inherit;font-size:17px;padding:14px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+.row input:focus{outline:none;border-color:var(--green2);box-shadow:0 0 0 4px var(--green-soft)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:14px;padding:14px 22px;background:var(--green);color:#fff;cursor:pointer;white-space:nowrap}
+:root:not([data-theme="light"]) .btn{color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn{color:#0f1713}}
+.btn:disabled{opacity:.6;cursor:wait}
+.hint{color:var(--sub);font-size:14px;margin-top:10px}
+.ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ex button{font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--sub);border-radius:999px;padding:4px 10px;cursor:pointer}
+.steps{display:none;padding:18px 20px;margin:14px 0}
+.steps ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.steps li{display:flex;gap:10px;align-items:center;color:var(--sub)}
+.steps li b{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-size:12px;background:var(--line2);color:var(--sub)}
+.steps li.on{color:var(--ink)}.steps li.on b{background:var(--sun);color:#14231c}
+.steps li.done b{background:var(--green);color:#fff}
+.err{display:none;padding:16px 20px;margin:14px 0;border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+#res{display:none;margin:18px 0 40px}
+.verdict{padding:22px;display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.vmark{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px;font-weight:800}
+.v-ok .vmark{background:var(--ok-soft);color:var(--ok)}.v-mid .vmark{background:var(--warn-soft);color:var(--warn)}.v-no .vmark{background:var(--bad-soft);color:var(--bad)}
+.verdict h2{margin:0;font-size:24px;letter-spacing:-.02em}
+.verdict p{margin:2px 0 0;color:var(--sub)}
+.addr{font-size:14px;color:var(--sub);margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+.stat{padding:16px}
+.stat span{display:block;color:var(--sub);font-size:13px}
+.stat b{display:block;font-size:22px;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat small{color:var(--sub);font-size:12.5px}
+.stat.hl{background:linear-gradient(160deg,var(--sun-soft),var(--paper) 70%)}
+.checks{padding:6px 0;margin:14px 0}
+.ck{display:grid;grid-template-columns:30px 120px 1fr;gap:10px;padding:13px 20px;border-top:1px solid var(--line2);align-items:start}
+.ck:first-child{border-top:0}
+.ck i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px}
+.ck .ok{background:var(--ok-soft);color:var(--ok)}.ck .mid{background:var(--warn-soft);color:var(--warn)}.ck .no{background:var(--bad-soft);color:var(--bad)}.ck .na{background:var(--line2);color:var(--sub)}
+.ck strong{font-weight:700}
+.ck div{color:var(--sub);font-size:15px}
+#map{height:300px;border-radius:20px;overflow:hidden;margin:14px 0;border:1px solid var(--line)}
+.cta{padding:22px;margin:14px 0;background:var(--green);color:#fff;border:0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cta{color:#0f1713}}
+.cta h3{margin:0 0 4px;font-size:20px}
+.cta p{margin:0;opacity:.9}
+.note{font-size:13px;color:var(--sub);line-height:1.6}
+.note p{margin:6px 0}
+footer{padding:26px 0 40px;border-top:1px solid var(--line);margin-top:30px;font-size:13px;color:var(--sub)}
+@media (max-width:640px){
+  .row{flex-direction:column}.btn{width:100%}
+  .grid{grid-template-columns:1fr 1fr}.grid .stat:first-child{grid-column:1/-1}
+  .ck{grid-template-columns:30px 1fr;padding:12px 16px}.ck div{grid-column:2}
+  .verdict{grid-template-columns:1fr}.vmark{width:52px;height:52px;font-size:24px}
+}
+</style>
+</head><body>
+<div class="wrap">
+  <header class="top"><div class="brand"><i aria-hidden="true"></i><div>금호테크닉스<small>태양광 부지 진단</small></div></div></header>
+
+  <section class="hero">
+    <h1>내 땅, <em>태양광</em> 되나요?</h1>
+    <p>주소만 넣으면 규제, 진입로, 경사, 전력망 여유를 한 번에 확인해 드립니다. 결과는 공공 데이터를 바탕으로 한 1차 진단입니다.</p>
+  </section>
+
+  <form class="card ask" id="f" autocomplete="off">
+    <label for="addr">땅 주소 (지번)</label>
+    <div class="row"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required><button class="btn" id="go" type="submit">진단하기</button></div>
+    <div class="hint">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다.</div>
+    <div class="ex" id="ex"></div>
+  </form>
+
+  <div class="card steps" id="steps"><ol>
+    <li data-s="1"><b>1</b>지적도에서 땅 찾기</li>
+    <li data-s="2"><b>2</b>규제 확인 (개발제한·농업진흥·보전산지)</li>
+    <li data-s="3"><b>3</b>진입로와 경사 확인</li>
+    <li data-s="4"><b>4</b>전력망 여유와 예상 수익 계산</li>
+  </ol></div>
+  <div class="card err" id="err"></div>
+
+  <section id="res" aria-live="polite">
+    <div class="card verdict" id="verdict"></div>
+    <div class="grid" id="stats"></div>
+    <div class="card checks" id="checks"></div>
+    <div id="map"></div>
+    <div class="card cta"><h3>정밀 검토를 원하시면</h3><p id="ctaText">금호테크닉스 사업개발팀이 현장과 인허가 조건까지 확인해 드립니다. 의뢰 창구는 곧 열립니다.</p></div>
+    <div class="note" id="notes"></div>
+  </section>
+
+  <footer>
+    <p>© 금호테크닉스 · 이 진단은 국토교통부 브이월드(지적도·토지이용계획), 한국전력 공개 계통 정보 등을 바탕으로 자동 계산한 참고 자료이며 법적 효력이 없습니다. 실제 인허가와 계통 연계는 관할 지자체와 한국전력 확인이 필요합니다.</p>
+  </footer>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="core.js?v=20261029a"></script>
+<script src="vwkey.js"></script>
+<script src="geo.js?v=20261029a"></script>
+<script>
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  var EX=["경상북도 영천시 금호읍 남성리 산12-1","경상북도 경산시 진량읍 선화리 888-15","경상북도 고령군 다산면 노곡리 829-3"];
+  EX.forEach(function(a){var b=el("button",null,a);b.type="button";b.onclick=function(){$("addr").value=a;$("f").requestSubmit()};$("ex").appendChild(b)});
+
+  /* 가정값 (부지파인더와 같음) */
+  var A={use:0.6,hrs:3.4,rentLo:20000,rentHi:25000};
+  var KWC=null;
+  function kWFor(usable){
+    if(!KWC){KWC=[];[30,60,120,250,500,1000,2000,4000,8000,16000,32000,64000,128000,256000].forEach(function(u){var sd=Math.sqrt(u);
+      var l=layout([[0,0],[sd,0],[sd,sd],[0,sd]],{azDeg:0,tiltDeg:30,lat:35.9,k:2,portrait:true,modW:1.134,modL:2.278,modP:580,setback:3,extraGap:0});KWC.push([u,l.kW||0])})}
+    if(!(usable>0))return 0;var c=KWC;if(usable<=c[0][0])return c[0][1]*usable/c[0][0];
+    for(var i=1;i<c.length;i++)if(usable<=c[i][0]){var t=(usable-c[i-1][0])/(c[i][0]-c[i-1][0]),d0=c[i-1][1]/c[i-1][0],d1=c[i][1]/c[i][0];return usable*(d0+(d1-d0)*t)}
+    return usable*c[c.length-1][1]/c[c.length-1][0];
+  }
+  function man(n){return n>=1e8?(Math.round(n/1e6)/100).toLocaleString("ko-KR")+"억원":Math.round(n/1e4).toLocaleString("ko-KR")+"만원"}
+
+  /* 한전 계통: 부지파인더가 모아 둔 같은 리·동의 조회값 */
+  var KEP=null,KEPI=null;
+  fetch("kepco.json?"+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(j){KEP=j;if(!j)return;KEPI={};
+    Object.keys(j.items||{}).forEach(function(k){var v=j.items[k];if(!v.rows||!v.q)return;var key=v.q.addrLidong+"|"+(v.q.addrLi||"");(KEPI[key]=KEPI[key]||[]).push(v)})}).catch(function(){});
+  function gridFor(addr){
+    if(!KEPI)return null;var t=String(addr).split(/\s+/),emd=null,li="";
+    for(var i=2;i<t.length;i++){if(!emd&&/^[가-힣]+(읍|면|동|\d+가|가)$/.test(t[i])){emd=t[i];continue}if(emd&&/^[가-힣]+리$/.test(t[i])){li=t[i];break}if(emd)break}
+    if(!emd)return null;var list=KEPI[emd+"|"+li]||(li?null:KEPI[emd+"|"]);if(!list)return null;
+    var best=null,row=null,ts="";list.forEach(function(v){(v.rows||[]).forEach(function(r){if(r.v1===null||r.v2===null||r.v3===null)return;var f=Math.min(r.v1,r.v2,r.v3);if(best===null||f>best){best=f;row=r;ts=v.ts}})});
+    return best===null?null:{free:best,row:row,ts:ts,area:emd+(li?" "+li:"")};
+  }
+
+  function step(n){Array.prototype.forEach.call(document.querySelectorAll("#steps li"),function(li){var s=+li.dataset.s;li.className=s<n?"done":s===n?"on":""})}
+  function fail(t){$("err").textContent=t;$("err").style.display="block";$("steps").style.display="none"}
+
+  var MAP=null;
+  $("f").addEventListener("submit",async function(ev){
+    ev.preventDefault();var q=$("addr").value.trim();if(!q)return;
+    $("go").disabled=true;$("err").style.display="none";$("res").style.display="none";$("steps").style.display="block";step(1);
+    try{
+      var P=await BFGeo.findParcel(q);
+      if(!P){fail("주소로 땅을 찾지 못했습니다. 시·군과 번지까지 정확히 적었는지 확인해 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다.");return}
+      step(2);
+      var item={name:P.addr,pnu:P.pnu,address:P.addr};
+      var tick=setTimeout(function(){step(3)},2500);
+      var r=await BFGeo.check(item,{});
+      clearTimeout(tick);step(4);
+      if(r.error){fail("진단 중 문제가 생겼습니다: "+r.error);return}
+      show(P,r);
+    }catch(e){fail("진단 중 문제가 생겼습니다: "+e.message+" — 잠시 뒤 다시 시도해 주세요.")}
+    finally{$("go").disabled=false}
+  });
+
+  function show(P,r){
+    var par=r.parcel||{},area=par.areaGeo||0,L=r.layers||{};
+    var kW=kWFor(area*A.use),gen=kW*A.hrs*365;
+    var g=gridFor(par.addr||P.addr);
+    var C=[],level=0; // 0 가능성 높음, 1 조건부, 2 어려움
+    function add(st,t,d){C.push([st,t,d]);if(st==="no")level=Math.max(level,2);else if(st==="mid")level=Math.max(level,1)}
+    function reg(id,name,why){var x=L[id];
+      if(!x||x.status==="error"||x.status==="unverified")add("na",name,"확인하지 못했습니다. 정밀 검토 때 확인합니다.");
+      else if(x.status==="overlap"){var n=(x.names||[]).filter(function(s){return !/영농여건불리/.test(s)});if(n.length)add("no",name,n.join(", ")+"에 해당합니다. "+why);else add("ok",name,"해당 없음")}
+      else if(x.status==="edge")add("mid",name,"경계에 일부 걸쳐 있습니다("+x.names.join(", ")+"). 토지이용계획확인서로 확인이 필요합니다.");
+      else add("ok",name,"해당 없음")}
+    reg("gb","개발제한구역","그린벨트 안에서는 일반 태양광 발전소를 짓기 어렵습니다.");
+    reg("agri","농업진흥구역","농업진흥구역은 원칙적으로 농업 외 용도로 쓰기 어렵습니다.");
+    reg("sanji","보전산지","보전산지(임업용·공익용)에는 태양광을 설치할 수 없고, 준보전산지만 가능합니다.");
+    var rd=r.road;
+    if(rd&&rd.status==="touch")add("ok","진입로","도로와 맞닿아 있습니다.");
+    else if(rd&&rd.status==="no")add("mid","진입로","지적도상 도로와 맞닿아 있지 않습니다(맹지 가능성). 실제 쓰는 길이 있거나 진입로를 확보하면 가능합니다.");
+    else add("na","진입로","확인하지 못했습니다.");
+    var sl=r.slope;
+    if(sl&&sl.status==="ok"&&sl.deg!==null){var d=sl.deg;
+      if(d<=10)add("ok","경사","평균 약 "+d.toFixed(1)+"°로 완만합니다.");
+      else if(d<=15)add("mid","경사","평균 약 "+d.toFixed(1)+"°입니다. 설치는 가능하지만 토목 비용이 늘 수 있습니다.");
+      else add("no","경사","평균 약 "+d.toFixed(1)+"°로 가파릅니다. 지자체 경사 기준을 넘을 가능성이 큽니다.")}
+    else add("na","경사","확인하지 못했습니다.");
+    if(kW<20)add("mid","규모","땅이 작아 설치 용량이 약 "+Math.round(kW)+"kW 정도입니다. 주변 땅과 합치면 사업성이 좋아집니다.");
+    else add("ok","규모","약 "+Math.round(kW).toLocaleString()+"kW 설치가 가능한 크기입니다.");
+    if(g){if(g.free>=kW)add("ok","전력망","같은 지역("+g.area+") 한전 선로에 약 "+Math.round(g.free).toLocaleString()+"kW 여유가 있습니다.");
+      else if(g.free>0)add("mid","전력망","같은 지역("+g.area+") 선로 여유가 약 "+Math.round(g.free).toLocaleString()+"kW로 예상 용량보다 작습니다.");
+      else add("mid","전력망","같은 지역("+g.area+") 선로에 여유가 없습니다. 한전과 연계 가능 여부를 협의해야 합니다.")}
+    else add("na","전력망","이 지역 한전 여유 정보가 아직 없습니다. 정밀 검토 때 확인합니다.");
+    var z=L.zone&&L.zone.names&&L.zone.names.length?L.zone.names.join(", "):"";
+    var jm=par.jimok||"";
+    var notesJ=[];if(/^(전|답|과수원)$/.test(jm))notesJ.push("농지(지목 "+jm+")는 농지전용 허가가 필요합니다.");if(jm==="임야")notesJ.push("임야는 산지 일시사용 허가가 필요합니다.");
+
+    var V=[["ok","가능성이 높습니다","큰 규제가 보이지 않습니다. 정밀 검토로 실제 사업 조건을 확인해 보세요."],["mid","조건부로 가능합니다","몇 가지 조건을 해결하면 가능할 수 있습니다. 아래 항목을 확인하세요."],["no","어려울 수 있습니다","설치를 막는 규제나 조건이 있습니다. 아래 이유를 확인하세요."]][level];
+    var v=$("verdict");v.className="card verdict v-"+V[0];v.innerHTML="";
+    v.appendChild(el("div","vmark",V[0]==="ok"?"✓":V[0]==="mid"?"!":"✕"));
+    var vt=el("div");vt.appendChild(el("h2",null,V[1]));var naN=C.filter(function(c){return c[0]==="na"}).map(function(c){return c[1]});vt.appendChild(el("p",null,V[2]+(naN.length?" ("+naN.join("·")+"은 확인하지 못해 판정에서 빠졌습니다)":"")));
+    vt.appendChild(el("div","addr",(par.addr||P.addr)+" · 지목 "+(jm||"-")+" · 약 "+Math.round(area).toLocaleString()+"㎡ ("+Math.round(area/3.3058).toLocaleString()+"평)"+(z?" · "+z:"")));v.appendChild(vt);
+
+    var S=$("stats");S.innerHTML="";
+    function stat(lab,val,sub,hl){var c=el("div","card stat"+(hl?" hl":""));c.appendChild(el("span",null,lab));c.appendChild(el("b",null,val));if(sub)c.appendChild(el("small",null,sub));S.appendChild(c)}
+    stat("땅을 빌려주면 받는 임대료(예상)",level===2?"-":man(kW*A.rentLo)+" ~ "+man(kW*A.rentHi),level===2?"규제 해결이 먼저입니다":"1년 기준 · 20년이면 약 "+man(kW*A.rentLo*20)+" 이상",true);
+    stat("설치 가능 용량",Math.round(kW).toLocaleString()+" kW","면적의 "+Math.round(A.use*100)+"%에 패널 배치 가정");
+    stat("연간 발전량",(gen/1000).toLocaleString("ko-KR",{maximumFractionDigits:0})+" MWh","약 "+Math.round(gen/3600).toLocaleString()+"가구 사용량(가구당 월 300kWh 가정)");
+
+    var K=$("checks");K.innerHTML="";C.forEach(function(c){var d=el("div","ck");d.appendChild(el("i",c[0],c[0]==="ok"?"✓":c[0]==="mid"?"!":c[0]==="no"?"✕":"?"));d.appendChild(el("strong",null,c[1]));d.appendChild(el("div",null,c[2]));K.appendChild(d)});
+
+    var N=$("notes");N.innerHTML="";
+    [].concat(notesJ,[
+      "임대료는 참고 범위입니다(설치 용량 1kW당 연 2만~2.5만원으로 계산). 지자체 공유재산 임대 기준(인천시 kW당 2만5천원) 등을 참고했으며, 실제 금액은 위치·계통·계약 조건에 따라 달라집니다.",
+      "발전량은 하루 평균 "+A.hrs+"시간 발전을 가정했습니다. 경사는 공개 위성 표고 자료로 근사한 값입니다.",
+      "전력망 여유는 한국전력 공개 정보 중 같은 읍면동·리의 조회값을 사용했습니다"+(g?" (조회 "+g.ts+")":"")+". 실제 연계 가능 여부는 한전 접수로 확정됩니다."
+    ]).forEach(function(t){N.appendChild(el("p",null,"· "+t))});
+
+    $("steps").style.display="none";$("res").style.display="block";
+    drawMap(par);
+    $("res").scrollIntoView({behavior:"smooth",block:"start"});
+  }
+
+  function drawMap(par){
+    if(typeof L==="undefined"||!par.ring||par.ring.length<3){$("map").style.display="none";return}
+    $("map").style.display="block";
+    if(!MAP){MAP=L.map("map",{scrollWheelZoom:false});var k=BFGeo.getKey();
+      (k?L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}):L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})).addTo(MAP)}
+    if(MAP._bfPoly)MAP.removeLayer(MAP._bfPoly);
+    MAP._bfPoly=L.polygon(par.ring,{color:"#e9a92b",weight:3,fillOpacity:.15}).addTo(MAP);
+    setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
+  }
+})();
+</script>
+</body></html>
