@@ -132,6 +132,8 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .ck{list-style:none;margin:0;padding:0}.ck li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-bottom:1px dashed var(--rule2);font-size:14.5px}.ck li b{display:block}.ck li span{color:var(--sub)}.ck i{font-style:normal;font-weight:800;text-align:center;border-radius:6px}
 .ck .go i{color:var(--go)}.ck .may i{color:var(--may)}.ck .no i{color:var(--no)}.ck .na i{color:var(--sub)}
 .sol .fn{font-size:12.5px;color:var(--sub);margin:6px 0 0}
+#solw.locked>p.t{display:none}#solw.locked h2.t::after{content:" 🔒";font-size:.8em}
+.adm{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.adm p{width:100%;margin:0 0 4px;color:var(--sub);font-size:14px}.adm input{font:inherit;font-size:16px;padding:10px 12px;border:1.5px solid var(--rule);border-radius:10px;background:var(--field);color:var(--ink);width:160px}.adm .admm{color:var(--no);font-size:13.5px}
 .dsx{margin:20px 0 0;border:1px solid var(--rule);border-radius:12px;padding:10px 14px}.dsx summary{cursor:pointer;font-weight:700}
 .dsf{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.dsf label{display:flex;flex-direction:column;font-size:12.5px;color:var(--sub);gap:4px;min-width:0}.dsf input{width:100%;min-width:0;box-sizing:border-box;font:inherit;font-size:15px;padding:8px 10px;border:1.5px solid var(--rule);border-radius:8px;background:var(--field);color:var(--ink)}
 .dsb{display:flex;gap:8px}.dsb .btn{flex:1}.dsb .btn.ghost.moreb{margin:0}
@@ -486,8 +488,18 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   /* 태양광 자세히: 핵심 숫자 · 배치도 · 월별 발전량 · 수익 비교 · 부담금 · 인허가 체크리스트 */
   var EIA={"보전관리지역":5000,"생산관리지역":7500,"계획관리지역":10000,"농림지역":7500,"자연환경보전지역":5000,"자연녹지지역":10000,"생산녹지지역":10000,"보전녹지지역":10000};
   var SOLARGS=null;
+  /* 관리자 전용 잠금(정적 사이트라 완전한 보안은 아님: 화면 가림 용도). 비밀번호는 해시로만 비교 */
+  var ADMH="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
+  function isAdmin(){try{return localStorage.getItem("kt-admin")===ADMH}catch(e){return false}}
+  async function sha(t){var b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")}
+  function lockView(args){var W=$("solw"),B=$("rsol");W.hidden=false;B.innerHTML="";W.classList.add("locked");
+    var f=el("form","adm");f.appendChild(el("p",null,"관리자 전용 화면입니다."));var i=el("input");i.type="password";i.inputMode="numeric";i.placeholder="비밀번호";i.autocomplete="off";
+    var b=el("button","btn");b.type="submit";b.textContent="열기";var m=el("span","admm");f.appendChild(i);f.appendChild(b);f.appendChild(m);B.appendChild(f);
+    f.addEventListener("submit",async function(ev){ev.preventDefault();var h=await sha(i.value.trim());if(h===ADMH){try{localStorage.setItem("kt-admin",h)}catch(e){}W.classList.remove("locked");renderSolar.apply(null,args)}else{m.textContent="비밀번호가 맞지 않습니다";i.value="";i.focus()}})}
   function renderSolar(S,par,X,zone,g,ES,etxt,flags,DG){
     SOLARGS=[S,par,X,zone,g,ES,etxt,flags];
+    if(!isAdmin()){lockView([S,par,X,zone,g,ES,etxt,flags,DG]);return}
+    $("solw").classList.remove("locked");
     var W=$("solw"),B=$("rsol");B.innerHTML="";var G=DG||S.dg;if(!S||!G||!(G.kW>0)){W.hidden=true;return}W.hidden=false;
     var C=S.ctx,D=G.D,box=el("div","sol");B.appendChild(box);
     function sec(t){box.appendChild(el("h3",null,t))}
@@ -589,6 +601,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var bt=el("div","dsb");var ap=el("button","btn",null);ap.type="button";ap.textContent="다시 계산";var rs=el("button","btn ghost moreb",null);rs.type="button";rs.textContent="기본값으로";bt.appendChild(ap);bt.appendChild(rs);det.appendChild(bt);
     ap.addEventListener("click",function(){var d=Object.assign({},D,{civ:D.civ.slice()});fm.querySelectorAll("input").forEach(function(i){var v=parseFloat(i.value);if(!isFinite(v))return;if(i.name.indexOf("civ")===0)d.civ[+i.name.slice(3)]=v;else d[i.name]=v});
       DSset(d);var ng=design(C,d);renderSolar(S,par,X,zone,g,ES,etxt,flags,ng);$("solw").querySelector("details.dsx").open=true});
+    var lo=el("button","btn ghost moreb");lo.type="button";lo.textContent="관리자 화면 잠그기";lo.style.marginTop="10px";box.appendChild(lo);
+    lo.addEventListener("click",function(){try{localStorage.removeItem("kt-admin")}catch(e){}renderSolar(S,par,X,zone,g,ES,etxt,flags,G)});
     rs.addEventListener("click",function(){DSset(DS0);renderSolar(S,par,X,zone,g,ES,etxt,flags,design(C,Object.assign({},DS0)))});
   }
   /* 토지 실거래가(국토교통부, 매일 수집) */
@@ -765,9 +779,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     if(isFarm&&price)FEE={kind:"농지보전부담금",won:useA*Math.min(price.won*(AGJ?0.3:0.2),50000),how:"사용 면적 × min(공시지가×"+(AGJ?"30":"20")+"%, ㎡당 5만원)"};
     else if(FOREST&&price)FEE={kind:"대체산림자원조성비",won:useA*(A.forest2020+Math.min(price.won*0.01,A.forest2020)),how:"사용 면적 × (㎡당 단가 + 공시지가×1%) · 2020년 준보전 단가 6,860원으로 계산한 참고값, 2026년 고시 단가로 다시 계산 필요",old:true};
     var CTX={ring:par.ring,multi:!!X.multi,area:area,useShare:useShare,cut:CUT,cells:CELLS,step:SLO.step,mS:mS,dzdy:SLO.dzdy,aspect:SLO.aspect,relief:SLO.relief,forest:FOREST,farm:isFarm,fee:FEE,eco:X.multi?null:X.eco,road:!meng,hrs:HRS};
-    var DG=design(CTX,DSget());if(DG.kW>0)kW=DG.kW;
+    if(useShare<1)kW=kWFor(area*useShare*A.use);   // 공개 화면: 원래 방식(면적 기준) 용량
+    var DG=design(CTX,DSget());                      // 관리자 화면: 실제 배치 기반 설계 검토
     if(sv<2){if(mS!==null&&mS>10&&useShare===1){sv=Math.max(sv,1);sw.push("평균경사 "+mS.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
-    var RW=DG.w||recW(kW,FOREST),PW=DG.pw||priceW(RW),EC=DG.EC||null;
+    var RW=recW(kW,FOREST),PW=priceW(RW),feePerKW=FEE&&kW>0?FEE.won/1e4/kW:0;
+    var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:PW,capexPerKW:A.capex+feePerKW,omPerKW:A.om,degr:0.005,years:20}):null;
     var SOL={kW:kW,w:RW,pw:PW,fee:FEE,EC:EC,mS:mS,cut:CUT,useShare:useShare,cells:CELLS,step:SLO.step,forest:FOREST,farm:isFarm,lv:sv,area:area,ctx:CTX,dg:DG};
     U.push({key:"solar",name:"태양광 발전",ic:SUN,l:sv,block:sb,note:sq,
       k:sv<2?"땅을 빌려주면 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",
