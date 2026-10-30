@@ -119,6 +119,14 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .sk{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}.sk div{background:var(--field);border-radius:10px;padding:10px 12px}.sk dt{font-size:13px;color:var(--sub)}.sk dd{margin:0;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}.sk dd small{display:block;font-size:12px;font-weight:500;color:var(--sub)}
 .sol h3{font-size:16px;margin:18px 0 8px}.lay{width:100%;max-width:560px;display:block;margin:0 auto;background:#f6f8f3;border:1px solid var(--rule2);border-radius:10px}
 .lay .pl{fill:#e7eedf;stroke:#2c5242;stroke-width:1.5}.lay .md{fill:#1f3f8a}.lay .dr{fill:#c7cdd6}.lay .st{fill:rgba(214,72,56,.22)}.lay .ec{fill:rgba(46,140,80,.30)}.lay text{font:11px var(--font);fill:#56685f}
+.lay2{width:100%;display:block;border-radius:14px}
+.lay2 .nb{fill:none;stroke:#4f7563;stroke-width:1;opacity:0;animation:fadein .5s ease-out forwards}.lay2 .nb.rd{fill:rgba(238,244,239,.10);stroke:#6f9483}
+.lay2 .t{fill:rgba(243,198,35,0);stroke:var(--mark);stroke-width:2.6;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1.4s ease-out .5s forwards,fillin .6s ease-out 1.8s forwards}
+.lay2 .md{fill:#7fa8ff;opacity:0;animation:fadein .35s ease-out forwards}.lay2 .dr{fill:#7b8a83;opacity:0;animation:fadein .35s ease-out forwards}
+.lay2 .st{fill:rgba(240,110,90,.35)}.lay2 .ec{fill:rgba(90,200,120,.35)}
+.lay2 text.s{font:12px var(--font);fill:#9fb7a8}.lay2 text.m{font:700 14px var(--font);fill:#eef4ef}
+@media (prefers-reduced-motion:reduce){.lay2 *{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
+@media print{.lay2 *{animation:none!important;opacity:1!important;stroke-dashoffset:0!important}}
 .mbar{width:100%;max-width:560px;display:block;margin:0 auto}.mbar rect{fill:#f3c623}.mbar text{font:11px var(--font);fill:var(--sub)}
 .sct{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}.sct th,.sct td{padding:8px 6px;border-bottom:1px solid var(--rule2);text-align:right;vertical-align:top}.sct th:first-child,.sct td:first-child{text-align:left}.sct thead th{font-size:13px;color:var(--sub);font-weight:600;white-space:nowrap}.sct td{white-space:nowrap}.sct td:first-child{white-space:normal}.sctw{overflow-x:auto}
 .ck{list-style:none;margin:0;padding:0}.ck li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-bottom:1px dashed var(--rule2);font-size:14.5px}.ck li b{display:block}.ck li span{color:var(--sub)}.ck i{font-style:normal;font-weight:800;text-align:center;border-radius:6px}
@@ -498,19 +506,33 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     // 2. 배치도
     var LO=G.LO;
     if(LO&&LO.L.cells.length){sec("배치도");
+      // 리포트 맨 위 땅 그림과 같은 모양: 어두운 바탕, 주변 필지, 노란 경계가 그려진 뒤 모듈 줄이 차례로 채워짐
+      var lat0=par.ring[0][0],lon0=par.ring[0][1],kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
+      function loc(q){return [(q[1]-lon0)*kx,(q[0]-lat0)*ky]}
       var xs=LO.poly.map(function(p){return p[0]}),ys=LO.poly.map(function(p){return p[1]}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
-      var Wd=560,Hd=Math.max(220,Math.min(440,Wd*(y1-y0)/Math.max(1,x1-x0))),pad=16,sc=Math.min((Wd-2*pad)/Math.max(1,x1-x0),(Hd-2*pad-14)/Math.max(1,y1-y0));
-      function X_(x){return (pad+(x-x0)*sc).toFixed(1)}function Y_(y){return (Hd-pad-14-(y-y0)*sc).toFixed(1)}
-      var h='<svg class="lay" viewBox="0 0 '+Wd+' '+Hd+'" role="img" aria-label="모듈 배치도">';
-      h+='<path class="pl" d="'+LO.poly.map(function(p,i){return (i?"L":"M")+X_(p[0])+" "+Y_(p[1])}).join(" ")+' Z"/>';
+      var Wd=600,Hd=Math.round(Math.max(340,Math.min(560,600*((y1-y0)+1)/((x1-x0)+1)+40))),pad=0.18,bw=(x1-x0)*(1+2*pad)||1,bh=(y1-y0)*(1+2*pad)||1,sc=Math.min(Wd/bw,(Hd-40)/bh),cx=(x0+x1)/2,cy=(y0+y1)/2;
+      function X_(x){return (Wd/2+(x-cx)*sc).toFixed(1)}function Y_(y){return ((Hd-40)/2+6-(y-cy)*sc).toFixed(1)}
+      function pth(P){return P.map(function(p,i){return (i?"L":"M")+X_(p[0])+" "+Y_(p[1])}).join(" ")+" Z"}
+      var h='<svg class="lay2" viewBox="0 0 '+Wd+' '+Hd+'" role="img" aria-label="모듈 배치도"><defs><clipPath id="lclip"><rect width="'+Wd+'" height="'+Hd+'" rx="14"/></clipPath></defs><g clip-path="url(#lclip)"><rect width="'+Wd+'" height="'+Hd+'" fill="var(--pine)"/>';
+      (par.nb||[]).forEach(function(n,i){if(!n.r||n.r.length<3)return;h+='<path class="nb'+(n.c==="도"?" rd":"")+'" style="animation-delay:'+(i*0.01).toFixed(2)+'s" d="'+pth(n.r.map(loc))+'"/>'});
+      var per=0;for(var i=0;i<LO.poly.length;i++){var p1=LO.poly[i],p2=LO.poly[(i+1)%LO.poly.length];per+=Math.hypot(p1[0]-p2[0],p1[1]-p2[1])}
+      h+='<path class="t" style="--len:'+Math.ceil(per*sc+2)+'" d="'+pth(LO.poly)+'"/>';
+      h+='<clipPath id="pclp"><path d="'+pth(LO.poly)+'"/></clipPath><g clip-path="url(#pclp)">';
       LO.steep.forEach(function(t){var a=LO.half;h+='<rect class="st" x="'+X_(t[0]-a)+'" y="'+Y_(t[1]+a)+'" width="'+(2*a*sc).toFixed(1)+'" height="'+(2*a*sc).toFixed(1)+'"/>'});
       LO.eco.forEach(function(t){h+='<rect class="ec" x="'+X_(t[0]-LO.ex)+'" y="'+Y_(t[1]+LO.ey)+'" width="'+(2*LO.ex*sc).toFixed(1)+'" height="'+(2*LO.ey*sc).toFixed(1)+'"/>'});
-      function cellR(c,cls){h+='<rect class="'+cls+'" x="'+X_(c[0])+'" y="'+Y_(c[1]+LO.L.d)+'" width="'+Math.max(0.6,LO.L.cw*sc-0.3).toFixed(2)+'" height="'+Math.max(0.6,LO.L.d*sc).toFixed(2)+'"/>'}
-      LO.keep.forEach(function(c){cellR(c,"md")});LO.drop.forEach(function(c){cellR(c,"dr")});LO.edrop.forEach(function(c){cellR(c,"dr")});
-      var bar=Math.pow(10,Math.floor(Math.log10((x1-x0)/3)));h+='<rect x="'+pad+'" y="'+(Hd-12)+'" width="'+(bar*sc).toFixed(1)+'" height="3" fill="#56685f"/><text x="'+(pad+bar*sc+6)+'" y="'+(Hd-8)+'">'+bar+'m</text>';
-      h+='<text x="'+(Wd-pad)+'" y="'+(pad+4)+'" text-anchor="end">N ↑ · 정남향 고정식 '+D.tilt+'°</text></svg>';
+      // 모듈: 줄(같은 y)마다 아래→위 순서로 나타남
+      var rowsY=Array.from(new Set(LO.keep.map(function(c){return c[1].toFixed(2)}))).sort(function(a,b){return a-b}),ri={};rowsY.forEach(function(y,i){ri[y]=i});
+      var dl=Math.min(0.08,1.6/Math.max(1,rowsY.length));
+      function cellR(c,cls,dly){h+='<rect class="'+cls+'" style="animation-delay:'+dly+'s" x="'+X_(c[0])+'" y="'+Y_(c[1]+LO.L.d)+'" width="'+Math.max(0.6,LO.L.cw*sc-0.25).toFixed(2)+'" height="'+Math.max(0.8,LO.L.d*sc).toFixed(2)+'"/>'}
+      LO.keep.forEach(function(c){cellR(c,"md",(2.2+ri[c[1].toFixed(2)]*dl).toFixed(2))});
+      LO.drop.concat(LO.edrop).forEach(function(c){cellR(c,"dr","2.2")});
+      h+='</g>';
+      var bar=Math.pow(10,Math.floor(Math.log10((x1-x0)/3)));
+      h+='</g><rect x="16" y="'+(Hd-22)+'" width="'+(bar*sc).toFixed(1)+'" height="3" fill="#9fb7a8"/><text class="s" x="'+(22+bar*sc)+'" y="'+(Hd-17)+'">'+bar+'m</text>';
+      h+='<text class="s" x="'+(Wd-16)+'" y="24" text-anchor="end">N ↑ · 정남향 '+D.tilt+'°</text>';
+      h+='<text class="m" x="'+(Wd-16)+'" y="'+(Hd-14)+'" text-anchor="end">모듈 '+nf(G.modules)+'장 · 약 '+nf(G.kW)+'kW</text></svg>';
       var dv=el("div");dv.innerHTML=h;box.appendChild(dv);
-      box.appendChild(el("p","fn","파란색: 모듈 배열. "+(LO.steep.length?"붉은 칸: 제척한 급경사 구역. ":"")+(LO.eco.length?"초록 칸: 생태자연도 1·2등급·별도관리지역(제척). ":"")+"회색: 제척 구역에 걸려 뺀 배열."))}
+      box.appendChild(el("p","fn","노란 선: 이 땅 경계 · 파란 막대: 모듈 줄 · "+(LO.steep.length?"붉은 칸: 급경사 제척 · ":"")+(LO.eco.length?"초록 칸: 생태 1·2등급 제척 · ":"")+"회색: 제척 구역이라 뺀 배열 · 흐린 선: 주변 필지(밝은 칸은 도로)"))}
     // 3. 설계 요약
     sec("설계 요약");var ul0=el("ul","ck");box.appendChild(ul0);
     function li0(a,b){var li=el("li","na");li.appendChild(el("i",null,"·"));var d=el("div");d.appendChild(el("b",null,a));d.appendChild(el("span",null,b));li.appendChild(d);ul0.appendChild(li)}
