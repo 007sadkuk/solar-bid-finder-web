@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>땅의 가치 관리자</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--pine:#1d3a2f;--ink:#16241e;--sub:#56685f;--field:#e9efe6;--sheet:#fbfcf9;--rule:#cfd9cc;--rule2:#e1e8de;--mark:#f3c623;--go:#226b46;--no:#9a3131}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6eee8;--sub:#a4b6ab;--field:#0b1712;--sheet:#13241c;--rule:#2b4136;--rule2:#203329;--go:#7fd1a3;--no:#f0a29a}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--field);color:var(--ink);font:16px/1.6 "Pretendard Variable",Pretendard,system-ui,sans-serif}
+header{background:var(--pine);color:#eef4ef;padding:18px 16px}header .w{display:flex;justify-content:space-between;align-items:center}h1{margin:0;font-size:20px}
+.w{max-width:1200px;margin:0 auto;padding:0 16px}
+.card{background:var(--sheet);border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+input,select{font:inherit;padding:10px 12px;border:1.5px solid var(--rule);border-radius:10px;background:var(--field);color:var(--ink)}
+.btn{font:inherit;font-weight:800;border:0;border-radius:10px;padding:10px 18px;background:var(--mark);color:#1d1600;cursor:pointer}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi div{background:var(--field);border-radius:10px;padding:12px}.kpi b{display:block;font-size:26px}.kpi span{color:var(--sub);font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.tabs button{font:inherit;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}.tabs button[aria-pressed=true]{background:var(--pine);color:#fff;border-color:var(--pine)}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.tw{overflow:auto;max-height:70vh}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--rule2);padding:7px 8px;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:var(--sheet);color:var(--sub);font-weight:600}
+td a{color:var(--go)}.msg{color:var(--no)}.sub{color:var(--sub);font-size:13.5px}
+@media (max-width:640px){.kpi{grid-template-columns:1fr 1fr}}
+</style>
+</head><body>
+<header><div class="w"><h1>땅의 가치 · 관리자</h1><a id="sheet" href="#" target="_blank" rel="noopener" style="color:#f3c623" hidden>구글 시트 열기</a></div></header>
+<main class="w">
+  <form class="card" id="login"><p class="sub">관리자 비밀번호를 입력하세요. 연락처 등 개인정보가 들어 있으니 다른 사람과 같이 쓰는 컴퓨터에서는 쓰고 나서 창을 닫아 주세요.</p>
+    <input id="pw" type="password" inputmode="numeric" autocomplete="off" placeholder="비밀번호"> <button class="btn">열기</button> <span class="msg" id="lmsg"></span></form>
+  <section id="app" hidden>
+    <div class="card"><div class="kpi" id="kpi"></div></div>
+    <div class="card">
+      <div class="tabs" id="tabs"></div>
+      <div class="tools"><input id="q" placeholder="검색(주소·이름·연락처)"><label class="sub"><input type="checkbox" id="solar"> 태양광 가능만</label><label class="sub"><input type="checkbox" id="grp" checked> 같은 땅 묶기(검색 기록)</label><button class="btn" type="button" id="csv">CSV 받기</button></div>
+      <div class="tw"><table id="tbl"></table></div>
+    </div>
+  </section>
+</main>
+<script src="site-config.js?v=20261030a"></script>
+<script>
+(function(){
+  var CFG=window.KT_CFG||{},D=null,TAB="관심 필지",SITE=location.origin+location.pathname.replace(/admin\.html$/,"");
+  function $(i){return document.getElementById(i)}
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  $("login").addEventListener("submit",function(ev){ev.preventDefault();$("lmsg").textContent="불러오는 중…";
+    fetch(CFG.endpoint+"?action=admin&pw="+encodeURIComponent($("pw").value.trim())).then(function(r){return r.json()}).then(function(j){
+      if(j.error){$("lmsg").textContent=j.error;return}D=j;$("login").hidden=true;$("app").hidden=false;if(j.sheet){$("sheet").href=j.sheet;$("sheet").hidden=false}draw()})
+    .catch(function(e){$("lmsg").textContent="불러오지 못했습니다("+e.message+"). Apps Script를 최신 코드로 새 버전 배포했는지 확인하세요."})});
+  function rows(k){var v=(D&&D[k])||[];return v.length?{h:v[0],r:v.slice(1).reverse()}:{h:[],r:[]}}
+  function kpi(){var K=$("kpi");K.innerHTML="";var s=rows("검색").r.filter(function(r){return r[1]!=="(접속 확인)"}),now=Date.now(),wk=s.filter(function(r){return now-new Date(r[0]).getTime()<7*864e5}).length;
+    [["검색(전체)",s.length],["최근 7일 검색",wk],["상담 신청",rows("상담").r.length],["관심 필지",rows("관심 필지").r.length]].forEach(function(x){var d=el("div");d.appendChild(el("b",null,x[1].toLocaleString()));d.appendChild(el("span",null,x[0]));K.appendChild(d)})}
+  function tabs(){var T=$("tabs");T.innerHTML="";["관심 필지","상담","검색","카톡 상담 클릭"].forEach(function(k){var b=el("button",null,k+" ("+rows(k).r.length+")");b.type="button";b.setAttribute("aria-pressed",String(k===TAB));b.addEventListener("click",function(){TAB=k;draw()});T.appendChild(b)})}
+  function view(){var R=rows(TAB),h=R.h.slice(),r=R.r,q=$("q").value.trim();
+    if(TAB==="검색"){r=r.filter(function(x){return x[1]!=="(접속 확인)"});
+      if($("grp").checked){var m={};r.forEach(function(x){var k=x[2]||x[1];if(!m[k])m[k]={row:x.slice(),n:0};m[k].n++});h=["최근 검색","입력 주소","찾은 주소","PNU","찾음","용도지역","면적㎡","가능 판정","오류","검색 횟수"];r=Object.keys(m).map(function(k){return m[k].row.concat([m[k].n])}).sort(function(a,b){return b[9]-a[9]})}}
+    if($("solar").checked){var ci=h.indexOf("가능 판정");if(ci>=0)r=r.filter(function(x){return /태양광/.test(x[ci]||"")})}
+    if(q)r=r.filter(function(x){return x.join(" ").indexOf(q)>=0});return {h:h,r:r}}
+  function draw(){kpi();tabs();var V=view(),t=$("tbl");t.innerHTML="";var th=el("tr");V.h.concat(["리포트"]).forEach(function(x){th.appendChild(el("th",null,x))});var hd=el("thead");hd.appendChild(th);t.appendChild(hd);var tb=el("tbody");
+    var ai=V.h.indexOf("찾은 주소");if(ai<0)ai=V.h.indexOf("땅 주소");
+    V.r.slice(0,1000).forEach(function(x){var tr=el("tr");x.forEach(function(c){tr.appendChild(el("td",null,c))});var td=el("td");var a=ai>=0&&x[ai]?x[ai]:"";if(a){var l=el("a",null,"열기");l.href=SITE+"land.html?addr="+encodeURIComponent(a);l.target="_blank";td.appendChild(l)}tr.appendChild(td);tb.appendChild(tr)});t.appendChild(tb)}
+  ["q","solar","grp"].forEach(function(i){$(i).addEventListener("input",draw)});
+  $("csv").addEventListener("click",function(){var V=view(),csv=[V.h].concat(V.r).map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="땅의가치_"+TAB+".csv";a.click()});
+})();
+</script>
+</body></html>

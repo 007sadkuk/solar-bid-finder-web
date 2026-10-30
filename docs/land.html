@@ -124,6 +124,8 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .vbar small{grid-column:2;color:var(--sub);font-size:12.5px;margin-top:-4px}
 .fac{list-style:none;margin:8px 0 0;padding:0}.fac li{font-size:14px;padding:5px 0;border-top:1px dashed var(--rule2)}.fac li.u::before{content:"▲ ";color:var(--go)}.fac li.d::before{content:"▼ ";color:var(--no)}.fac li.n::before{content:"• ";color:var(--sub)}
 .val .fn2{font-size:12.5px;color:var(--sub);margin:8px 0 0}
+.wf{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}.wf input[type=email],.wf input[type=tel]{flex:1 1 180px;font:inherit;font-size:15px;padding:10px 12px;border:1.5px solid var(--rule);border-radius:10px;background:var(--field);color:var(--ink);min-width:0}.wf .ag{width:100%;font-size:12.5px;color:var(--sub);display:flex;gap:6px;align-items:flex-start}.wf .btn{flex:0 0 auto}.wf .wm{width:100%;font-size:13.5px;color:var(--go)}
+@media print{.wf{display:none}}
 @media (min-width:900px){.val .big{font-size:32px}}
 .trd{margin:18px 0 0;padding:16px 18px;border:1px solid var(--rule);border-radius:12px}.trd h3{margin:0 0 4px;font-size:16px}
 .trd .th{margin:0;font-size:17px;font-weight:700}.trd .th small{display:block;font-weight:500;color:var(--sub);font-size:14px}
@@ -978,6 +980,12 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       if(FARM[jm]){hp+=5;hw.push("농지전용 +5")}if(FOREST){hp+=5;hw.push("산지전용 +5")}
       line("전원주택",hp,hst,hw);
       c4.appendChild(el("p","fn2","판정에 쓴 요인에 점수를 매겨 합한 것입니다(15점 이하 높음, 40점 이하 보통). 주거지 이격거리 조례, 주민 민원, 문화유산은 반영하지 못했습니다."));
+      // 내 땅 지켜보기(알림 신청)
+      var c6=card("내 땅 지켜보기");c6.appendChild(el("p","sub","주변("+(VE.pl.li||VE.pl.emd)+")에 새 토지 거래가 신고되면 메일로 알려드립니다. 개발 소식도 함께 안내해 드립니다."));
+      var wf=el("form","wf");wf.innerHTML='<input name="email" type="email" required placeholder="이메일" autocomplete="email"><input name="phone" type="tel" placeholder="연락처(선택)" autocomplete="tel"><label class="ag"><input type="checkbox" name="agree" required> 알림 발송을 위한 이메일·연락처 수집에 동의(알림 해지 시까지 보관)</label><button class="btn" type="submit">알림 받기</button><span class="wm" role="status"></span>';c6.appendChild(wf);
+      wf.addEventListener("submit",function(ev){ev.preventDefault();var em=wf.email.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){wf.querySelector(".wm").textContent="이메일 주소를 확인해 주세요";return}
+        if(!wf.agree.checked){wf.querySelector(".wm").textContent="동의가 필요합니다";return}
+        send({type:"watch",email:em,phone:wf.phone.value.trim(),addr:par.addr||P.addr,pnu:P.pnu,li:VE.pl.li||VE.pl.emd,jimok:jm}).then(function(ok){wf.querySelector(".wm").textContent=ok?"등록했습니다. 새 거래가 생기면 메일로 알려드릴게요.":"지금은 등록하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";if(ok)wf.querySelector("button").disabled=true})});
       // 농지 소유 체크
       if(FARM[jm]){var c5=card("농지 소유 체크"),u5=el("ul","fac");c5.appendChild(u5);function f5(c,t){u5.appendChild(el("li",c,t))}
         f5("n","농지는 원칙적으로 소유자가 직접 농사를 지어야 합니다(농지법 제6조).");
