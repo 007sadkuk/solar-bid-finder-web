@@ -116,6 +116,7 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .v.go{background:var(--go-bg);color:var(--go)}.v.may{background:var(--may-bg);color:var(--may)}.v.no{background:var(--no-bg);color:var(--no)}
 .mlt{margin:18px 0 0}.mlt h3{margin:0 0 6px;font-size:16px}.mlt ul{list-style:none;margin:0;padding:0}.mlt li{font-size:14.5px;padding:7px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.mlt li b{font-weight:700}
 .talk .visit{width:100%;margin:6px 0 16px;font-size:18px}
+.cases{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}.case{border:1px solid var(--rule);border-radius:14px;overflow:hidden}.case img{width:100%;aspect-ratio:16/10;object-fit:cover;display:block;background:var(--field)}.case div{padding:12px 14px}.case b{display:block;font-size:16px}.case span{color:var(--sub);font-size:13.5px}.case p{margin:6px 0 0;font-size:14.5px}
 .verd{margin:16px 0 0;padding:16px 18px;border-radius:14px;background:var(--pine);color:#eef4ef}.verd b{display:block;font-size:13px;color:#f3c623;letter-spacing:.02em;margin-bottom:4px}.verd p{margin:0;font-size:17px;line-height:1.6;font-weight:600}.verd small{display:block;color:#9fb7a8;font-size:12.5px;margin-top:6px;font-weight:400}
 .val{margin:18px 0 0;display:grid;gap:12px}.val .vc{border:1px solid var(--rule);border-radius:14px;padding:16px 18px}.val h3{margin:0 0 6px;font-size:15px;color:var(--sub);font-weight:700}
 .val .big{font-size:26px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.val .sub{color:var(--sub);font-size:14px;margin:4px 0 0}
@@ -319,6 +320,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <button class="btn ghost moreb" type="button" id="moreb" aria-expanded="false" aria-controls="rmore">자세한 분석 보기</button>
     </div>
     <div id="rmore" hidden>
+    <div class="sheet" id="chkw" hidden><h2 class="t">인허가·세금 점검</h2><div class="val" id="rval2" style="margin-top:0"></div></div>
     <div class="sheet" id="solw" hidden>
       <h2 class="t">태양광 설계 검토</h2>
       <p class="t">필지 모양·경사·생태등급을 반영한 개략 설계입니다. 실제 사업 전 현장 측량, 구조 검토, 한전·인허가 협의로 확정됩니다.</p>
@@ -341,6 +343,8 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 
     <div id="map" aria-label="필지 위치 지도"></div>
     </div>
+
+    <div class="sheet" id="casew" hidden><h2 class="t">금호테크닉스가 직접 한 개발</h2><div class="cases" id="cases"></div></div>
 
     <div class="talk" id="talk">
       <h2>이 땅, 직접 상담받아 보세요</h2>
@@ -918,9 +922,9 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
         H.appendChild(el("small",null,(TV.ratio?"이 땅 공시지가(평당 "+(Math.round(price.won*3.3058/1000)/10).toLocaleString("ko-KR")+"만원)의 약 "+TV.ratio.toFixed(1)+"배. ":"")+"위치·모양·도로에 따라 값 차이가 큽니다."));
         TV.list.forEach(function(r){var li=el("li");li.appendChild(el("b",null,r[0].slice(0,4)+"."+r[0].slice(4,6)+" "));li.appendChild(document.createTextNode([r[1].split(" ").pop()+" "+(r[6]||""),r[2],Math.round(r[4]).toLocaleString()+"㎡("+py(r[4])+")",won(r[5]*1e4),"평당 "+won(TV.ppy(r))].filter(Boolean).join(" · ")));UL.appendChild(li)})}}
     /* 추정 시세 · 잠재 가치 · 가치 변동 */
-    (function(){var V=$("rval");V.innerHTML="";V.hidden=true;$("rverd").hidden=true;if(X.multi)return;
+    (function(){var V=$("rval");V.innerHTML="";V.hidden=true;$("rverd").hidden=true;$("rval2").innerHTML="";$("chkw").hidden=true;if(X.multi)return;
       var VE=valueEst(X.trd,par.addr||P.addr,jm,zone,area,price);if(!VE)return;V.hidden=false;
-      function card(t){var c=el("div","vc");c.appendChild(el("h3",null,t));V.appendChild(c);return c}
+      function card(t,two){var c=el("div","vc");c.appendChild(el("h3",null,t));(two?$("rval2"):V).appendChild(c);if(two)$("chkw").hidden=false;return c}
       var c1=card("추정 시세");
       if(VE.none){c1.appendChild(el("p","sub","비교할 실거래가 부족해 추정하지 못했습니다. 공시지가 총액은 "+(price?won(price.won*area):"-")+"입니다."));return}
       var lo=VE.p25*area,mid=VE.p50*area,hi=VE.p75*area;
@@ -965,7 +969,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       else if(T3)c3.appendChild(el("p","sub","변동 폭이 커서(연 ±15% 초과) 거래된 땅의 차이 영향일 수 있어 3년 전망은 내지 않았습니다."));
       c3.appendChild(el("p","fn2","실거래 추세와 현재 지정된 도시·군관리계획만 본 것입니다. 철도·고속도로 같은 국가 계획이나 개별 개발 소식은 반영하지 못했고, 예측이 아니라 참고용 추세입니다."));
       // 인허가 난이도(허가 가능성) — 판정 요인 합산
-      var c4=card("인허가 가능성"),ul4=el("div","vbar");c4.appendChild(ul4);
+      var c4=card("인허가 가능성",1),ul4=el("div","vbar");c4.appendChild(ul4);
       function grade(pts,stop){return stop?["불가","l"]:pts<=15?["높음","h"]:pts<=40?["보통","m"]:["낮음","l"]}
       function line(name,pts,stop,why){var g2=grade(pts,stop);ul4.appendChild(el("b",null,name));var d=el("div");var t=el("span","tag "+g2[1],"허가 가능성 "+g2[0]);t.style.marginLeft="0";d.appendChild(t);ul4.appendChild(d);ul4.appendChild(el("small",null,why.length?why.join(" · "):"큰 걸림돌 없음"))}
       var sp=0,sw2=[],sst=GB||AGJ||SJ;if(GB)sw2.push("개발제한구역");if(AGJ)sw2.push("농업진흥구역");if(SJ)sw2.push("보전산지");
@@ -986,8 +990,15 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       wf.addEventListener("submit",function(ev){ev.preventDefault();var em=wf.email.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){wf.querySelector(".wm").textContent="이메일 주소를 확인해 주세요";return}
         if(!wf.agree.checked){wf.querySelector(".wm").textContent="동의가 필요합니다";return}
         send({type:"watch",email:em,phone:wf.phone.value.trim(),addr:par.addr||P.addr,pnu:P.pnu,li:VE.pl.li||VE.pl.emd,jimok:jm}).then(function(ok){wf.querySelector(".wm").textContent=ok?"등록했습니다. 새 거래가 생기면 메일로 알려드릴게요.":"지금은 등록하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";if(ok)wf.querySelector("button").disabled=true})});
+      // 세금 체크포인트(팔 때)
+      var c7=card("팔 때 세금 체크포인트",1),u7=el("ul","fac");c7.appendChild(u7);function f7(c,t){u7.appendChild(el("li",c,t))}
+      if(FARM[jm])f7("u","8년 이상 직접 농사(재촌 자경)를 지었다면 양도소득세 감면: 1년 1억원, 5년 합계 2억원 한도. 농지 소재지·연접 시군 또는 30km 이내 거주가 요건입니다.");
+      f7("d","직접 쓰지 않는 땅(재촌·자경 요건을 못 갖춘 농지·임야 등)은 비사업용 토지로 보아 기본세율에 10%포인트가 더해질 수 있습니다.");
+      f7("n","상속받은 땅은 돌아가신 분의 경작 기간을 합산할 수 있는 경우가 있어, 팔기 전에 요건을 꼭 따져보세요.");
+      f7("n","태양광·주택 등으로 개발해 사업용으로 쓰면 세금 판단이 달라질 수 있습니다.");
+      c7.appendChild(el("p","fn2","세무사 해설(2026.10) 요약 기준의 일반 정보입니다. 실제 세액은 보유기간·취득가·거주 요건에 따라 크게 달라지므로 양도 전 세무 상담이 필요합니다."));
       // 농지 소유 체크
-      if(FARM[jm]){var c5=card("농지 소유 체크"),u5=el("ul","fac");c5.appendChild(u5);function f5(c,t){u5.appendChild(el("li",c,t))}
+      if(FARM[jm]){var c5=card("농지 소유 체크",1),u5=el("ul","fac");c5.appendChild(u5);function f5(c,t){u5.appendChild(el("li",c,t))}
         f5("n","농지는 원칙적으로 소유자가 직접 농사를 지어야 합니다(농지법 제6조).");
         f5("d","정당한 사유 없이 농사를 짓지 않으면 1년 안에 처분해야 하고(제10조), 안 하면 6개월 처분명령(제11조), 그래도 안 하면 감정가와 공시지가 중 높은 값의 25%를 이행강제금으로 매년 낼 수 있습니다(제63조).");
         if(price)f5("d","이 땅 기준 이행강제금은 공시지가로만 따져도 연 약 "+won(price.won*area*0.25)+" 이상입니다.");
@@ -1224,6 +1235,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
       if(o){init();setTimeout(function(){PM&&PM.invalidateSize();w.scrollIntoView({behavior:"smooth",block:"center"})},60)}});
     $("pgo").addEventListener("click",function(){if(!picked)return;$("addr").value=picked.addr;$("pickw").hidden=true;$("pickb").textContent="지도에서 땅 눌러서 고르기";$("pickb").setAttribute("aria-expanded","false");$("f").requestSubmit?$("f").requestSubmit():$("go").click()});
   })();
+  fetch("cases.json?d="+new Date().toISOString().slice(0,10)).then(function(r){return r.ok?r.json():null}).then(function(j){if(!j||!j.cases||!j.cases.length)return;var C=$("cases");j.cases.forEach(function(c){var d=el("div","case");if(c.photo){var im=el("img");im.src=c.photo;im.alt=c.title;im.loading="lazy";d.appendChild(im)}var b=el("div");b.appendChild(el("b",null,c.title));b.appendChild(el("span",null,[c.type,c.who,c.place].filter(Boolean).join(" · ")));if(c.summary)b.appendChild(el("p",null,c.summary));d.appendChild(b);C.appendChild(d)});$("casew").hidden=false}).catch(function(){});
   $("visit").addEventListener("click",function(){var f=$("tf"),m=f.querySelector("textarea[name=memo]");if(m&&m.value.indexOf("현장 검토")<0)m.value=("무료 현장 검토를 신청합니다. "+m.value).trim();f.scrollIntoView({behavior:"smooth",block:"start"});setTimeout(function(){f.querySelector("input[name=name]").focus()},450)});
   $("pmode").addEventListener("click",function(e){var b=e.target.closest("button");if(b)afterView(b.dataset.m)});
   $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
