@@ -129,7 +129,7 @@ var BFGeo=(function(){
     function det(m){return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0])}
     var D=det(M);if(Math.abs(D)<1e-9)return null;
     function rep(c){return M.map(function(r,i){var q=r.slice();q[c]=B[i];return q})}
-    var a=det(rep(0))/D,b=det(rep(1))/D;return Math.atan(Math.hypot(a,b))*180/Math.PI;
+    var a=det(rep(0))/D,b=det(rep(1))/D;plane.last=[a,b];return Math.atan(Math.hypot(a,b))*180/Math.PI;
   }
   async function slopeOf(ringLL,lon0,lat0){
     // 필지를 감싸는 격자(최대 100점)의 표고를 받아 ① 전체 기울기(plane) ② 칸별 경사 → 평균경사도·급경사 구역 계산
@@ -174,7 +174,10 @@ var BFGeo=(function(){
     var zsrc=inside.length>=4?inside:pts.map(function(p,k){return [p[0],p[1],EL[k]]}).filter(function(p){return p[2]!==null&&p[2]!==undefined&&isFinite(p[2])});
     var zs=zsrc.map(function(p){return p[2]});
     var mean=cells.length>=4?cells.reduce(function(a,c){return a+c[2]},0)/cells.length:null;
-    return {deg:plane(zsrc),meanDeg:mean,cells:cells.length>=4?cells:[],step:step,relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:zsrc.length,src:src};
+    var pd=plane(zsrc),ab=plane.last||[0,0];
+    // 경사 방향: dzdy>0 이면 북쪽으로 올라가는 땅(남향 사면), aspect = 내려가는 방향(북=0°, 동=90°)
+    var asp=(Math.atan2(-ab[0],-ab[1])*180/Math.PI+360)%360;
+    return {deg:pd,dzdx:ab[0],dzdy:ab[1],aspect:asp,meanDeg:mean,cells:cells.length>=4?cells:[],step:step,relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:zsrc.length,src:src};
   }
 
   /* ── 대표지번 찾기: 필지번호가 없거나 번지가 0000인 물건 ── */
