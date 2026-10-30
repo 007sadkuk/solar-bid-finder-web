@@ -112,6 +112,14 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .use .v{font-weight:800;font-size:15px;padding:3px 10px;border-radius:6px;white-space:nowrap}
 .v.go{background:var(--go-bg);color:var(--go)}.v.may{background:var(--may-bg);color:var(--may)}.v.no{background:var(--no-bg);color:var(--no)}
 .mlt{margin:18px 0 0}.mlt h3{margin:0 0 6px;font-size:16px}.mlt ul{list-style:none;margin:0;padding:0}.mlt li{font-size:14.5px;padding:7px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.mlt li b{font-weight:700}
+.val{margin:18px 0 0;display:grid;gap:12px}.val .vc{border:1px solid var(--rule);border-radius:14px;padding:16px 18px}.val h3{margin:0 0 6px;font-size:15px;color:var(--sub);font-weight:700}
+.val .big{font-size:26px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums}.val .sub{color:var(--sub);font-size:14px;margin:4px 0 0}
+.val .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;vertical-align:middle}.tag.h{background:var(--go-bg);color:var(--go)}.tag.m{background:var(--may-bg);color:var(--may)}.tag.l{background:var(--no-bg);color:var(--no)}
+.vbar{display:grid;grid-template-columns:7.5em 1fr;gap:6px 10px;align-items:center;margin:10px 0 0;font-size:14px}.vbar .b{height:14px;border-radius:4px;background:var(--field);position:relative}.vbar .b i{position:absolute;top:0;height:100%;border-radius:4px;background:var(--pine2)}.vbar .b i.o{background:#f3c623}.vbar .b i.s{background:#5b8def}
+.vbar small{grid-column:2;color:var(--sub);font-size:12.5px;margin-top:-4px}
+.fac{list-style:none;margin:8px 0 0;padding:0}.fac li{font-size:14px;padding:5px 0;border-top:1px dashed var(--rule2)}.fac li.u::before{content:"▲ ";color:var(--go)}.fac li.d::before{content:"▼ ";color:var(--no)}.fac li.n::before{content:"• ";color:var(--sub)}
+.val .fn2{font-size:12.5px;color:var(--sub);margin:8px 0 0}
+@media (min-width:900px){.val .big{font-size:32px}}
 .trd{margin:18px 0 0;padding:16px 18px;border:1px solid var(--rule);border-radius:12px}.trd h3{margin:0 0 4px;font-size:16px}
 .trd .th{margin:0;font-size:17px;font-weight:700}.trd .th small{display:block;font-weight:500;color:var(--sub);font-size:14px}
 .trd ul{list-style:none;margin:10px 0 0;padding:0}.trd li{font-size:14.5px;padding:6px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.trd li b{font-weight:700}
@@ -294,6 +302,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="tags" id="rtags"></div>
       <div class="lead" id="rlead"></div>
       <dl class="nums" id="rnums"></dl>
+      <div class="val" id="rval" hidden></div>
       <div class="mlt" id="rmlt" hidden><h3 id="rmlth"></h3><ul id="rmltl"></ul></div>
       <div class="trd" id="rtrd" hidden><h3>주변 실거래가</h3><p class="th" id="rtrdh"></p><ul id="rtrdl"></ul><p class="tn">국토교통부 토지 매매 실거래가. 지번은 일부 가려져 공개되며, 지분 거래와 해제된 거래는 뺐습니다.</p></div>
       <div class="quick" id="rquick"></div>
@@ -622,6 +631,36 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     function ppy(r){return r[5]*1e4/r[4]*3.3058}
     var same=L.filter(function(r){return jm&&r[2]===jm}),base=same.length>=3?same:L,v=base.map(ppy).sort(function(a,b){return a-b}),med=v[Math.floor(v.length/2)];
     return {scope:scope,n:L.length,jmUsed:same.length>=3?jm:"",med:med,list:L.slice(0,6),months:Object.keys(T.done&&Object.keys(T.done).length?T.done:T.rows).length,ratio:price&&price.won?med/(price.won*3.3058):null,ppy:ppy}}
+  /* ── 땅값 추정: 실거래 비교 ── 모든 수치는 참고용 추정 */
+  function q(v,p){if(!v.length)return null;var i=(v.length-1)*p,a=Math.floor(i),b=Math.ceil(i);return v[a]+(v[b]-v[a])*(i-a)}
+  function placeOf(addr){var tk=String(addr||"").split(" "),li="",emd="";tk.forEach(function(t){if(/[가-힣]+(읍|면)$/.test(t))emd=t;else if(/[가-힣0-9]+(리|동|가)$/.test(t)&&!/[0-9]+-?[0-9]*$/.test(t))li=t});if(!emd&&li&&/(동|가)$/.test(li)){emd=li;li=""}return {li:li,emd:emd}}
+  function tradeRows(T){var all=[];if(!T||!T.rows)return all;Object.keys(T.rows).forEach(function(k){T.rows[k].forEach(function(r){if(!/지분/.test(r[7]||"")&&r[4]>0&&r[5]>0)all.push(r)})});return all}
+  var FARM={"전":1,"답":1,"과수원":1};
+  // 비교 거래 고르기: 같은 리 → 같은 읍면 → 같은 시군, 같은 지목·용도지역·비슷한 면적부터 차례로 완화
+  function comps(all,pl,jm,zone,area,minN){
+    var tj=jm==="대지"?"대":jm;function inLi(r){var u=r[1]||"";return pl.li&&(u===pl.li||u.slice(-pl.li.length-1)===" "+pl.li)}function inEmd(r){var u=r[1]||"";return pl.emd&&u.indexOf(pl.emd)===0}
+    var scopes=[["리",inLi,pl.li],["읍면",inEmd,pl.emd],["시군",function(){return true},"시군 전체"]];
+    var filters=[["같은 지목·용도지역·비슷한 면적",function(r){return r[2]===tj&&r[3]===zone&&r[4]>=area/5&&r[4]<=area*5}],["같은 지목·용도지역",function(r){return r[2]===tj&&r[3]===zone}],["같은 지목",function(r){return r[2]===tj}],["농지 전체",function(r){return FARM[tj]&&FARM[r[2]]}]];
+    for(var i=0;i<scopes.length;i++){if(!scopes[i][2])continue;var S0=all.filter(scopes[i][1]);for(var j=0;j<filters.length;j++){var L=S0.filter(filters[j][1]);if(L.length>=(i===0?minN:minN+2))return {scope:scopes[i][0],name:scopes[i][2],how:filters[j][0],L:L}}}
+    return null}
+  function valueEst(T,addr,jm,zone,area){var all=tradeRows(T);if(!all.length)return null;var pl=placeOf(addr),C=comps(all,pl,jm,zone,area,4);if(!C)return {none:true};
+    var v=C.L.map(function(r){return r[5]*1e4/r[4]}).sort(function(a,b){return a-b});
+    var conf=C.scope==="리"&&C.L.length>=5?"높음":C.scope!=="시군"?"보통":"낮음";
+    return {scope:C.scope,name:C.name,how:C.how,n:C.L.length,p25:q(v,.25),p50:q(v,.5),p75:q(v,.75),conf:conf,L:C.L,pl:pl,all:all}}
+  // 연도별 중간값 → 연평균 변화율(표본 5건 이상인 해만)
+  // 최근 12개월 / 그 전 12개월 / 그 전 12개월 중간값 비교 → 연평균 변화율(각 구간 8건 이상일 때만)
+  function trendOf(L){if(!L.length)return null;var last=L.reduce(function(m,r){return r[0]>m?r[0]:m},"0"),ly=+last.slice(0,4),lm=+last.slice(4,6);
+    function mo(d){return (+d.slice(0,4))*12+(+d.slice(4,6))}var e=ly*12+lm,P=[[],[],[]];
+    L.forEach(function(r){var k=Math.floor((e-mo(r[0]))/12);if(k>=0&&k<3)P[k].push(r[5]*1e4/r[4])});
+    var ok=P.map(function(v){return v.length>=8});if(!ok[0]||!(ok[1]||ok[2]))return null;
+    var md=P.map(function(v){v.sort(function(a,b){return a-b});return v.length?q(v,.5):null});var far=ok[2]?2:1,cagr=Math.pow(md[0]/md[far],1/far)-1;
+    return {cagr:cagr,now:md[0],then:md[far],span:far,n:[P[0].length,P[far].length],last:last}}
+  // 도시·군관리계획(토지이용계획)에서 가치 변동 요인 찾기
+  function planFactors(ned,perm){var up=[],down=[];(ned||[]).forEach(function(x){var n=x[0];
+      if(/지구단위계획구역|개발진흥지구|산업단지|택지개발|도시개발구역|역세권|성장관리계획구역|관광지|물류단지/.test(n))up.push(n+" 지정 — 개발 계획 구역");
+      else if(/(광로|대로|중로|소로)[0-9]?류?/.test(n))up.push(n+" — 도시·군계획도로 계획(일부 편입 시 보상 대상)");
+      else if(/상수원보호|수변구역|문화유산|문화재|국가유산|군사|비행안전|재해위험|하천구역|접도구역|배출시설설치제한|공익용산지|임업용산지|생태경관/.test(n))down.push(n+" — 개발 제약")});
+    return {up:Array.from(new Set(up)),down:Array.from(new Set(down))}}
   /* 지역 일사량: NASA POWER 연평균 수평면 일사량(kWh/㎡·일) → 발전시간 근사(×0.88, 한국 평균 3.86 ≈ 3.4시간에 맞춘 계수) */
   function sunFor(pt){if(!pt)return Promise.resolve(null);
     var u="https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude="+pt[0].toFixed(3)+"&latitude="+pt[1].toFixed(3)+"&format=JSON";
@@ -844,6 +883,45 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       else{H.appendChild(document.createTextNode(TV.scope+" 최근 "+yrs+" 토지 거래 "+TV.n+"건 · "+(TV.jmUsed?TV.jmUsed+" ":"")+"평당 중간값 약 "+won(TV.med)));
         H.appendChild(el("small",null,(TV.ratio?"이 땅 공시지가(평당 "+(Math.round(price.won*3.3058/1000)/10).toLocaleString("ko-KR")+"만원)의 약 "+TV.ratio.toFixed(1)+"배. ":"")+"위치·모양·도로에 따라 값 차이가 큽니다."));
         TV.list.forEach(function(r){var li=el("li");li.appendChild(el("b",null,r[0].slice(0,4)+"."+r[0].slice(4,6)+" "));li.appendChild(document.createTextNode([r[1].split(" ").pop()+" "+(r[6]||""),r[2],Math.round(r[4]).toLocaleString()+"㎡("+py(r[4])+")",won(r[5]*1e4),"평당 "+won(TV.ppy(r))].filter(Boolean).join(" · ")));UL.appendChild(li)})}}
+    /* 추정 시세 · 잠재 가치 · 가치 변동 */
+    (function(){var V=$("rval");V.innerHTML="";V.hidden=true;if(X.multi)return;
+      var VE=valueEst(X.trd,par.addr||P.addr,jm,zone,area);if(!VE)return;V.hidden=false;
+      function card(t){var c=el("div","vc");c.appendChild(el("h3",null,t));V.appendChild(c);return c}
+      var c1=card("추정 시세");
+      if(VE.none){c1.appendChild(el("p","sub","비교할 실거래가 부족해 추정하지 못했습니다. 공시지가 총액은 "+(price?won(price.won*area):"-")+"입니다."));return}
+      var lo=VE.p25*area,mid=VE.p50*area,hi=VE.p75*area;
+      var bg=el("div","big",won(lo)+" ~ "+won(hi));var tg=el("span","tag "+(VE.conf==="높음"?"h":VE.conf==="보통"?"m":"l"),"신뢰도 "+VE.conf);bg.appendChild(tg);c1.appendChild(bg);
+      c1.appendChild(el("p","sub","중간값 약 "+won(mid)+" · 평당 "+won(VE.p50*3.3058)+(price?" (공시지가의 약 "+(VE.p50/price.won).toFixed(1)+"배)":"")));
+      c1.appendChild(el("p","fn2",VE.name+" "+VE.how+" 실거래 "+VE.n+"건(최근 3년, 지분 거래 제외)의 ㎡당 가격 하위 25%~상위 25% 구간 × 이 땅 면적. 모양·도로·경사에 따라 실제 값은 크게 다를 수 있습니다."));
+      // 잠재 가치
+      var c2=card("내 땅의 잠재 가치"),rows=[],mx=hi;
+      rows.push(["지금 그대로",lo,hi,"o","추정 시세"]);
+      var us=U.filter(function(u){return u.key==="solar"})[0];
+      if(us&&us.l<2&&kW>0){var af=(1-Math.pow(1.05,-20))/0.05,r1=kW*A.rentLo,r2=kW*A.rentHi;rows.push(["태양광 임대",r1*af,r2*af,"s","연 "+won(r1)+"~"+won(r2)+" × 20년의 현재가치"])}
+      var uh=U.filter(function(u){return u.key==="house"})[0];
+      if(uh&&uh.l<2&&area>=A.lot*2){var C2=comps(VE.all,VE.pl,"대지",zone,A.lot,4)||comps(VE.all,VE.pl,"대지","",A.lot,4);
+        if(C2){var vv=C2.L.filter(function(r){return r[4]>=100&&r[4]<=1500}).map(function(r){return r[5]*1e4/r[4]}).sort(function(a,b){return a-b});
+          if(vv.length>=4){var sale=area*(1-A.road),g1=sale*q(vv,.25),g2=sale*q(vv,.75),fee0=FEE?FEE.won:0,cst1=area*90000+fee0,cst2=area*180000+fee0;
+            var n1=g1*0.85-cst2,n2=g2*0.85-cst1;
+            rows.push(["전원주택 필지",n1,Math.max(0,n2),"",lots0()+"필지 분양 후 개발비를 뺀 값",[g1,g2,C2.name+" "+C2.how+" "+vv.length+"건"]]);
+            if(n2>mx)mx=n2}}}
+      function lots0(){return Math.floor(area*(1-A.road)/A.lot)}
+      rows.forEach(function(r){if(r[2]>mx)mx=r[2]});
+      var vb=el("div","vbar");rows.forEach(function(r){vb.appendChild(el("b",null,r[0]));var b=el("div","b"),i=el("i",r[3]);var l0=Math.max(0,r[1]);i.style.left=(100*l0/mx).toFixed(1)+"%";i.style.width=Math.max(1.5,100*(r[2]-l0)/mx).toFixed(1)+"%";b.appendChild(i);b.title=won(r[1])+" ~ "+won(r[2]);vb.appendChild(b);vb.appendChild(el("small",null,(r[1]>0?won(r[1]):"손실 가능")+" ~ "+won(r[2])+" · "+r[4]))});
+      c2.appendChild(vb);var hz=rows.filter(function(r){return r[5]})[0];
+      c2.appendChild(el("p","fn2","개략 비교입니다."+(hz?" 전원주택: 분양 매출 "+won(hz[5][0])+"~"+won(hz[5][1])+"(대지 시세: "+hz[5][2]+")에서 기반시설 ㎡당 9~18만원"+(FEE?", "+FEE.kind:"")+", 판매·금융비 15%를 뺐습니다.":"")+" 태양광: 임대료를 연 5%로 할인했습니다. 개발비·분양가·임대료는 가정값이며, 인허가 가능 여부와 시장 상황에 따라 크게 달라집니다. 정확한 사업성은 상담에서 다시 검토해 드립니다."));
+      // 가치 변동 전망
+      var c3=card("가치 변동 전망"),PF=planFactors(r.ned),T3=trendOf(VE.all.filter(function(x){return x[2]===(jm==="대지"?"대":jm)&&x[4]>=area/5&&x[4]<=area*5&&(!VE.pl.emd||(x[1]||"").indexOf(VE.pl.emd)===0)}));
+      var ul=el("ul","fac");c3.appendChild(ul);function fi(c,t){ul.appendChild(el("li",c,t))}
+      if(T3){var pc2=Math.round(T3.cagr*1000)/10;fi(pc2>=1?"u":pc2<=-1?"d":"n",(VE.pl.emd||"시군")+" 비슷한 "+(jm||"")+" 거래 중간값 "+(T3.span*12)+"개월 전 평당 "+won(T3.then*3.3058)+" → 최근 12개월 "+won(T3.now*3.3058)+" (연 "+(pc2>0?"+":"")+pc2+"%, "+T3.n[1]+"건·"+T3.n[0]+"건 비교)")}
+      else fi("n","연도별 비교에 쓸 거래가 부족합니다.");
+      PF.up.forEach(function(t){fi("u",t)});PF.down.forEach(function(t){fi("d",t)});
+      var pn=0;if(liP&&liP.n)Object.keys(liP.n).forEach(function(k){pn+=liP.n[k]});if(pn)fi(pn>=10?"u":"n","이 마을 개발행위허가 "+pn+"건(2014년 이후) — "+(pn>=10?"개발 수요가 있는 지역":"개발 활동 보통"));
+      if(!PF.up.length&&!PF.down.length)fi("n","토지이용계획상 새로 지정된 개발 계획·도시계획도로는 보이지 않습니다.");
+      if(T3&&Math.abs(T3.cagr)<=0.15){var f3=Math.pow(1+T3.cagr,3);var pr=el("p","sub","최근 추세가 3년 더 이어진다고 단순 가정하면: "+won(lo*f3)+" ~ "+won(hi*f3));pr.style.fontWeight="700";c3.appendChild(pr)}
+      else if(T3)c3.appendChild(el("p","sub","변동 폭이 커서(연 ±15% 초과) 거래된 땅의 차이 영향일 수 있어 3년 전망은 내지 않았습니다."));
+      c3.appendChild(el("p","fn2","실거래 추세와 현재 지정된 도시·군관리계획만 본 것입니다. 철도·고속도로 같은 국가 계획이나 개별 개발 소식은 반영하지 못했고, 예측이 아니라 참고용 추세입니다."));
+    })();
     /* 한눈에 보기 */
     var Q=$("rquick");Q.innerHTML="";
     U.forEach(function(u){var d=el("div","q"),t;
