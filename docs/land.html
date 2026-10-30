@@ -116,6 +116,17 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .trd .th{margin:0;font-size:17px;font-weight:700}.trd .th small{display:block;font-weight:500;color:var(--sub);font-size:14px}
 .trd ul{list-style:none;margin:10px 0 0;padding:0}.trd li{font-size:14.5px;padding:6px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.trd li b{font-weight:700}
 .trd .tn{margin:8px 0 0;font-size:12.5px;color:var(--sub)}
+.sk{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 16px}.sk div{background:var(--field);border-radius:10px;padding:10px 12px}.sk dt{font-size:13px;color:var(--sub)}.sk dd{margin:0;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}.sk dd small{display:block;font-size:12px;font-weight:500;color:var(--sub)}
+.sol h3{font-size:16px;margin:18px 0 8px}.lay{width:100%;max-width:560px;display:block;margin:0 auto;background:#f6f8f3;border:1px solid var(--rule2);border-radius:10px}
+.lay .pl{fill:#e7eedf;stroke:#2c5242;stroke-width:1.5}.lay .md{fill:#1f3f8a}.lay .dr{fill:#c7cdd6}.lay .st{fill:rgba(214,72,56,.22)}.lay text{font:11px var(--font);fill:#56685f}
+.mbar{width:100%;max-width:560px;display:block;margin:0 auto}.mbar rect{fill:#f3c623}.mbar text{font:11px var(--font);fill:var(--sub)}
+.sct{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}.sct th,.sct td{padding:8px 6px;border-bottom:1px solid var(--rule2);text-align:right;vertical-align:top}.sct th:first-child,.sct td:first-child{text-align:left}.sct thead th{font-size:13px;color:var(--sub);font-weight:600;white-space:nowrap}.sct td{white-space:nowrap}.sct td:first-child{white-space:normal}.sctw{overflow-x:auto}
+.ck{list-style:none;margin:0;padding:0}.ck li{display:grid;grid-template-columns:22px 1fr;gap:8px;padding:8px 0;border-bottom:1px dashed var(--rule2);font-size:14.5px}.ck li b{display:block}.ck li span{color:var(--sub)}.ck i{font-style:normal;font-weight:800;text-align:center;border-radius:6px}
+.ck .go i{color:var(--go)}.ck .may i{color:var(--may)}.ck .no i{color:var(--no)}.ck .na i{color:var(--sub)}
+.sol .fn{font-size:12.5px;color:var(--sub);margin:6px 0 0}
+@media (max-width:640px){.sk{grid-template-columns:1fr 1fr}.sct thead{display:none}.sct,.sct tbody,.sct tr,.sct td{display:block;width:100%}.sct tr{border:1px solid var(--rule2);border-radius:10px;padding:8px 12px;margin:0 0 8px}
+  .sct td{display:flex;justify-content:space-between;gap:10px;border:0;padding:3px 0;text-align:right}.sct td::before{content:attr(data-l);color:var(--sub);font-size:13px;text-align:left}
+  .sct td:first-child{font-weight:800;display:block;text-align:left;padding-bottom:6px}.sct td:first-child::before{content:none}}
 .quick{margin:18px 0 0;border-top:2px solid var(--ink)}
 .quick .q{display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule2)}
 .quick .q b{font-size:16px}.quick .q span.s{color:var(--sub);font-size:14px;grid-column:1/3}.quick .q .v{font-weight:800;font-size:13.5px;padding:2px 9px;border-radius:6px;grid-row:1;grid-column:3}
@@ -203,6 +214,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   .talk input,.talk select,.talk textarea{font-size:18px}
 }
 @media print{
+  #solw{break-inside:avoid-page}
   .pickb,.pickw{display:none!important}
   #rmore{display:block!important}.foot-d>*{display:block!important}.moreb{display:none!important}
   body{background:#fff;color:#000;font-size:12pt}
@@ -275,6 +287,11 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <button class="btn ghost moreb" type="button" id="moreb" aria-expanded="false" aria-controls="rmore">자세한 분석 보기</button>
     </div>
     <div id="rmore" hidden>
+    <div class="sheet" id="solw" hidden>
+      <h2 class="t">태양광 자세히</h2>
+      <p class="t">경사·가중치·부담금을 반영한 추정입니다. 실제 사업 전 현장 측량과 인허가 협의로 확정됩니다.</p>
+      <div id="rsol"></div>
+    </div>
 
     <div class="sheet">
       <h2 class="t">할 수 있는 개발</h2>
@@ -333,7 +350,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029j"></script>
+<script src="geo.js?v=20261030a"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -349,7 +366,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     "보전녹지지역":[20,80],"생산녹지지역":[20,100],"자연녹지지역":[20,100],"보전관리지역":[20,80],"생산관리지역":[20,80],"계획관리지역":[40,100],"농림지역":[20,80],"자연환경보전지역":[20,80],"관리지역":[20,80]};
   var USE=[["house","전원주택","M4 12 L14 4 L24 12 V24 H4 Z M11 24 V16 H17 V24"],["warehouse","창고","M3 11 L14 5 L25 11 V24 H3 Z M8 24 V15 H20 V24 M8 19 H20"],["shop","상가·카페","M4 10 H24 L22 5 H6 Z M5 10 V24 H23 V10 M11 24 V17 H17 V24"],["factory","공장","M3 24 V12 L10 16 V12 L17 16 V6 H22 V24 Z"]];
   var SUN="M14 8 A6 6 0 1 0 14.01 8 M14 2 V4 M14 24 V26 M2 14 H4 M24 14 H26 M5.5 5.5 L7 7 M21 21 L22.5 22.5 M5.5 22.5 L7 21 M21 7 L22.5 5.5";
-  var A={use:0.6,hrs:3.4,rentLo:20000,rentHi:25000,lot:330,road:0.25,price:147,capex:120,om:2};
+  var A={use:0.6,hrs:3.4,rentLo:20000,rentHi:25000,lot:330,road:0.25,price:146.92,smpRef:86.35,capex:120,om:2,loanR:0.05,loanY:15,loanShare:0.7,forest2020:6860};
 
   var KWC=null;
   function kWFor(usable){
@@ -386,6 +403,93 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       for(var i=0;i<nx;i++)for(var k=0;k<nx;k++){var q=[x0+(x1-x0)*(i+.5)/nx,y0+(y1-y0)*(k+.5)/nx];if(!R.some(function(rg){return pip(q,rg)}))continue;n++;
         var g=null;j.f.some(function(f){if(f[1].some(function(rg){return pip(q,rg)})){g=f[0];return true}});cnt[g||"-"]=(cnt[g||"-"]||0)+1}
       if(!n)return {err:"필지 크기 계산 실패"};var sh={};Object.keys(cnt).forEach(function(k){sh[k]=cnt[k]/n});return {share:sh,n:n}}).catch(function(e){clearTimeout(tm);return {err:e.name==="AbortError"?"시간 초과":e.message}})}
+  /* ── 태양광 심화 계산 ── */
+  // REC 가중치(공급인증서 가중치 별표2: 일반부지 100kW 미만 1.2 / 100~3,000kW 1.0 / 3,000kW 초과 0.8, 임야 0.5, 용량 구간별 나눠 적용)
+  function recW(kW,forest){if(forest)return 0.5;if(!(kW>0))return 1;var a=Math.min(kW,100),b=Math.max(0,Math.min(kW,3000)-100),c=Math.max(0,kW-3000);return Math.floor((a*1.2+b*1.0+c*0.8)/kW*10000)/10000}
+  // 가중치 반영 단가(원/kWh) = SMP 기준가격 + (낙찰가 − SMP 기준가격) × 가중치
+  function priceW(w){return A.smpRef+(A.price-A.smpRef)*w}
+  // 급경사 제척: 경사가 큰 칸부터 빼서 남은 칸 평균이 15° 이하가 되게
+  function slopeCut(cells,lim){if(!cells||cells.length<4)return null;var a=cells.map(function(c){return c[2]}).sort(function(x,y){return y-x}),n=a.length,tot=a.reduce(function(s,v){return s+v},0),k=0,rest=tot;
+    while(n-k>0&&rest/(n-k)>lim){rest-=a[k];k++}
+    return {mean:tot/n,cutShare:k/n,restMean:n-k?rest/(n-k):null,thr:k?a[k-1]:null,n:n}}
+  // 실제 필지 모양에 모듈 배치(남향, 2단 세로, 이격 3m) → 급경사 칸에 걸린 모듈은 뺌
+  function layoutOn(ring,cut,cells,step){if(!ring||ring.length<3)return null;var lat0=ring[0][0],lon0=ring[0][1],kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
+    var poly=ring.map(function(q){return [(q[1]-lon0)*kx,(q[0]-lat0)*ky]});
+    var L=layout(poly,{azDeg:0,tiltDeg:30,lat:lat0,k:2,portrait:true,modW:1.134,modL:2.278,modP:580,setback:3,extraGap:0});
+    var steep=[];if(cut&&cut.thr!==null&&cells)cells.forEach(function(c){if(c[2]>=cut.thr)steep.push([(c[0]-lon0)*kx,(c[1]-lat0)*ky])});
+    var half=(step||30)/2,keep=[],drop=[];
+    L.cells.forEach(function(c){var cx=c[0]+L.cw/2,cy=c[1]+L.d/2,bad=steep.some(function(t){return Math.abs(t[0]-cx)<=half&&Math.abs(t[1]-cy)<=half});(bad?drop:keep).push(c)});
+    return {poly:poly,L:L,keep:keep,drop:drop,steep:steep,half:half,kW:keep.length*L.rowsModules*0.58,kWAll:L.kW}}
+  /* 태양광 자세히: 핵심 숫자 · 배치도 · 월별 발전량 · 수익 비교 · 부담금 · 인허가 체크리스트 */
+  var EIA={"보전관리지역":5000,"생산관리지역":7500,"계획관리지역":10000,"농림지역":7500,"자연환경보전지역":5000,"자연녹지지역":10000,"생산녹지지역":10000,"보전녹지지역":10000};
+  function renderSolar(S,par,X,zone,g,ES,etxt,flags){
+    var W=$("solw"),B=$("rsol");B.innerHTML="";if(!S||!(S.kW>0)){W.hidden=true;return}W.hidden=false;
+    var box=el("div","sol");B.appendChild(box);
+    function sec(t){box.appendChild(el("h3",null,t))}
+    function nf(n,d){return (Math.round(n*Math.pow(10,d||0))/Math.pow(10,d||0)).toLocaleString("ko-KR")}
+    var hrs=X.sun&&X.sun.hrs>2&&X.sun.hrs<5?X.sun.hrs:A.hrs,gen=S.kW*hrs*365;
+    // 1. 핵심 숫자
+    var K=el("dl","sk");function kv(a,b,c){var d=el("div");d.appendChild(el("dt",null,a));var dd=el("dd",null,b);if(c)dd.appendChild(el("small",null,c));d.appendChild(dd);K.appendChild(d)}
+    kv("설치 용량","약 "+nf(S.kW)+"kW",S.useShare<1?"급경사 제척 후":"사용률 60% 가정");
+    kv("사용 면적",nf(S.area*S.useShare)+"㎡",py(S.area*S.useShare));
+    kv("평균경사",S.mS!==null?nf(S.mS,1)+"°":"확인 못 함",S.cut&&S.cut.cutShare>0?"제척 후 "+nf(S.cut.restMean,1)+"°":(S.forest?"산지 기준 15° 이하":""));
+    kv("REC 가중치",String(S.w),S.forest?"임야":"일반부지(용량 구간별)");
+    kv("적용 단가",nf(S.pw,1)+"원/kWh","SMP+REC×가중치");
+    kv("연 발전량","약 "+nf(gen/1000)+"MWh","하루 "+nf(hrs,1)+"시간");
+    box.appendChild(K);
+    // 2. 배치도
+    var LO=layoutOn(par.ring,S.cut,S.cells,S.step);
+    if(LO&&LO.L.cells.length){sec("배치 예시");
+      var xs=LO.poly.map(function(p){return p[0]}),ys=LO.poly.map(function(p){return p[1]}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
+      var Wd=560,Hd=Math.max(220,Math.min(420,Wd*(y1-y0)/Math.max(1,x1-x0))),pad=16,sc=Math.min((Wd-2*pad)/Math.max(1,x1-x0),(Hd-2*pad-14)/Math.max(1,y1-y0));
+      function X_(x){return (pad+(x-x0)*sc).toFixed(1)}function Y_(y){return (Hd-pad-14-(y-y0)*sc).toFixed(1)}
+      var h='<svg class="lay" viewBox="0 0 '+Wd+' '+Hd+'" role="img" aria-label="모듈 배치 예시">';
+      h+='<path class="pl" d="'+LO.poly.map(function(p,i){return (i?"L":"M")+X_(p[0])+" "+Y_(p[1])}).join(" ")+' Z"/>';
+      LO.steep.forEach(function(t){var a=LO.half;h+='<rect class="st" x="'+X_(t[0]-a)+'" y="'+Y_(t[1]+a)+'" width="'+(2*a*sc).toFixed(1)+'" height="'+(2*a*sc).toFixed(1)+'"/>'});
+      function cellR(c,cls){h+='<rect class="'+cls+'" x="'+X_(c[0])+'" y="'+Y_(c[1]+LO.L.d)+'" width="'+Math.max(0.6,LO.L.cw*sc-0.3).toFixed(2)+'" height="'+Math.max(0.6,LO.L.d*sc).toFixed(2)+'"/>'}
+      LO.keep.forEach(function(c){cellR(c,"md")});LO.drop.forEach(function(c){cellR(c,"dr")});
+      var bar=Math.pow(10,Math.floor(Math.log10((x1-x0)/3)));h+='<rect x="'+pad+'" y="'+(Hd-12)+'" width="'+(bar*sc).toFixed(1)+'" height="3" fill="#56685f"/><text x="'+(pad+bar*sc+6)+'" y="'+(Hd-8)+'">'+bar+'m</text>';
+      h+='<text x="'+(Wd-pad)+'" y="'+(pad+4)+'" text-anchor="end">N ↑ · 남향 고정식</text></svg>';
+      var dv=el("div");dv.innerHTML=h;box.appendChild(dv);
+      box.appendChild(el("p","fn","파란색: 모듈(2단 세로, 경사 30°, 앞뒤 줄 그림자 간격 반영, 경계 이격 3m). "+(LO.steep.length?"붉은 칸: 제척한 급경사 구역, 회색: 그 칸에 걸려 뺀 모듈. ":"")+"도면상 최대 약 "+nf(LO.kW)+"kW이며, 진입로·법면·배수로를 빼면 실제 용량은 줄어듭니다. 사업 계산은 위 설치 용량(약 "+nf(S.kW)+"kW)을 씁니다."))}
+    // 3. 월별 발전량
+    if(X.sun&&X.sun.mon){sec("월별 예상 발전량");var D=[31,28,31,30,31,30,31,31,30,31,30,31],mv=X.sun.mon.map(function(gh,i){return S.kW*gh*0.88*D[i]}),mx=Math.max.apply(0,mv);
+      var Wm=560,Hm=170,bw=(Wm-40)/12,h2='<svg class="mbar" viewBox="0 0 '+Wm+' '+Hm+'" role="img" aria-label="월별 발전량">';
+      mv.forEach(function(v,i){var bh=(Hm-40)*v/mx,x=30+i*bw;h2+='<rect x="'+(x+3).toFixed(1)+'" y="'+(Hm-22-bh).toFixed(1)+'" width="'+(bw-6).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2"><title>'+(i+1)+'월 약 '+nf(v/1000,0)+'MWh</title></rect><text x="'+(x+bw/2).toFixed(1)+'" y="'+(Hm-8)+'" text-anchor="middle">'+(i+1)+'월</text>'});
+      var top=mv.indexOf(mx);h2+='<text x="'+(30+top*bw+bw/2).toFixed(1)+'" y="'+(Hm-26-(Hm-40)).toFixed(1)+'" text-anchor="middle">'+nf(mx/1000)+'MWh</text></svg>';
+      var dm=el("div");dm.innerHTML=h2;box.appendChild(dm);box.appendChild(el("p","fn","NASA POWER 월평균 일사량 × 0.88(시스템 효율 근사) × 설치 용량. 연간 합계 약 "+nf(mv.reduce(function(a,b){return a+b},0)/1000)+"MWh."))}
+    // 4. 수익 비교
+    var E=S.EC;if(E&&flags.lv<2){sec("수익 비교 (20년)");
+      var t=el("table","sct");t.innerHTML='<thead><tr><th>방식</th><th>초기 비용</th><th>1년차 순수익</th><th>회수</th><th>20년 누적</th></tr></thead>';var tb=el("tbody");t.appendChild(tb);
+      var HD=["방식","초기 비용","1년차 순수익","회수","20년 누적"];
+      function row(a,b,c,d,e){var tr=el("tr");[a,b,c,d,e].forEach(function(x,i){var td=el("td",null,x);td.setAttribute("data-l",HD[i]);tr.appendChild(td)});tb.appendChild(tr)}
+      row("땅 임대","없음",won(S.kW*A.rentLo)+"~"+won(S.kW*A.rentHi),"-",won(S.kW*A.rentLo*20)+"~"+won(S.kW*A.rentHi*20));
+      var net1=(E.rev1-E.om1)*1e4,cum20=E.cum[E.cum.length-1]*1e4;
+      row("직접 사업"+(E.irr!==null?" (IRR "+nf(E.irr*100,1)+"%)":""),won(E.capex*1e4),won(net1),E.payback?nf(E.payback,1)+"년":"-",won(cum20));
+      var loan=E.capex*A.loanShare,r=A.loanR,n=A.loanY,ann=loan*r/(1-Math.pow(1+r,-n)),eq=E.capex-loan,c=-eq,pb=null;
+      for(var y=1;y<=20;y++){var cf=E.cf[y]-(y<=n?ann:0),prev=c;c+=cf;if(pb===null&&prev<0&&c>=0)pb=(y-1)+(-prev)/cf}
+      row("직접 사업(대출 "+Math.round(A.loanShare*100)+"%)",won(eq*1e4),won((E.cf[1]-ann)*1e4),pb?nf(pb,1)+"년":"-",won(c*1e4));
+      var tw=el("div","sctw");tw.appendChild(t);box.appendChild(tw);
+      box.appendChild(el("p","fn","직접 사업: 설치비 kW당 "+A.capex+"만원"+(S.fee?" + "+S.fee.kind:"")+", 운영비 kW당 연 "+A.om+"만원, 해마다 효율 0.5% 감소. 단가 "+nf(S.pw,1)+"원/kWh = SMP 기준가격 "+A.smpRef+"원 + (2026년 1차 고정가격 낙찰 평균 "+A.price+"원 − "+A.smpRef+"원) × 가중치 "+S.w+". 대출은 연 "+(A.loanR*100)+"%, "+A.loanY+"년 원리금균등 가정. 계통 연계비·세금·보험·토목비 별도. 주민참여형(햇빛소득마을 등)은 조건 충족 시 가중치 우대가 있어 따로 상담이 필요합니다."))}
+    // 5. 부담금
+    if(S.fee){sec("부담금");var fp=el("p");fp.style.margin="0";fp.appendChild(el("b",null,S.fee.kind+" 약 "+won(S.fee.won)));fp.appendChild(document.createTextNode(" · "+S.fee.how));box.appendChild(fp)}
+    // 6. 인허가 체크리스트
+    sec("인허가 체크리스트");var ul=el("ul","ck");box.appendChild(ul);
+    function ck(st,a,b){var li=el("li",st);li.appendChild(el("i",null,st==="go"?"✓":st==="may"?"!":st==="no"?"✕":"·"));var d=el("div");d.appendChild(el("b",null,a));if(b)d.appendChild(el("span",null,b));li.appendChild(d);ul.appendChild(li)}
+    var A0=S.area*S.useShare;
+    ck("may","개발행위허가(국토계획법)","지상 태양광은 시·군 허가가 필요합니다.");
+    if(S.farm)ck(flags.AGJ?"no":"may","농지전용허가(농지법)",flags.AGJ?"농업진흥구역 농지는 태양광 전용이 어렵습니다.":"전용 허가와 농지보전부담금 납부가 필요합니다.");
+    if(S.forest){ck(flags.SJ?"no":"may","산지일시사용허가(산지관리법)",flags.SJ?"보전산지는 태양광을 할 수 없습니다(준보전산지만 가능).":"준보전산지에서 일시사용 후 원상복구 조건입니다.");
+      ck(S.mS===null?"na":(S.cut&&S.cut.restMean!==null&&S.cut.restMean<=15)||S.mS<=15?"go":"no","평균경사도 15° 이하",S.mS===null?"경사를 확인하지 못했습니다.":(S.cut&&S.cut.cutShare>0?"전체 "+nf(S.mS,1)+"° → 급경사 "+nf(S.area*S.cut.cutShare)+"㎡ 제척 시 "+nf(S.cut.restMean,1)+"°":"평균 약 "+nf(S.mS,1)+"°")+" (위성 표고 30m 격자 추정, 실측 평균경사도조사서로 확정)");
+      ck(S.area<=30000?"go":"no","편입 산지면적 3만㎡ 이하",nf(S.area)+"㎡")}
+    var eia=null;Object.keys(EIA).forEach(function(k){if(zone===k)eia=EIA[k]});
+    if(eia)ck(A0>=eia?"may":"go","소규모 환경영향평가",zone+" "+nf(eia)+"㎡ 이상이 대상 · 이 사업 약 "+nf(A0)+"㎡ → "+(A0>=eia?"대상":"대상 아님"));
+    else ck("na","소규모 환경영향평가","용도지역("+(zone||"미확인")+")별 기준을 확인하세요.");
+    ck(!ES?"na":(etxt?"may":"go"),"생태자연도",!ES?"확인하지 못했습니다.":etxt?etxt+" 포함 — 해당 부분 검토 필요":"1·2등급·별도관리지역 해당 없음");
+    ck(g?(g.free>=S.kW?"go":"may"):"na","전력망(한전 여유용량)",g?g.area+" 여유 약 "+nf(g.free)+"kW":"이 지역 정보가 아직 없습니다. 한전 지사 확인 필요.");
+    ck("may","발전사업허가(전기사업법)",S.kW<=3000?"3,000kW 이하: 시·도지사 허가":"3,000kW 초과: 산업통상자원부 허가");
+    ck("na","매장유산","사업 전 매장유산 분포 여부를 확인하세요(국가유산청).");
+  }
   /* 토지 실거래가(국토교통부, 매일 수집) */
   var TRD={};
   function tradesFor(pnu){var c=pnu.slice(0,5);if(TRD[c]!==undefined)return Promise.resolve(TRD[c]);
@@ -406,7 +510,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   /* 지역 일사량: NASA POWER 연평균 수평면 일사량(kWh/㎡·일) → 발전시간 근사(×0.88, 한국 평균 3.86 ≈ 3.4시간에 맞춘 계수) */
   function sunFor(pt){if(!pt)return Promise.resolve(null);
     var u="https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude="+pt[0].toFixed(3)+"&latitude="+pt[1].toFixed(3)+"&format=JSON";
-    return Promise.race([fetch(u).then(function(r){return r.json()}).then(function(j){var v=j&&j.properties&&j.properties.parameter&&j.properties.parameter.ALLSKY_SFC_SW_DWN;v=v&&(v.ANN||v.ann);return v>0?{ghi:v,hrs:Math.round(v*0.88*100)/100}:null}),new Promise(function(r){setTimeout(function(){r(null)},8000)})]).catch(function(){return null})}
+    return Promise.race([fetch(u).then(function(r){return r.json()}).then(function(j){var v=j&&j.properties&&j.properties.parameter&&j.properties.parameter.ALLSKY_SFC_SW_DWN;var M=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"],mon=v?M.map(function(k){return +v[k]}):null;v=v&&(v.ANN||v.ann);return v>0?{ghi:v,hrs:Math.round(v*0.88*100)/100,mon:mon&&mon.every(function(x){return x>0})?mon:null}:null}),new Promise(function(r){setTimeout(function(){r(null)},8000)})]).catch(function(){return null})}
   /* 주변 거리: 오픈스트리트맵(Overpass). 누락이 있을 수 있음 */
   function nearFor(pt){if(!pt)return Promise.resolve(null);
     var lo=pt[0],la=pt[1],A2=function(r){return "(around:"+r+","+la+","+lo+")"};
@@ -543,15 +647,28 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var sw=[],sv=0,sb=[],sq="";  // sb: 어려움 판정의 실제 이유, sq: 한눈에 보기에 띄울 검토 문구
     function block(t){sv=2;sb.push(t);sw.push(t)}
     if(GB)block("개발제한구역");if(AGJ)block("농업진흥구역");if(SJ)block("보전산지(준보전산지만 가능)");
-    if(sl!==null&&sl>15)block("경사 "+sl.toFixed(0)+"°");
+    var FOREST=jm==="임야",SLO=r.slope||{},CELLS=X.multi?null:(SLO.cells||null),mS=(SLO.meanDeg!==undefined&&SLO.meanDeg!==null)?SLO.meanDeg:sl;
+    var CUT=slopeCut(CELLS,15),useShare=1;
+    if(mS!==null&&mS>15){
+      if(CUT&&CUT.restMean!==null&&CUT.cutShare<=0.7){useShare=1-CUT.cutShare;sv=Math.max(sv,1);sq="급경사 "+Math.round(area*CUT.cutShare).toLocaleString()+"㎡ 제척 시 평균 "+CUT.restMean.toFixed(1)+"° — 사용 약 "+Math.round(area*useShare).toLocaleString()+"㎡";sw.push(sq)}
+      else block("평균경사 "+mS.toFixed(1)+"° (15° 초과"+(CUT?", 제척해도 쓸 면적이 30% 미만":"")+")")}
+    if(FOREST&&area>30000)block("임야 편입 면적 3만㎡ 초과(산지 태양광 기준: 3만㎡ 이하)");
     var EC0=X.eco,ES=EC0&&EC0.share?EC0.share:null,ebad=ES?(ES["1"]||0)+(ES["2"]||0)+(ES["9"]||0):0,etxt="";
     if(ES){var parts=[];[["1","1등급"],["2","2등급"],["9","별도관리지역"]].forEach(function(g){if(ES[g[0]]>=0.01)parts.push(g[1]+" "+Math.round(ES[g[0]]*100)+"%")});etxt=parts.join("·")}
     if(ES&&ebad>=0.5)block("생태자연도 "+etxt+" — 땅 대부분이 보전 등급이라 태양광이 어렵습니다");
-    else if(ES&&ebad>=0.05){sv=Math.max(sv,1);sq="생태자연도 "+etxt+" 포함 — 해당 부분 검토 필요";sw.push(sq)}
+    else if(ES&&ebad>=0.05){sv=Math.max(sv,1);var eq="생태자연도 "+etxt+" 포함 — 해당 부분 검토 필요";sq=sq?sq+" / "+eq:eq;sw.push(eq)}
     else if(!ES)sw.push("생태자연도는 확인하지 못했습니다");
     if(meng)block(rs?"맹지(도로접면 '"+rs+"') — 진입로가 없으면 태양광 허가가 나지 않습니다":"맹지로 보임(지적도상 도로와 맞닿지 않음) — 진입로가 없으면 태양광 허가가 나지 않습니다");
-    if(sv<2){if(sl!==null&&sl>10){sv=Math.max(sv,1);sw.push("경사 "+sl.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
-    var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:A.price,capexPerKW:A.capex,omPerKW:A.om,degr:0.005,years:20}):null;
+    if(useShare<1)kW=kWFor(area*useShare*A.use);
+    if(sv<2){if(mS!==null&&mS>10&&useShare===1){sv=Math.max(sv,1);sw.push("평균경사 "+mS.toFixed(0)+"°로 토목비 증가")}if(kW<20){sv=Math.max(sv,1);sw.push("규모가 작음")}if(g&&g.free<kW){sv=Math.max(sv,1);sw.push("전력망 여유 부족 가능")}}
+    var RW=recW(kW,FOREST),PW=priceW(RW);
+    // 부담금: 농지보전부담금(공시지가×진흥 30%/그 밖 20%, ㎡당 5만원 상한), 대체산림자원조성비(2026 단가 확인 전: 2020 준보전 단가로 참고 계산)
+    var useA=area*useShare,FEE=null,isFarm=/^(전|답|과수원)$/.test(jm);
+    if(isFarm&&price)FEE={kind:"농지보전부담금",won:useA*Math.min(price.won*(AGJ?0.3:0.2),50000),how:"사용 면적 × min(공시지가×"+(AGJ?"30":"20")+"%, ㎡당 5만원)"};
+    else if(FOREST&&price)FEE={kind:"대체산림자원조성비",won:useA*(A.forest2020+Math.min(price.won*0.01,A.forest2020)),how:"사용 면적 × (㎡당 단가 + 공시지가×1%) · 2020년 준보전 단가 6,860원으로 계산한 참고값, 2026년 고시 단가로 다시 계산 필요",old:true};
+    var feePerKW=FEE&&kW>0?FEE.won/1e4/kW:0;
+    var EC=kW>0?economics({kW:kW,hoursPerDay:HRS,price:PW,capexPerKW:A.capex+feePerKW,omPerKW:A.om,degr:0.005,years:20}):null;
+    var SOL={kW:kW,w:RW,pw:PW,fee:FEE,EC:EC,mS:mS,cut:CUT,useShare:useShare,cells:CELLS,step:SLO.step,forest:FOREST,farm:isFarm,lv:sv,area:area};
     U.push({key:"solar",name:"태양광 발전",ic:SUN,l:sv,block:sb,note:sq,
       k:sv<2?"땅을 빌려주면 연 "+won(kW*A.rentLo)+"~"+won(kW*A.rentHi):"",
       why:(sw.length?sw.join(", "):"큰 규제가 보이지 않습니다")+(pc("solar")?", 이 마을 태양광 개발행위허가 "+pc("solar")+"건(최근 "+lastY("solar")+"년)":""),
@@ -668,6 +785,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     notes.forEach(function(t){NN.appendChild(el("p",null,t))});
 
     $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
+    renderSolar(SOL,par,X,zone,g,ES,etxt,{lv:sv,AGJ:AGJ,SJ:SJ});
     $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);
     $("rep").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};
