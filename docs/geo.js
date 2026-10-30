@@ -129,17 +129,17 @@ var BFGeo=(function(){
     function det(m){return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0])}
     var D=det(M);if(Math.abs(D)<1e-9)return null;
     function rep(c){return M.map(function(r,i){var q=r.slice();q[c]=B[i];return q})}
-    var a=det(rep(0))/D,b=det(rep(1))/D;plane.last=[a,b];return Math.atan(Math.hypot(a,b))*180/Math.PI;
+    var a=det(rep(0))/D,b=det(rep(1))/D;return Math.atan(Math.hypot(a,b))*180/Math.PI;
   }
   async function slopeOf(ringLL,lon0,lat0){
-    // 필지를 감싸는 격자(최대 100점)의 표고를 받아 ① 전체 기울기(plane) ② 칸별 경사 → 평균경사도·급경사 구역 계산
     var to=mk(lon0,lat0),R=to(ringLL),ar=area(R),xs=R.map(function(p){return p[0]}),ys=R.map(function(p){return p[1]});
     var x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
-    var step=Math.max(30,Math.sqrt((x1-x0+60)*(y1-y0+60)/100));
-    var nx=Math.max(2,Math.ceil((x1-x0)/step)+2),ny=Math.max(2,Math.ceil((y1-y0)/step)+2);
-    while(nx*ny>100){step*=1.08;nx=Math.max(2,Math.ceil((x1-x0)/step)+2);ny=Math.max(2,Math.ceil((y1-y0)/step)+2)}
-    var gx0=(x0+x1)/2-(nx-1)*step/2,gy0=(y0+y1)/2-(ny-1)*step/2,pts=[];
-    for(var j=0;j<ny;j++)for(var i=0;i<nx;i++)pts.push([gx0+i*step,gy0+j*step]);
+    var step=Math.max(30,Math.sqrt(ar/36)),pts=[];
+    for(var x=x0+step/2;x<x1;x+=step)for(var y=y0+step/2;y<y1;y+=step)if(pip([x,y],R))pts.push([x,y]);
+    if(pts.length<4){ // 작은 필지: 꼭짓점+중심
+      pts=R.slice(0,Math.min(R.length,8)).concat([[ (x0+x1)/2,(y0+y1)/2 ]]);
+    }
+    pts=pts.slice(0,60);
     var kx=111320*Math.cos(lat0*Math.PI/180),ky=110540;
     var lats=pts.map(function(p){return +(lat0+p[1]/ky).toFixed(6)}),lons=pts.map(function(p){return +(lon0+p[0]/kx).toFixed(6)});
     var z=[],src="",errs=[];
@@ -156,28 +156,15 @@ var BFGeo=(function(){
       var j=await rs.json();if(!j.elevation)throw new Error("open-meteo 응답 이상");
       return j.elevation;
     }
-    var tries=[["SRTM 30m",viaTopo],["Copernicus 90m",viaMeteo]],EL=null;
-    for(var t=0;t<tries.length&&!EL;t++){
-      try{var el=await tries[t][1]();var ok=el.filter(function(v){return v!==null&&v!==undefined&&isFinite(v)}).length;
-        if(ok>=4){EL=el;src=tries[t][0]}else errs.push(tries[t][0]+": 표고 값 부족")}
+    var tries=[["SRTM 30m",viaTopo],["Copernicus 90m",viaMeteo]];
+    for(var t=0;t<tries.length&&!z.length;t++){
+      try{var el=await tries[t][1]();var tmp=[];el.forEach(function(v,i){if(v!==null&&v!==undefined&&isFinite(v))tmp.push([pts[i][0],pts[i][1],v])});
+        if(tmp.length>=4){z=tmp;src=tries[t][0]}else errs.push(tries[t][0]+": 표고 값 부족")}
       catch(e){errs.push(tries[t][0]+": "+(e.message==="Failed to fetch"?"접속 실패(차단 또는 네트워크)":e.message))}
     }
-    if(!EL)throw new Error(errs.join(" / "));
-    function Z(i,j){if(i<0||j<0||i>=nx||j>=ny)return null;var v=EL[j*nx+i];return (v===null||v===undefined||!isFinite(v))?null:v}
-    var inside=[],cells=[];
-    for(var j2=0;j2<ny;j2++)for(var i2=0;i2<nx;i2++){var p=pts[j2*nx+i2],zz=Z(i2,j2);if(zz===null||!pip(p,R))continue;inside.push([p[0],p[1],zz]);
-      var zl=Z(i2-1,j2),zr=Z(i2+1,j2),zd=Z(i2,j2-1),zu=Z(i2,j2+1);
-      var gx=zl!==null&&zr!==null?(zr-zl)/(2*step):zr!==null?(zr-zz)/step:zl!==null?(zz-zl)/step:null;
-      var gy=zd!==null&&zu!==null?(zu-zd)/(2*step):zu!==null?(zu-zz)/step:zd!==null?(zz-zd)/step:null;
-      if(gx!==null&&gy!==null)cells.push([lons[j2*nx+i2],lats[j2*nx+i2],Math.atan(Math.hypot(gx,gy))*180/Math.PI])}
-    // 필지 안 격자점이 너무 적으면(작은 필지) 주변 격자 전체로 기울기만 계산
-    var zsrc=inside.length>=4?inside:pts.map(function(p,k){return [p[0],p[1],EL[k]]}).filter(function(p){return p[2]!==null&&p[2]!==undefined&&isFinite(p[2])});
-    var zs=zsrc.map(function(p){return p[2]});
-    var mean=cells.length>=4?cells.reduce(function(a,c){return a+c[2]},0)/cells.length:null;
-    var pd=plane(zsrc),ab=plane.last||[0,0];
-    // 경사 방향: dzdy>0 이면 북쪽으로 올라가는 땅(남향 사면), aspect = 내려가는 방향(북=0°, 동=90°)
-    var asp=(Math.atan2(-ab[0],-ab[1])*180/Math.PI+360)%360;
-    return {deg:pd,dzdx:ab[0],dzdy:ab[1],aspect:asp,meanDeg:mean,cells:cells.length>=4?cells:[],step:step,relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:zsrc.length,src:src};
+    if(!z.length)throw new Error(errs.join(" / "));
+    var zs=z.map(function(p){return p[2]});
+    return {deg:plane(z),relief:Math.max.apply(0,zs)-Math.min.apply(0,zs),n:z.length,src:src};
   }
 
   /* ── 대표지번 찾기: 필지번호가 없거나 번지가 0000인 물건 ── */
@@ -337,5 +324,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-30 (검토)",slopeOf:slopeOf,check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,parcelAt:parcelAt,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,parcelAt:parcelAt,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
