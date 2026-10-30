@@ -643,11 +643,26 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     var filters=[["같은 지목·용도지역·비슷한 면적",function(r){return r[2]===tj&&r[3]===zone&&r[4]>=area/5&&r[4]<=area*5}],["같은 지목·용도지역",function(r){return r[2]===tj&&r[3]===zone}],["같은 지목",function(r){return r[2]===tj}],["농지 전체",function(r){return FARM[tj]&&FARM[r[2]]}]];
     for(var i=0;i<scopes.length;i++){if(!scopes[i][2])continue;var S0=all.filter(scopes[i][1]);for(var j=0;j<filters.length;j++){var L=S0.filter(filters[j][1]);if(L.length>=(i===0?minN:minN+2))return {scope:scopes[i][0],name:scopes[i][2],how:filters[j][0],L:L}}}
     return null}
-  function valueEst(T,addr,jm,zone,area){var all=tradeRows(T);if(!all.length)return null;var pl=placeOf(addr),C=comps(all,pl,jm,zone,area,4);if(!C)return {none:true};
-    var v=C.L.map(function(r){return r[5]*1e4/r[4]}).sort(function(a,b){return a-b});
-    var conf=C.scope==="리"&&C.L.length>=5?"높음":C.scope!=="시군"?"보통":"낮음";
-    return {scope:C.scope,name:C.name,how:C.how,n:C.L.length,p25:q(v,.25),p50:q(v,.5),p75:q(v,.75),conf:conf,L:C.L,pl:pl,all:all}}
-  // 연도별 중간값 → 연평균 변화율(표본 5건 이상인 해만)
+  // 추정 시세 = ① 비슷한 거래(가중치) + ② 공시지가 기준(2026 표준지 시세반영률 65.5%)의 겹치는 구간
+  function valueEst(T,addr,jm,zone,area,price){var all=tradeRows(T),pl=placeOf(addr),tj=jm==="대지"?"대":jm;if(!all.length&&!price)return null;
+    function inLi(r){var u=r[1]||"";return pl.li&&(u===pl.li||u.slice(-pl.li.length-1)===" "+pl.li)}
+    var base=all.filter(function(r){return r[2]===tj&&pl.emd&&(r[1]||"").indexOf(pl.emd)===0}),scope="읍면",nm=pl.emd;
+    if(base.length<6){base=all.filter(function(r){return r[2]===tj});scope="시군";nm="시군 전체"}
+    if(base.length<4&&FARM[tj]){base=all.filter(function(r){return FARM[r[2]]&&(!pl.emd||(r[1]||"").indexOf(pl.emd)===0)});scope="읍면";nm=pl.emd+" 농지"}
+    var last=base.reduce(function(m,r){return r[0]>m?r[0]:m},"0"),lm=(+last.slice(0,4))*12+(+last.slice(4,6));
+    var P=base.map(function(r){var p=r[5]*1e4/r[4],w=(r[3]===zone?1:0.35)*Math.exp(-Math.abs(Math.log(r[4]/area)))*(inLi(r)?1.5:1);var age=lm-((+r[0].slice(0,4))*12+(+r[0].slice(4,6)));w*=Math.max(0.3,1-age/60);return {lp:Math.log(p),p:p,w:w,r:r}});
+    var C=null;if(P.length>=4){var ls=P.map(function(x){return x.lp}).sort(function(a,b){return a-b}),q1=q(ls,.25),q3=q(ls,.75),iq=q3-q1;
+      P=P.filter(function(x){return x.lp>=q1-1.5*iq&&x.lp<=q3+1.5*iq}).sort(function(a,b){return a.lp-b.lp});
+      var W=P.reduce(function(a,x){return a+x.w},0),W2=P.reduce(function(a,x){return a+x.w*x.w},0);
+      function wq(t){var c=0;for(var i=0;i<P.length;i++){c+=P[i].w;if(c>=t*W)return P[i].p}return P[P.length-1].p}
+      C={lo:wq(.3),mid:wq(.5),hi:wq(.7),neff:W*W/W2,n:P.length,liN:P.filter(function(x){return inLi(x.r)}).length}}
+    var Ab=price&&price.won?{lo:price.won*1.15,mid:price.won/0.655,hi:price.won*2.29}:null;
+    var lo,mid,hi,mode;
+    if(C&&Ab){var L1=Math.max(C.lo,Ab.lo),H1=Math.min(C.hi,Ab.hi);mid=Math.sqrt(C.mid*Ab.mid);
+      if(L1<=H1){lo=Math.min(L1,mid);hi=Math.max(H1,mid);mode="both"}else{lo=Math.min(C.mid,Ab.mid);hi=Math.max(C.mid,Ab.mid);mode="gap"}}
+    else if(C){lo=C.lo;mid=C.mid;hi=C.hi;mode="trade"}else if(Ab){lo=Ab.lo;mid=Ab.mid;hi=Ab.hi;mode="price"}else return {none:true};
+    var conf=mode==="both"&&C.neff>=6&&C.liN>=2?"높음":mode==="both"&&C.neff>=3?"보통":"낮음";
+    return {p25:lo,p50:mid,p75:hi,mode:mode,C:C,Ab:Ab,scope:scope,name:nm,n:C?C.n:0,conf:conf,all:all,pl:pl,how:"같은 지목"}}
   // 최근 12개월 / 그 전 12개월 / 그 전 12개월 중간값 비교 → 연평균 변화율(각 구간 8건 이상일 때만)
   function trendOf(L){if(!L.length)return null;var last=L.reduce(function(m,r){return r[0]>m?r[0]:m},"0"),ly=+last.slice(0,4),lm=+last.slice(4,6);
     function mo(d){return (+d.slice(0,4))*12+(+d.slice(4,6))}var e=ly*12+lm,P=[[],[],[]];
@@ -885,14 +900,14 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
         TV.list.forEach(function(r){var li=el("li");li.appendChild(el("b",null,r[0].slice(0,4)+"."+r[0].slice(4,6)+" "));li.appendChild(document.createTextNode([r[1].split(" ").pop()+" "+(r[6]||""),r[2],Math.round(r[4]).toLocaleString()+"㎡("+py(r[4])+")",won(r[5]*1e4),"평당 "+won(TV.ppy(r))].filter(Boolean).join(" · ")));UL.appendChild(li)})}}
     /* 추정 시세 · 잠재 가치 · 가치 변동 */
     (function(){var V=$("rval");V.innerHTML="";V.hidden=true;if(X.multi)return;
-      var VE=valueEst(X.trd,par.addr||P.addr,jm,zone,area);if(!VE)return;V.hidden=false;
+      var VE=valueEst(X.trd,par.addr||P.addr,jm,zone,area,price);if(!VE)return;V.hidden=false;
       function card(t){var c=el("div","vc");c.appendChild(el("h3",null,t));V.appendChild(c);return c}
       var c1=card("추정 시세");
       if(VE.none){c1.appendChild(el("p","sub","비교할 실거래가 부족해 추정하지 못했습니다. 공시지가 총액은 "+(price?won(price.won*area):"-")+"입니다."));return}
       var lo=VE.p25*area,mid=VE.p50*area,hi=VE.p75*area;
       var bg=el("div","big",won(lo)+" ~ "+won(hi));var tg=el("span","tag "+(VE.conf==="높음"?"h":VE.conf==="보통"?"m":"l"),"신뢰도 "+VE.conf);bg.appendChild(tg);c1.appendChild(bg);
       c1.appendChild(el("p","sub","중간값 약 "+won(mid)+" · 평당 "+won(VE.p50*3.3058)+(price?" (공시지가의 약 "+(VE.p50/price.won).toFixed(1)+"배)":"")));
-      c1.appendChild(el("p","fn2",VE.name+" "+VE.how+" 실거래 "+VE.n+"건(최근 3년, 지분 거래 제외)의 ㎡당 가격 하위 25%~상위 25% 구간 × 이 땅 면적. 모양·도로·경사에 따라 실제 값은 크게 다를 수 있습니다."));
+      c1.appendChild(el("p","fn2",(VE.C?VE.name+" 같은 지목 실거래 "+VE.C.n+"건(용도지역·면적·같은 리·최근일수록 가중, 극단값 제외)":"비슷한 실거래 부족")+(VE.Ab?" + 공시지가 기준(2026 표준지 시세반영률 65.5% 반영, 공시지가의 1.15~2.29배)":"")+(VE.mode==="both"?"의 겹치는 구간입니다.":VE.mode==="gap"?" — 두 기준의 차이가 커서 두 값 사이로 표시했습니다. 현장 확인이 필요합니다.":"으로 계산했습니다.")+" 모양·도로·경사에 따라 실제 값은 다를 수 있습니다."));
       // 잠재 가치
       var c2=card("내 땅의 잠재 가치"),rows=[],mx=hi;
       rows.push(["지금 그대로",lo,hi,"o","추정 시세"]);
