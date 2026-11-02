@@ -132,9 +132,9 @@
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
       var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null;
       if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; } }
-      var sl = null;
-      if (!demErr) { var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl });
+      var sl = null, el = null;
+      if (!demErr) { el = elev(rl[0], rl[1]); if (!isFinite(el)) el = null; var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -161,6 +161,20 @@
     P.forEach(function (p, i) { if (p.jcode !== "임") return; P.forEach(function (q, j) { if (i === j || forestNb[j]) return;
       var L = q.rings.reduce(function (s, o) { return s + shared(o.r, p.rings.map(function (x) { return x.r; })); }, 0); if (L >= 2) forestNb[j] = (forestNb[j] || 0) + 1; }); });
 
+    // 정맥(9정맥 종주코스 선형) — 실제 위치 기준 최단거리
+    var ridge = null;
+    try { var TT = 0.2, tl = [], rb = pad(Breal, 3000);
+      for (var tx = Math.floor(rb[0] / TT); tx <= Math.floor(rb[2] / TT); tx++) for (var ty = Math.floor(rb[1] / TT); ty <= Math.floor(rb[3] / TT); ty++) tl.push(tx + "_" + ty);
+      var segs = [].concat.apply([], await Promise.all(tl.map(function (k) { return fetch("ridges/" + k + ".json").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }); })));
+      var best = { d: Infinity, n: "" }, RR = []; P.forEach(function (p) { p.rings.forEach(function (o) { RR.push(o.r.map(function (v) { return [v[0] + dx, v[1] + dy]; })); }); });
+      segs.forEach(function (sg) { var pl = sg[1]; for (var i = 0; i < pl.length; i++) { var v = pl[i];
+          if (v[0] < rb[0] || v[0] > rb[2] || v[1] < rb[1] || v[1] > rb[3]) continue;
+          if (RR.some(function (r) { return pip(v, r); })) { best = { d: 0, n: sg[0] }; return; }
+          RR.forEach(function (r) { var dd = ringDist(v, r, kx, ky); if (dd < best.d) best = { d: dd, n: sg[0] }; });
+          if (i > 0) RR.forEach(function (r) { r.forEach(function (q) { var dd = segDist(q, pl[i - 1], v, kx, ky); if (dd < best.d) best = { d: dd, n: sg[0] }; }); }); } });
+      ridge = { d: isFinite(best.d) ? Math.round(best.d) : null, n: best.n, tiles: tl.length };
+    } catch (e) { ridge = { err: e.message }; }
+
     // 주변 건물(도로명주소 건물) — 실제 위치 기준, 사업지 안 건물 제외
     var realRings = []; P.forEach(function (p) { p.rings.forEach(function (o) { realRings.push(o.r.map(function (v) { return [v[0] + dx, v[1] + dy]; })); }); });
     var houses = [];
@@ -177,7 +191,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -227,10 +241,12 @@
     var nedNote = nedErr.length ? " (토지이용계획 조회 실패: " + nedErr.join(", ") + " → 그 필지는 확인 불가)" : "";
 
     // a) 백두대간·정맥
-    var ha = legalHits("a");
-    V(G, "a", "백두대간·정맥 보호지역, 주요 산줄기 능선축(기맥 좌우 100m, 지맥 50m)", ha.length ? "회피" : "수동확인필요", ha.length ? hitArea(ha) : null,
-      ha.length ? hitText(ha) : "백두대간보호지역은 토지이용계획상 없음" + nedNote + ". 정맥·기맥·지맥 능선축과의 거리는 공개 데이터가 없어 판정하지 않음 — 산림청 산줄기 지도로 확인",
-      "지침 입지회피 1", luSrc);
+    var ha = legalHits("a"), rg = D.ridge || {}, rgOK = rg && !rg.err && rg.d !== undefined, rgNear = rgOK && rg.d !== null && rg.d <= R.ridgeNear;
+    V(G, "a", "백두대간·정맥 보호지역, 주요 산줄기 능선축(기맥 좌우 100m, 지맥 50m)", ha.length ? "회피" : rgNear ? "회피(정맥 근접)" : "수동확인필요", ha.length ? hitArea(ha) : null,
+      (ha.length ? hitText(ha) : "백두대간보호지역은 토지이용계획상 없음" + nedNote) + ". " +
+        (rgOK ? (rg.d === null ? "가까운 9정맥 능선 없음(약 3km 안)" : "가장 가까운 정맥: " + rg.n + " 약 " + rg.d.toLocaleString() + "m" + (rgNear ? " — " + R.ridgeNear + "m 안" : "")) : "정맥 거리 계산 실패" + (rg.err ? "(" + rg.err + ")" : "")) +
+        ". 기맥·지맥 선형은 공개 데이터가 없어 판정 못 함 — 산림청 산줄기 지도로 확인",
+      "지침 입지회피 1", luSrc + " / 9정맥 종주코스 선형(한국등산트레킹지원센터, 공공데이터포털)");
     // b) 법정보호지역
     var hb = legalHits("b"), e9 = ecoOK ? sum(function (c) { return c.e === "9"; }) : 0;
     V(G, "b", "생태·경관보전지역, 야생생물보호구역, 습지보호지역, 상수원보호구역 등 법정보호지역", hb.length ? "회피" : nedErr.length === P.length ? "확인 불가" : e9 ? "수동확인필요" : "해당없음", hb.length ? hitArea(hb) : (e9 || null),
@@ -269,8 +285,19 @@
     V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? (fUse ? "회피(일부 추정)" : "회피") : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
       demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + (fUse ? ". [추정] " + fUse.toLocaleString() + "㎡는 토지특성 이용상황(" + uniq(P.map(function (p) { return p.lc && p.lc.use; })).join("·") + ")으로 식생을 추정 — 위에서 직접 고르면 바뀜" : "") + ". " + slopeNote() : "경사 자료 조회 실패: " + (D.fsErr || D.demErr),
       "지침 입지회피 6(경사 산정은 산지관리법 준용)", slopeSrc() + " + 식생 평가");
-    // g) 지형변화지수
-    V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", "수동확인필요", null, "토공 설계(절·성토량)가 있어야 계산 가능", "지침 입지회피 7", "-");
+    // g) 지형변화지수 [추정]: 회피 구간을 뺀 곳을 한 평면으로 정지한다고 가정(최소제곱 평면) → (절토+성토)/면적
+    var gz = D.cells.filter(function (c) { return c.st !== 2 && c.el !== null && c.el !== undefined; }), gIdx = null, gA = 0;
+    if (gz.length >= 10) { var n0 = 0, sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0;
+      gz.forEach(function (c) { var w = P[c.p].cellA; n0 += w; sx += w * c.mx; sy += w * c.my; sz += w * c.el; sxx += w * c.mx * c.mx; syy += w * c.my * c.my; sxy += w * c.mx * c.my; sxz += w * c.mx * c.el; syz += w * c.my * c.el; });
+      var M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n0]], V3 = [sxz, syz, sz];
+      function det(m) { return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]); }
+      var dt = det(M);
+      if (Math.abs(dt) > 1e-9) { var co = [0, 1, 2].map(function (k) { var m = M.map(function (r, i) { return r.map(function (v, j) { return j === k ? V3[i] : v; }); }); return det(m) / dt; });
+        var vol = 0; gz.forEach(function (c) { vol += Math.abs(c.el - (co[0] * c.mx + co[1] * c.my + co[2])) * P[c.p].cellA; gA += P[c.p].cellA; });
+        gIdx = vol / gA; } }
+    V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", gIdx === null ? "수동확인필요" : gIdx >= 1.5 ? "수동확인필요" : "해당없음(추정)", null,
+      gIdx === null ? "표고 자료가 부족해 계산 못 함" : "[추정] 회피 구간을 뺀 " + Math.round(gA).toLocaleString() + "㎡를 한 평면으로 깎고 메운다고 가정하면 지수 약 " + gIdx.toFixed(2) + (gIdx >= 1.5 ? " — 1.5 이상: 계단식·지형 순응 배치로 토공을 줄이는 설계 필요" : " — 1.5 미만") + ". 공개 표고(약 30m)라 실제 요철은 덜 반영됨. 확정은 토공 설계로",
+      "지침 입지회피 7", "공개 표고(약 30m) 기반 추정");
     // h) 경관보전
     var hh = legalHits("h");
     V(G, "h", "생태·경관보전지역, 문화재보호구역 등 경관보전이 필요한 지역", hh.length ? "회피" : nedErr.length === P.length ? "확인 불가" : "해당없음", hh.length ? hitArea(hh) : null, hh.length ? hitText(hh) : "토지이용계획에 해당 지역·지구 없음" + nedNote, "지침 입지회피 8", luSrc);
@@ -312,7 +339,12 @@
       BU ? "건축물대장 주용도 기준 주택 " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
         : R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택 여부 미구분" + (D.bldUse && D.bldUse._err ? " — 건축물대장 조회 실패: " + String(D.bldUse._err).slice(0, 80) + " (공공데이터포털에서 '국토교통부_건축HUB_건축물대장정보 서비스' 활용신청 필요할 수 있음)" : " — Apps Script를 새 코드로 배포하면 건축물대장 주용도로 주택만 셈"),
       R.houses.src, BU ? "건축물대장 표제부(건축HUB) + 도로명주소 건물" : "브이월드 도로명주소 건물");
-    V(G3, "s4", "시·군 조례 이격거리(주거지·도로)", "수동확인필요", null, "시군별 도시계획 조례 별표 수치는 아직 넣지 않음 — 해당 시군 조례 원문 확인", "국토계획법 시행령 별표1의2 + 시군 도시계획 조례", "-");
+    var SB = R.setback, rule = SB.sgg[D.sgg] || null, Dist = rule ? rule.house : SB.cap, NN = rule ? rule.n : SB.n;
+    var hl = (BU ? D.houses.filter(isHome) : D.houses).map(function (h) { return h.d; }).sort(function (a, b) { return a - b; }), d5 = hl.length >= NN ? hl[NN - 1] : null;
+    V(G3, "s4", "주거지 이격거리(법 상한 · 시군 조례)", d5 === null ? "해당없음" : d5 < Dist ? (rule ? "회피" : "수동확인필요") : "해당없음", null,
+      (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
+        (BU ? "주택" : "건물(주택 여부 미구분)") + " " + NN + "번째로 가까운 곳 " + (d5 === null ? R.houses.far + "m 밖" : d5 + "m") + (d5 !== null && d5 < Dist ? " → " + Dist + "m 안에 " + NN + "호 이상" : "") + ". 도로 이격은 법 개정으로 적용 안 함. '5호 이상 주거지'의 범위 산정 방식은 조례마다 달라 근사치",
+      SB.law, BU ? "건축물대장 주용도" : "도로명주소 건물");
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
