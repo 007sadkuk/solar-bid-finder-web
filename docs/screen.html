@@ -99,7 +99,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
   function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%"}
   function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
     try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
-    Screen.run(t,prog).then(function(d){D=d;veg2="";vegP=d.P.map(function(){return ""});vegUI();redo();$("res").hidden=false;$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
+    Screen.run(t,prog).then(function(d){D=d;veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
       setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
     .catch(function(e){$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
 
@@ -126,7 +126,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
     if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
   function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
     if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
-    if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
+    map.invalidateSize();if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
     var cv=document.createElement("canvas");cv.width=D.nx;cv.height=D.ny;var g=cv.getContext("2d"),im=g.createImageData(D.nx,D.ny);
     D.cells.forEach(function(c){var col=cellColor(c);if(!col)return;var i=((D.ny-1-c.iy)*D.nx+c.ix)*4;im.data[i]=col[0];im.data[i+1]=col[1];im.data[i+2]=col[2];im.data[i+3]=150});g.putImageData(im,0,0);
     var b=D.B,bounds=[[b[1]+sh.dy,b[0]+sh.dx],[b[1]+sh.dy+D.ny*D.dlat,b[0]+sh.dx+D.nx*D.dlon]];
