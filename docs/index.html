@@ -160,7 +160,7 @@ a.link:hover{text-decoration:underline}
     </svg>
     <div class="hero-in">
       <h1>부지파인더</h1>
-      <p class="tagline">대구·경북 공매 토지에서 태양광 후보를 추립니다</p>
+      <p class="tagline">대구·경북 공매 토지에서 태양광 후보를 추립니다 · <a href="screen.html" style="color:inherit">지번으로 입지 스크리닝</a></p>
       <p class="sub" id="asof">데이터를 불러오는 중...</p>
     </div>
     <nav class="funnel" id="funnel" aria-label="단계별 보기"></nav>
@@ -595,6 +595,7 @@ a.link:hover{text-decoration:underline}
       else{a.href="https://www.onbid.co.kr/";a.title="상세 주소 정보가 아직 없어 온비드 첫 화면으로 이동합니다(다음 수집 후 갱신)"}
       a.target="_blank";a.rel="noopener";ac.appendChild(a);
       (function(pp){var lv=el("a","link","땅의 가치 리포트");lv.href="land.html?addr="+encodeURIComponent(lxAddr(pp));lv.target="_blank";lv.rel="noopener";lv.title="이 물건 대표 지번으로 땅의 가치 리포트(추정 시세·인허가·배치 검토)를 엽니다";ac.appendChild(lv)})(p);
+      (function(pp){var sc=el("a","link","입지 스크리닝");sc.href="screen.html?addr="+encodeURIComponent(lxAddr(pp));sc.target="_blank";sc.rel="noopener";sc.title="육상태양광 협의지침 기준 회피·신중검토 면적 사전 스크리닝(사내용)";ac.appendChild(sc)})(p);
       (function(pp){var cp=el("button","chip","주소 복사");cp.type="button";cp.title="대표 주소(지번까지)를 복사합니다. 토지이음·LX·지도 검색에 붙여넣기";
         cp.addEventListener("click",function(){var ad=lxAddr(pp);
           if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(ad).then(function(){cp.textContent="복사했습니다";toast("복사: "+ad)},function(){window.prompt("복사하세요",ad)});

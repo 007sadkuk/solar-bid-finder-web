@@ -74,10 +74,12 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
   </div>
   </section>
 </main>
+<script src="core.js?v=20261029c"></script>
+<script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102a"></script>
-<script src="screen.js?v=20261102a"></script>
+<script src="screen.js?v=20261102c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -113,7 +115,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
   function rows(){var t=$("rows");t.innerHTML="";var h=el("tr");["항목","판정","면적","내용","근거","데이터"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),g="";
     J.rows.forEach(function(r){if(r.g!==g){g=r.g;var gr=el("tr","grp"),td=el("td",null,g);td.colSpan=6;gr.appendChild(td);tb.appendChild(gr)}
       var tr=el("tr");tr.appendChild(el("td",null,r.t));var tv=el("td");tv.appendChild(el("span","v "+r.v.replace(/\s|\(.*\)/g,""),r.v));tr.appendChild(tv);tr.appendChild(el("td","n",r.a==null?"-":n(r.a)));tr.appendChild(el("td",null,r.d));tr.appendChild(el("td","sub",r.b));tr.appendChild(el("td","sub",r.src));tb.appendChild(tr)});t.appendChild(tb)}
-  function per(){var t=$("per");t.innerHTML="";var h=el("tr");["지번","지목","면적","생태 1등급","2등급","3등급","등급 없음·별도","경사 15°↑[추정]","회피","신중검토","확인 필요"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),S={area:0,e1:0,e2:0,e3:0,e0:0,s15:0,av:0,cau:0,unk:0};
+  function per(){var t=$("per");t.innerHTML="";var h=el("tr");["지번","지목","면적","생태 1등급","2등급","3등급","별도관리","경사 15°↑[추정]","회피","신중검토","확인 필요"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),S={area:0,e1:0,e2:0,e3:0,e0:0,s15:0,av:0,cau:0,unk:0};
     J.per.forEach(function(r){var tr=el("tr");tr.appendChild(el("td",null,r.jibun));tr.appendChild(el("td",null,r.jimok+(r.forest&&/전|답|과/.test(r.jimok)?" (산림 연접)":"")));["area","e1","e2","e3","e0","s15","av","cau","unk"].forEach(function(k){S[k]+=r[k];tr.appendChild(el("td","n",r[k]?n(r[k]):"-"))});tb.appendChild(tr)});
     var tr=el("tr");tr.appendChild(el("td",null,"합계"));tr.appendChild(el("td"));["area","e1","e2","e3","e0","s15","av","cau","unk"].forEach(function(k){tr.appendChild(el("td","n",S[k]?n(S[k]):"-"))});tr.style.fontWeight="800";tb.appendChild(tr);t.appendChild(tb)}
 
@@ -143,7 +145,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
      ["용도지역","브이월드 용도지역 레이어(관리·농림·자연환경보전·도시지역). 고시연도 레이어 속성 기준"],["토지이용계획","브이월드 NED 토지이용계획속성(필지별 지역·지구)"],["지적·건물","브이월드 연속지적도, 도로명주소 건물"],
      ["소규모 환경영향평가",R.seia.law+" — "+R.seia.status],["기준 파일","screen-rules.js 판 "+R.version+" (법령·지침 개정 시 이 파일 수정)"]].forEach(function(x){var p=el("p");p.appendChild(el("b",null,x[0]+": "));p.appendChild(document.createTextNode(x[1]));S.appendChild(p)})}
   $("csv").addEventListener("click",function(){if(!J)return;var L=[["구분","항목","판정","면적㎡","내용","근거","데이터"]].concat(J.rows.map(function(r){return [r.g,r.t,r.v,r.a==null?"":r.a,r.d,r.b,r.src]}));
-    L.push([]);L.push(["지번","지목","면적㎡","생태1등급","2등급","3등급","등급없음·별도","경사15°이상[추정]","회피","신중검토","확인필요"]);J.per.forEach(function(r){L.push([r.jibun,r.jimok,r.area,r.e1,r.e2,r.e3,r.e0,r.s15,r.av,r.cau,r.unk])});
+    L.push([]);L.push(["지번","지목","면적㎡","생태1등급","2등급","3등급","별도관리","경사15°이상[추정]","회피","신중검토","확인필요"]);J.per.forEach(function(r){L.push([r.jibun,r.jimok,r.area,r.e1,r.e2,r.e3,r.e0,r.s15,r.av,r.cau,r.unk])});
     var csv=L.map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
     var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="태양광_스크리닝_"+D.P[0].jibun+".csv";a.click()});
 })();

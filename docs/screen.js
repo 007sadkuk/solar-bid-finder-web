@@ -168,7 +168,7 @@
     var ned = {}; P.forEach(function (p, i) { (Array.isArray(p.ned) ? p.ned : []).forEach(function (x) { var k = x[0]; (ned[k] = ned[k] || []).push({ i: i, c: x[1] }); }); });
     var nedErr = P.filter(function (p) { return p.ned && p.ned.err; }).map(function (p) { return p.jibun; });
     function legalHits(item) { var h = []; Object.keys(ned).forEach(function (k) { R.legal.forEach(function (L) { if (L.item === item && L.re.test(k)) h.push({ name: k, list: ned[k] }); }); }); return h; }
-    function hitText(h) { return h.map(function (x) { return x.name + "(" + x.list.map(function (y) { return P[y.i].jibun + (y.c === "1" ? " 포함" : y.c === "2" ? " 저촉" : y.c === "3" ? " 접합" : ""); }).join(", ") + ")"; }).join(" · "); }
+    function hitText(h) { return h.map(function (x) { return x.name + "(" + uniq(x.list.map(function (y) { return P[y.i].jibun + (y.c === "1" ? " 포함" : y.c === "2" ? " 저촉" : y.c === "3" ? " 접합" : ""); })).join(", ") + ")"; }).join(" · "); }
     function hitArea(h) { var s = {}; h.forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") s[y.i] = 1; }); }); var a = 0; Object.keys(s).forEach(function (i) { a += P[i].area; }); return Math.round(a); }
     function V(group, id, title, verdict, ar, detail, basis, data) { rows.push({ g: group, id: id, t: title, v: verdict, a: ar, d: detail, b: basis, src: data }); }
     var G = "육상태양광 협의지침 — 입지 회피", G2 = "육상태양광 협의지침 — 신중 검토", G3 = "개발행위허가·인허가 사전 확인";
@@ -189,7 +189,7 @@
     V(G, "c", "멸종위기 야생생물·천연기념물 등 법정보호종 서식지·산란처·철새도래지", "수동확인필요", null, "공개 위치 데이터 없음 — 현지조사·국립생태원 자료로 확인", "지침 입지회피 3", "-");
     // d) 생태자연도 1등급
     var a1 = ecoOK ? sum(function (c) { return c.e === "1"; }) : null;
-    V(G, "d", "생태·자연도 1등급(식생보전 Ⅰ-Ⅱ등급 / 비오톱 Ⅰ-Ⅱ등급)", !ecoOK ? "확인 불가" : a1 ? "회피" : "해당없음", a1, ecoOK ? "1등급 " + (a1 || 0).toLocaleString() + "㎡" : "생태자연도 조회 실패: " + D.eco.err, "지침 입지회피 4", "국립생태원 생태자연도(WFS) 조회 시점 기준");
+    V(G, "d", "생태·자연도 1등급(식생보전 Ⅰ-Ⅱ등급 / 비오톱 Ⅰ-Ⅱ등급)", !ecoOK ? "확인 불가" : a1 ? "회피" : "해당없음", a1, ecoOK ? "1등급 " + (a1 || 0).toLocaleString() + "㎡ (조회 결과에 폴리곤이 없는 곳은 1·2등급·별도관리지역 밖, 곧 3등급으로 봄)" : "생태자연도 조회 실패: " + D.eco.err, "지침 입지회피 4", "국립생태원 생태자연도(WFS) 조회 시점 기준");
     // e) 생태자연도 2등급 + 식생 Ⅲ 이상
     var a2 = ecoOK ? sum(function (c) { return c.e === "2"; }) : null;
     V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : veg2 === "3+" ? "회피" : veg2 === "4" ? "해당없음" : "수동확인필요", a2,
@@ -236,13 +236,13 @@
       R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택인지 창고인지는 데이터가 비어 있어 미구분" + (hf >= R.houses.n ? " — " + R.houses.n + "동 이상이라 주택 여부·호수 확인" : ""),
       R.houses.src, "브이월드 도로명주소 건물");
     V(G3, "s4", "시·군 조례 이격거리(주거지·도로)", "수동확인필요", null, "시군별 도시계획 조례 별표 수치는 아직 넣지 않음 — 해당 시군 조례 원문 확인", "국토계획법 시행령 별표1의2 + 시군 도시계획 조례", "-");
-    var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + ned[k].map(function (y) { return P[y.i].jibun; }).join(", ") + ")"); });
+    var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
     // 필지별 표
     var per = P.map(function (p, i) { var C = D.cells.filter(function (c) { return c.p === i; }), A = p.cellA;
       function s(fn) { return Math.round(C.filter(fn).length * A); }
-      return { jibun: p.jibun, jimok: p.jimok, area: Math.round(p.area), e1: s(function (c) { return c.e === "1"; }), e2: s(function (c) { return c.e === "2"; }), e3: s(function (c) { return c.e === "3"; }), e0: s(function (c) { return !c.e || c.e === "9"; }),
+      return { jibun: p.jibun, jimok: p.jimok, area: Math.round(p.area), e1: s(function (c) { return c.e === "1"; }), e2: s(function (c) { return c.e === "2"; }), e3: s(function (c) { return !c.e || c.e === "3"; }), e0: s(function (c) { return c.e === "9"; }),
         s15: s(function (c) { return c.s !== null && c.s >= S.avoid; }), av: s(function (c) { return c.st === 2; }), cau: s(function (c) { return c.st === 1; }), unk: s(function (c) { return c.st === 3; }), forest: !!D.forestNb[i] }; });
     var tot = { av: per.reduce(function (a, r) { return a + r.av; }, 0), cau: per.reduce(function (a, r) { return a + r.cau; }, 0), unk: per.reduce(function (a, r) { return a + r.unk; }, 0), area: Math.round(area(P)) };
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
