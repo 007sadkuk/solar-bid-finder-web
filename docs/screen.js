@@ -427,6 +427,17 @@
       if (!r && homesIn.length) { var lo = D.B[0] + (c.ix + 0.5) * D.dlon + sh.dx, la = D.B[1] + (c.iy + 0.5) * D.dlat + sh.dy;
         if (homesIn.some(function (h) { return Math.hypot((h.c[1] - lo) * kx, (h.c[0] - la) * ky) < Dist; })) r = "주택 " + Dist + "m 이격"; }
       c.no = r; if (r) { why[r] = (why[r] || 0) + P[c.p].cellA; noA += P[c.p].cellA; } });
+    // 산지 평균경사도(산지관리법 시행령 별표3의2: 태양광 산지일시사용 평균경사도 15° 이하) — 회피 구간 뺀 나머지로도 계산
+    function wmean(cs) { var a = 0, w = 0; cs.forEach(function (c) { a += c.s * P[c.p].cellA; w += P[c.p].cellA; }); return w ? a / w : null; }
+    var sanC = D.cells.filter(function (c) { return san.indexOf(c.p) >= 0 && c.s !== null; }), mAll = wmean(sanC), mRest = wmean(sanC.filter(function (c) { return !c.no; }));
+    if (mRest !== null && mRest > 15) sanC.forEach(function (c) { if (!c.no) { c.no = "산지 평균경사도 15° 초과(산지관리법)"; why[c.no] = (why[c.no] || 0) + P[c.p].cellA; noA += P[c.p].cellA; } });
+    var bins = [0, 0, 0, 0, 0, 0, 0], binN = 0; D.cells.forEach(function (c) { if (c.s === null) return; bins[Math.min(6, Math.floor(c.s / 5))] += P[c.p].cellA; binN += P[c.p].cellA; });
+    function ppOf(fn) { return P.map(function (p, i) { var a = 0; D.cells.forEach(function (c) { if (c.p === i && fn(c)) a += p.cellA; }); return a >= 1 ? [p.jibun, Math.round(a), a / p.area] : null; }).filter(Boolean); }
+    var rep = { pp: { d: ppOf(function (c) { return c.e === "1"; }), e: ppOf(function (c) { return c.e === "2" && c.vg.ge3 === true; }), f: ppOf(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === true; }),
+        i: ppOf(function (c) { return san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2; }), k1: ppOf(function (c) { return c.st === 1 && c.e === "2"; }), k2: ppOf(function (c) { return c.st === 1 && c.e !== "2"; }) },
+      slope: { bins: bins.map(Math.round), total: Math.round(binN), mAll: mAll, mRest: mRest, src: slopeSrc() }, ridge: D.ridge, legal: legalI };
+    if (mAll !== null && san.length) rows.push({ g: G3, id: "s7", t: "산지 평균경사도 15° 이하(태양광 산지일시사용, 산지관리법 시행령 별표3의2)", v: mRest !== null && mRest > 15 ? "회피" : "해당없음", a: null,
+      d: "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = [];
     if (/맹지/.test(rows.filter(function (r) { return r.id === "s2"; })[0].v) || (rd && lcAll)) cond.push("진입로: 지적도·현황상 도로 연결 확인 필요");
@@ -441,7 +452,8 @@
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
     var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
-    return { rows: rows, per: per, tot: tot, sum: sum };
+    sum.slope = rep.slope;
+    return { rows: rows, per: per, tot: tot, sum: sum, rep: rep };
   }
   function uniqA(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
   function area(P) { return P.reduce(function (s, p) { return s + p.area; }, 0); }

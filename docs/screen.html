@@ -33,7 +33,12 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 .bar{height:12px;border-radius:9px;background:rgba(179,38,30,.25);overflow:hidden}.bar i{display:block;height:100%;background:var(--go)}
 .vcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}.vcols ul{margin:0;padding-left:1.1em}.vcols li{margin:3px 0}
 details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.more[open]>summary{margin-bottom:12px}
-@media (max-width:720px){.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
+.rep h2{font-size:20px;margin:0 0 4px}.rep h3{margin:22px 0 8px;font-size:17px;padding:4px 12px;border-radius:999px;display:inline-block;background:var(--pine);color:#fff}
+.rep table{border-collapse:collapse;width:100%;font-size:14.5px;margin-top:4px}.rep th,.rep td{border:1px solid var(--rule);padding:8px 10px;vertical-align:middle}.rep th{background:var(--field);color:var(--ink);font-weight:700}
+.rep td.ox{text-align:center;font-weight:900;font-size:17px;width:64px}.rep td.ox.o{color:var(--no)}.rep td.ox.x{color:var(--sub)}.rep td.ox.t{color:var(--warn)}.rep tr.hit td{background:rgba(179,38,30,.07)}
+.rep .bi{width:30%}.rep .kv{display:grid;grid-template-columns:9em 1fr;gap:4px 12px;font-size:15px}.rep .kv b{color:var(--sub);font-weight:600}
+.rep .concl{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin:14px 0 0;background:rgba(91,140,200,.08)}.rep .concl b{color:var(--no)}
+@media (max-width:720px){.rep .kv{grid-template-columns:1fr}.rep .bi{width:auto}.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
 @media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
 </style>
 </head><body>
@@ -64,6 +69,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <p class="sub" id="vfield"></p>
       <p class="sub">공공 데이터로 본 사전 검토 결과입니다(허가·협의 확정 아님). <span id="meta"></span></p>
     </section>
+    <section class="card rep" id="rep2"></section>
     <section class="card">
       <h2>지도</h2>
       <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
@@ -87,7 +93,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261102t"></script>
+<script src="screen.js?v=20261103a"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -121,7 +127,43 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
-  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});head();rows();per();drawMap();srcs()}
+  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});head();report();rows();per();drawMap();srcs()}
+  /* 입지검토서 형식(협의지침 표) */
+  function ox(v){return /^회피|^신중검토/.test(v)?["O","o"]:/^해당없음|^대상 아님|^확인됨/.test(v)?["X","x"]:/^주의|^맹지|^대상/.test(v)?["△","t"]:["-",""]}
+  function ppTxt(pp){return pp.map(function(x){return x[0]+" "+(x[2]>=0.6?"대부분 ":x[2]<0.15?"일부 ":"")+x[1].toLocaleString()+"㎡"}).join(", ")}
+  function note(r){var pp=J.rep.pp[r.id];if(pp&&pp.length&&/^회피|^신중/.test(r.v))return ppTxt(pp);
+    if(r.id==="a"){var g=J.rep.ridge;return /^회피/.test(r.v)&&!/정맥/.test(r.v)?r.d.split(".")[0]:g&&g.d!=null?g.n+"과 약 "+g.d.toLocaleString()+"m 이격":"9정맥 3km 안 없음"}
+    if(r.id==="g"){var m=r.d.match(/지수 약 ([\d.]+)/);return m?"지수 약 "+m[1]+" [추정] — 상세 설계 시 재검토":"토공 설계 필요"}
+    if(/^해당없음/.test(r.v))return "해당사항 없음";
+    var s=r.d.split(/[.—]/)[0];return s.length>70?s.slice(0,70)+"…":s}
+  function tbl(rs,head){var T=el("table");var h=el("tr");head.forEach(function(x,i){var th=el("th",i===2?"bi":null,x);h.appendChild(th)});T.appendChild(h);
+    rs.forEach(function(r){var o=ox(r.v),tr=el("tr",o[0]==="O"?"hit":null);tr.appendChild(el("td",null,r.t));var c=el("td","ox "+o[1],o[0]);tr.appendChild(c);tr.appendChild(el("td",null,note(r)));T.appendChild(tr)});return T}
+  function report(){var R2=$("rep2");R2.innerHTML="";var P=D.P,S=J.sum,G="육상태양광 협의지침 — 입지 회피",G2="육상태양광 협의지침 — 신중 검토",G3="개발행위허가·인허가 사전 확인";
+    R2.appendChild(el("h2",null,"태양광 발전사업 입지검토"));R2.appendChild(el("p","sub","육상태양광발전사업 환경성 평가 협의 지침 기준 · "+D.at.toLocaleDateString("ko-KR")+" 공공데이터 자동 검토"));
+    R2.appendChild(el("h3",null,"1. 사업의 개요"));var kv=el("div","kv");
+    function K(k,v){kv.appendChild(el("b",null,k));kv.appendChild(el("span",null,v))}
+    K("위치",P[0].addr+(P.length>1?" 외 "+(P.length-1)+"필지":""));K("면적",n(S.total));
+    var zA={};D.cells.forEach(function(c){var k=c.z||"(용도지역 없음)";zA[k]=(zA[k]||0)+P[c.p].cellA});K("용도지역",Object.keys(zA).map(function(k){return k+" "+n(zA[k])}).join(", "));
+    var s5=J.rows.filter(function(r){return r.id==="s5"})[0];K("다른 법령 지역·지구",s5&&!/^해당없음/.test(s5.v)?s5.d.replace(/\([^)]*\)/g,"").replace(/ · /g,", "):"해당 없음");
+    if(S.slope&&S.slope.mAll!=null)K("산지 평균경사도","약 "+S.slope.mAll.toFixed(1)+"°"+(S.slope.mRest!=null&&Math.abs(S.slope.mRest-S.slope.mAll)>0.05?" (회피 구간 제외 시 약 "+S.slope.mRest.toFixed(1)+"°)":""));
+    K("한전 계통",S.grid);R2.appendChild(kv);
+    var T=el("table");var h=el("tr");["NO","행정구역","지번","지목","면적"].forEach(function(x){h.appendChild(el("th",null,x))});T.appendChild(h);
+    P.forEach(function(p,i){var tr=el("tr");[i+1,p.addr.replace(/\s(산\s?)?[\d-]+$/,""),p.jibun,p.jimok,n(p.area)].forEach(function(x){tr.appendChild(el("td",null,String(x)))});T.appendChild(tr)});
+    if(P.length>1){var tr=el("tr");[ "","합계","","",n(S.total)].forEach(function(x){tr.appendChild(el("td",null,x))});tr.style.fontWeight="800";T.appendChild(tr)}R2.appendChild(T);
+    var hits=J.rows.filter(function(r){return r.g===G&&/^회피/.test(r.v)});
+    var cc=el("div","concl");cc.appendChild(el("b",null,"※ 결론 ※ "));
+    cc.appendChild(document.createTextNode(hits.length?"「육상태양광발전사업 환경성 평가 협의 지침」을 근거로 경사도, 생태자연도, 산사태위험지도 등을 검토한 결과 "+hits.map(function(r){var pp=J.rep.pp[r.id];return pp&&pp.length?ppTxt(pp):r.t.split("(")[0]}).filter(function(x,i,a){return a.indexOf(x)===i}).slice(0,4).join(" / ")+"이(가) 입지회피지역으로 검토되었습니다. 설치 가능 면적은 "+n(S.ok)+"("+(S.total?Math.round(S.ok/S.total*100):0)+"%)로, 태양광 "+S.verdict+"입니다.":"협의지침의 입지회피 항목에 해당하는 구간이 없는 것으로 검토되었습니다. 설치 가능 면적 "+n(S.ok)+", 태양광 "+S.verdict+"."));
+    R2.appendChild(cc);
+    R2.appendChild(el("h3",null,"2. 입지를 회피해야 할 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G}),["입지 회피 지역","해당 여부","비고"]));
+    R2.appendChild(el("h3",null,"3. 신중 검토 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
+    R2.appendChild(el("p","sub","동물 이동로·생태축, 수질, 경관 조망점 등 나머지 신중검토 항목은 공개 자료로 판정하지 않으며 현장 확인이 필요합니다."));
+    var sl=S.slope;if(sl&&sl.total){R2.appendChild(el("h3",null,"4. 경사도 분석"));var T2=el("table"),h2=el("tr");["구분","면적","구성비(%)"].forEach(function(x){h2.appendChild(el("th",null,x))});T2.appendChild(h2);
+      var lab=["5도 미만","5~10도 미만","10~15도 미만","15~20도 미만","20~25도 미만","25~30도 미만","30도 이상"];
+      var tr0=el("tr");["합계",n(sl.total),"100"].forEach(function(x){tr0.appendChild(el("td",null,x))});tr0.style.fontWeight="800";T2.appendChild(tr0);
+      sl.bins.forEach(function(a,i){var tr=el("tr",i>=3&&a?"hit":null);[lab[i],a?n(a):"-",a?(a/sl.total*100).toFixed(1):"-"].forEach(function(x){tr.appendChild(el("td",null,x))});T2.appendChild(tr)});R2.appendChild(T2);
+      var s15=sl.bins.slice(3).reduce(function(x,y){return x+y},0);R2.appendChild(el("p","sub","경사도 15도 이상 합계 "+n(s15)+" ("+(s15/sl.total*100).toFixed(1)+"%). 자료: "+sl.src+"."))}
+    R2.appendChild(el("h3",null,"5. 인허가 사전 확인"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G3}),["항목","결과","비고"]));
+    R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
