@@ -1,5 +1,6 @@
 var NOTIFY_EMAIL = "kukdas700@gmail.com";
 var DATA_KEY = "여기에_인증키";
+var KEPCO_KEY = "여기에_한전키";  // 한전 전력데이터 개방포털(bigdata.kepco.co.kr) API 키 — 계통 여유용량 조회용
 var SITE = "https://007sadkuk.github.io/solar-bid-finder-web/";
 var HS = ["시각","입력 주소","찾은 주소","PNU","찾음","용도지역","면적㎡","가능 판정","오류"];
 var HW = ["등록 시각","이메일","연락처","땅 주소","PNU","리","지목","마지막 확인"];
@@ -31,6 +32,18 @@ function vtn_(bb) {  // 국립생태원 식생평가(식생보전등급) WFS —
     Object.keys(q).forEach(function (k) { if (k !== "bbox") o[k] = q[k]; });
     return [o, cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); })]; }) };
 }
+function kepco_(p) {  // 한전 분산전원 연계정보(여유용량): 지번 → 리 → 읍면동 순으로 조회
+  if (!KEPCO_KEY || /여기에/.test(KEPCO_KEY)) return { error: "한전키 없음" };
+  var base = { metroCd: p.metro, cityCd: p.city, addrLidong: p.emd, addrLi: p.li || "", addrJibun: p.jibun || "" }, tries = [["지번", base]];
+  if (base.addrLi) tries.push(["리", { metroCd: base.metroCd, cityCd: base.cityCd, addrLidong: base.addrLidong, addrLi: base.addrLi }]);
+  tries.push(["읍면동", { metroCd: base.metroCd, cityCd: base.cityCd, addrLidong: base.addrLidong }]);
+  for (var i = 0; i < tries.length; i++) { var q = tries[i][1], qs = Object.keys(q).filter(function (k) { return q[k]; }).map(function (k) { return k + "=" + encodeURIComponent(q[k]); }).join("&");
+    var r = UrlFetchApp.fetch("https://bigdata.kepco.co.kr/openapi/v1/dispersedGeneration.do?" + qs + "&apiKey=" + encodeURIComponent(KEPCO_KEY.trim()) + "&returnType=json", { muteHttpExceptions: true });
+    if (r.getResponseCode() === 404) continue; var j; try { j = JSON.parse(r.getContentText()); } catch (x) { return { error: "응답 " + r.getResponseCode() + " " + r.getContentText().slice(0, 200) }; }
+    var d = j.data || []; if (!d.length) continue;
+    return { level: tries[i][0], rows: d.slice(0, 30).map(function (x) { return { sub: x.substNm, mtr: x.mtrNo, dl: x.dlNm, v1: +x.vol1, v2: +x.vol2, v3: +x.vol3, subPwr: +x.substPwr, mtrPwr: +x.mtrPwr, dlPwr: +x.dlPwr }; }) }; }
+  return { level: null, rows: [] };
+}
 function bld_(list) {  // 건축물대장 표제부(주용도): pnu 여러 개(쉼표) → {pnu: ["단독주택", ...]}
   var ps = String(list || "").split(",").filter(function (x) { return /^\d{19}$/.test(x); }).slice(0, 40), key = encodeURIComponent(decodeURIComponent(DATA_KEY.trim()));
   if (!ps.length) return { error: "pnu" };
@@ -55,6 +68,7 @@ function doGet(e) {
   if (p.action === "eco") return json_(eco_(p.bbox || ""));
   if (p.action === "bld") return json_(bld_(p.pnu || ""));
   if (p.action === "vtn") return json_(vtn_(p.bbox || ""));
+  if (p.action === "kepco") return json_(kepco_(p));
   if (p.action === "admin") return json_(admin_(p.pw));
   var ss = book_(); add_(ss, "검색", HS, [new Date(), "(접속 확인)"]);
   return ContentService.createTextOutput("정상 작동 중입니다. 기록 시트: " + ss.getUrl());

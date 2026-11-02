@@ -188,6 +188,18 @@
     P.forEach(function (p, i) { if (p.jcode !== "임") return; P.forEach(function (q, j) { if (i === j || forestNb[j]) return;
       var L = q.rings.reduce(function (s, o) { return s + shared(o.r, p.rings.map(function (x) { return x.r; })); }, 0); if (L >= 2) forestNb[j] = (forestNb[j] || 0) + 1; }); });
 
+    // 한전 계통 여유용량(Apps Script 중계 → 없으면 미리 받아둔 docs/kepcoq/<pnu>.json)
+    var grid = null;
+    try { var tk = P[0].addr.split(/\s+/), emd = "", li = "", jb = "";
+      for (var ti = 0; ti < tk.length; ti++) { if (/(읍|면)$/.test(tk[ti]) || (/동$/.test(tk[ti]) && !emd && ti > 1)) emd = tk[ti]; else if (/리$/.test(tk[ti]) && emd) li = tk[ti]; }
+      var mj = P[0].addr.match(/(산\s?)?(\d+(?:-\d+)?)$/); if (mj) jb = (mj[1] ? "산" : "") + mj[2];
+      if (CFG.endpoint && emd) { var gq = new URLSearchParams({ action: "kepco", metro: P[0].pnu.slice(0, 2), city: P[0].pnu.slice(2, 5), emd: emd, li: li, jibun: jb });
+        var gj = await fetch(CFG.endpoint + "?" + gq.toString()).then(function (r) { return r.text(); }).then(function (t) { try { return JSON.parse(t); } catch (e) { return { error: "중계 미지원" }; } });
+        if (gj && gj.rows) grid = { level: gj.level, rows: gj.rows, ts: new Date().toLocaleString("ko-KR"), src: "live" }; else grid = { err: (gj && gj.error) || "응답 없음" }; }
+      if (!grid || grid.err) { var st = await fetch("kepcoq/" + P[0].pnu + ".json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        if (st && st.rows) grid = { level: st.level, rows: st.rows, ts: st.ts, src: "saved" }; }
+    } catch (e) { grid = { err: e.message }; }
+
     // 정맥(9정맥 종주코스 선형) — 실제 위치 기준 최단거리
     var ridge = null;
     try { var TT = 0.2, tl = [], rb = pad(Breal, 3000);
@@ -218,7 +230,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -381,6 +393,12 @@
       (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
         (BU ? "주택" : "건물(주택 여부 미구분)") + " " + NN + "번째로 가까운 곳 " + (d5 === null ? R.houses.far + "m 밖" : d5 + "m") + (d5 !== null && d5 < Dist ? " → " + Dist + "m 안에 " + NN + "호 이상" : "") + ". 도로 이격은 법 개정으로 적용 안 함. '5호 이상 주거지'의 범위 산정 방식은 조례마다 달라 근사치",
       SB.law, BU ? "건축물대장 주용도" : "도로명주소 건물");
+    var GR = D.grid, gbest = null;
+    if (GR && GR.rows && GR.rows.length) GR.rows.forEach(function (r) { var f = Math.min(r.v1, r.v2, r.v3); if (isFinite(f) && (gbest === null || f > gbest.f)) gbest = { f: f, r: r }; });
+    V(G3, "s6", "한전 계통 여유용량", gbest ? (gbest.f > 0 ? "확인됨" : "회피") : "수동확인필요", null,
+      gbest ? gbest.r.sub + " 변전소 · 변압기 " + gbest.r.mtr + " · " + gbest.r.dl + " 선로 — 여유 변전소 " + Math.round(gbest.r.v1).toLocaleString() + "kW / 변압기 " + Math.round(gbest.r.v2).toLocaleString() + "kW / 선로 " + Math.round(gbest.r.v3).toLocaleString() + "kW → 이 중 가장 작은 " + Math.round(gbest.f).toLocaleString() + "kW까지 접속 여유. " + (GR.level !== "지번" ? "[주의] 지번 단위 자료가 없어 '" + GR.level + "' 단위 대표 선로 값 — 실제 연결 선로는 한전 확인 필요. " : "") + "조회 " + GR.ts + (GR.src === "saved" ? "(저장된 값)" : "")
+        : "조회 못 함" + (GR && GR.err ? "(" + GR.err + ")" : "") + " — Apps Script에 한전키를 넣으면 자동 조회",
+      "한전 분산전원 연계정보(여유 = 기준용량 − 접속용량, 단위 kW)", "한전 전력데이터 개방포털");
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
@@ -417,7 +435,9 @@
     var miss = []; if (!ecoOK) miss.push("생태자연도"); if (!demOK) miss.push("경사"); if (nedErr.length) miss.push("토지이용계획(" + nedErr.join(", ") + ")"); if (!hzOK && san.length) miss.push("산사태위험지도");
     var verdict = ok < 1000 ? "불가" : noA < total * 0.05 ? "가능" : "일부 가능";
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
-    var sum = { verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var gridTxt = gbest ? "한전 계통 여유 약 " + (gbest.f >= 1000 ? (gbest.f / 1000).toFixed(1) + "MW" : Math.round(gbest.f) + "kW") + " (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위 값" : "") + ")" : "한전 계통 여유: 조회 못 함";
+    if (gbest && gbest.f <= 0) cond.unshift("한전 계통 여유 없음 — 접속 불가 가능성(선로·변압기 증설 대기)");
+    var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     return { rows: rows, per: per, tot: tot, sum: sum };
   }
   function uniqA(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
