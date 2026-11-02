@@ -79,7 +79,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102a"></script>
-<script src="screen.js?v=20261102f"></script>
+<script src="screen.js?v=20261102g"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -133,7 +133,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
     var b=D.B,bounds=[[b[1]+sh.dy,b[0]+sh.dx],[b[1]+sh.dy+D.ny*D.dlat,b[0]+sh.dx+D.nx*D.dlon]];
     ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
-    D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m").addTo(lines)});
+    D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
     var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["회피",COL.st[2]],["신중검토",COL.st[1]],["식생 확인 시 회피 가능",COL.st[3]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});

@@ -53,7 +53,7 @@
     var ac = new AbortController(), tm = setTimeout(function () { ac.abort(); }, 30000);
     return fetch(CFG.endpoint + "?action=eco&bbox=" + bb, { signal: ac.signal }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(tm);
       if (!j || !j.f) return { err: (j && j.error) || "응답 형식 이상" };
-      return { attrs: j.f.some(function (f) { return f.length > 2; }), f: j.f.map(function (f) { return { g: String(f[0]), v: f.length > 2 ? String(f[2] || "") : null, pn: f[3] || "", rs: f[1].map(function (r) { return { r: r, b: bbox(r) }; }) }; }) };
+      return { attrs: j.f.some(function (f) { return f.length > 2; }), f: j.f.map(function (f) { return { g: String(f[0]), v: f.length > 2 ? String(f[2] || "") : null, pn: f[3] || "", x: f[5] || null, rs: f[1].map(function (r) { return { r: r, b: bbox(r) }; }) }; }) };
     }).catch(function (e) { clearTimeout(tm); return { err: e.name === "AbortError" ? "시간 초과(30초)" : e.message }; });
   }
 
@@ -113,11 +113,11 @@
       for (var k = 0; k < P.length && pi < 0; k++) if (P[k].rings.some(function (o) { return inB(q, o.b) && pip(q, o.r); })) pi = k;
       if (pi < 0) continue;
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
-      var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "";
-      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; } }
+      var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null;
+      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; } }
       var sl = null;
       if (!demErr) { var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, s: sl });
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -146,10 +146,15 @@
       var d = Infinity; r0.forEach(function (v) { realRings.forEach(function (r) { var dd = ringDist(v, r, kx, ky); if (dd < d) d = dd; }); });
       if (d <= R.houses.far) houses.push({ d: Math.round(d), name: (pr.rd_nm || "") + " " + (pr.buld_no || "") + (pr.buld_nm ? " " + pr.buld_nm : ""), pnu: sn, c: [cy, cx] }); });
     houses.sort(function (a, b) { return a.d - b.d; });
+    // 건축물대장 주용도(Apps Script 중계, 건축HUB) — 실패해도 계속
+    var bldUse = null;
+    if (CFG.endpoint && houses.length) { try { var pl = uniqA(houses.map(function (h) { return h.pnu; })).slice(0, 40);
+      var bj = await fetch(CFG.endpoint + "?action=bld&pnu=" + pl.join(",")).then(function (r) { return r.json(); });
+      if (bj && bj.b) { bldUse = bj.b; houses.forEach(function (h) { h.use = bldUse[h.pnu] || null; }); } else bldUse = { _err: (bj && bj.error) || "응답 없음" }; } catch (e) { bldUse = { _err: e.message }; } }
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs }, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -159,11 +164,15 @@
     /* 식생보전등급 판단: 생태자연도 '식생 평가등급'(vtn_evl_grad)이 있으면 그것으로, 없으면 사용자 입력으로.
        생태·자연도 작성지침: 식생 1등급 = 식생보전 Ⅰ·Ⅱ, 2등급 = Ⅲ·Ⅳ(또는 조사 안 된 자연식생 임상도 2영급 이상), 그 밖은 3등급(→ Ⅴ로 해석)
        ge3 = Ⅲ등급 이상인가, ge4 = Ⅳ등급 이상인가 (true / false / null=모름) */
+    /* [추정 규칙] 생태자연도 식생 평가 2(= 식생보전 Ⅲ 또는 Ⅳ)를 군락명으로 나눔:
+       식재림·조림 → Ⅳ, 초지·관목·덤불 → 판단 안 함, 그 밖의 자연림 군락 → Ⅲ.
+       근거: 자연환경조사 식생보전등급 기준에서 인공식재림은 Ⅳ, 자연림(2차림 포함)은 Ⅲ 이상으로 보는 경우가 일반적. 에코뱅크 화면(곰솔-상수리나무군락 = Ⅲ)과 일치 */
+    function commGe3(n) { if (/식재림|조림|식재/.test(n)) return false; if (/초지|관목|덤불|나지|경작|과수|묘포/.test(n)) return null; return /군락/.test(n) ? true : null; }
     function vegOf(c) {
       function inp(v) { return v === "3+" ? { ge3: true, ge4: true } : v === "4" ? { ge3: false, ge4: true } : v === "4+" ? { ge3: null, ge4: true } : v === "5" ? { ge3: false, ge4: false } : { ge3: null, ge4: null }; }
       if (c.v === "1") return { ge3: true, ge4: true, src: "eco" };
       if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
-      if (c.v === "2") { var x = inp(veg2); return { ge3: x.ge3, ge4: true, src: "eco" }; }
+      if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
       if (c.e === "2") return inp(veg2);
       return inp(vegP[c.p] || ""); }
     var ecoOK = !D.eco.err, demOK = !D.demErr;
@@ -199,7 +208,11 @@
       (hb.length ? hitText(hb) : "토지이용계획에 해당 지역·지구 없음" + nedNote) + (e9 ? " / 생태자연도 '별도관리지역' " + e9.toLocaleString() + "㎡ — 지정 사유(법정보호지역 여부) 확인" : ""),
       "지침 입지회피 2", luSrc);
     // c) 법정보호종
-    V(G, "c", "멸종위기 야생생물·천연기념물 등 법정보호종 서식지·산란처·철새도래지", "수동확인필요", null, "공개 위치 데이터 없음 — 현지조사·국립생태원 자료로 확인", "지침 입지회피 3", "-");
+    var ex = D.eco.extra, sm1 = ex ? A(function (c) { return c.x && c.x.smld === "1"; }) : 0, sm2 = ex ? A(function (c) { return c.x && c.x.smld === "2"; }) : 0,
+      smN = {}; D.cells.forEach(function (c) { if (c.x && c.x.smldNm) smN[c.x.smldNm] = 1; });
+    V(G, "c", "멸종위기 야생생물·천연기념물 등 법정보호종 서식지·산란처·철새도래지", !ex ? "수동확인필요" : sm1 ? "회피" : "수동확인필요", ex ? (sm1 || sm2 || null) : null,
+      ex ? (sm1 ? "생태자연도 '멸종위기 야생생물 서식' 평가 1등급 구간 " + sm1.toLocaleString() + "㎡" + (Object.keys(smN).length ? "(" + Object.keys(smN).join(", ") + ")" : "") + " — 서식 확인 지역. " : "생태자연도 멸종위기종 평가 1등급(서식 확인) 구간 없음. ") + (sm2 ? "평가 2등급(주변 서식 가능) " + sm2.toLocaleString() + "㎡. " : "") + "생태자연도에 반영 안 된 서식지·철새도래지는 현지조사로만 확인 가능" : "공개 위치 데이터 없음 — Apps Script를 새 코드로 배포하면 생태자연도 멸종위기종 평가가 자동 반영됨. 그 전에는 에코뱅크 '멸종위기 야생 생물 서식 여부'로 확인",
+      "지침 입지회피 3", "국립생태원 생태자연도(멸종위기종 평가)");
     // d) 생태자연도 1등급
     var a1 = ecoOK ? sum(function (c) { return c.e === "1"; }) : null;
     V(G, "d", "생태·자연도 1등급(식생보전 Ⅰ-Ⅱ등급 / 비오톱 Ⅰ-Ⅱ등급)", !ecoOK ? "확인 불가" : a1 ? "회피" : "해당없음", a1, ecoOK ? "1등급 " + (a1 || 0).toLocaleString() + "㎡ (조회 결과에 폴리곤이 없는 곳은 1·2등급·별도관리지역 밖, 곧 3등급으로 봄)" : "생태자연도 조회 실패: " + D.eco.err, "지침 입지회피 4", "국립생태원 생태자연도(WFS) 조회 시점 기준");
@@ -209,12 +222,13 @@
       eY = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === true; }) : null,
       eN = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === false; }) : null,
       eU = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === null; }) : null;
+    var eEst = ecoOK ? A(function (c) { return c.e === "2" && c.vg.est; }) : 0;
     // 2등급 구간 군락 구성(면적 큰 순)
     var cl = {}; D.cells.forEach(function (c) { if (c.e === "2" && c.pn) cl[c.pn] = (cl[c.pn] || 0) + P[c.p].cellA; });
     var clT = Object.keys(cl).sort(function (x, y) { return cl[y] - cl[x]; }).slice(0, 4).map(function (k) { return k + " " + Math.round(cl[k]).toLocaleString() + "㎡"; }).join(", ");
     var hasV = D.eco.attrs;
-    V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : eY ? "회피" : eU ? "수동확인필요" : "해당없음", ecoOK ? (eY || eU || 0) : null,
-      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ 중 식생 Ⅲ 이상 " + (eY || 0).toLocaleString() + "㎡, Ⅳ " + (eN || 0).toLocaleString() + "㎡" + (eU ? ", 미확정 " + eU.toLocaleString() + "㎡(Ⅲ인지 Ⅳ인지 입력 필요)" : "") +
+    V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : eY ? (eEst ? "회피(추정)" : "회피") : eU ? "수동확인필요" : (eEst ? "해당없음(추정)" : "해당없음"), ecoOK ? (eY || eU || 0) : null,
+      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ 중 식생 Ⅲ 이상 " + (eY || 0).toLocaleString() + "㎡, Ⅳ " + (eN || 0).toLocaleString() + "㎡" + (eU ? ", 미확정 " + eU.toLocaleString() + "㎡(Ⅲ인지 Ⅳ인지 입력 필요)" : "") + (eEst ? ". [추정] 그중 " + eEst.toLocaleString() + "㎡는 군락명으로 나눔(식재림 → Ⅳ, 자연림 군락 → Ⅲ) — 에코뱅크 '등급 지정 사유'의 식생보전등급으로 확인하거나 위에서 직접 고르면 바뀜" : "") +
         (hasV ? ". 생태자연도 식생 평가 2등급은 식생보전 Ⅲ 또는 Ⅳ라 둘을 구분하지 못함" : ". 생태자연도 식생 평가값을 받지 못해 입력값으로만 판정(Apps Script 갱신 필요)") + (clT ? " / 군락: " + clT + " [참고: 식재림은 보통 Ⅳ, 자연림은 Ⅲ 이상일 수 있음 — 추정]" : "") : "생태자연도 조회 실패",
       "지침 입지회피 5", "국립생태원 생태자연도(식생 평가) + 사용자 입력");
     // f) 경사 15° 이상 + 식생 Ⅳ 이상
@@ -256,10 +270,13 @@
     var lcT = P.map(function (p) { return p.lc && p.lc.road ? p.jibun + " " + p.lc.road + (p.lc.year ? "(" + p.lc.year + "년 조사)" : "") : null; }).filter(Boolean);
     var lcBlind = P.some(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); }), lcAll = P.every(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); });
     V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
-    var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length;
-    V(G3, "s3", "주변 건물(주택 이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", hf >= R.houses.n ? "수동확인필요" : "참고", null,
-      R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택인지 창고인지는 데이터가 비어 있어 미구분" + (hf >= R.houses.n ? " — " + R.houses.n + "동 이상이라 주택 여부·호수 확인" : ""),
-      R.houses.src, "브이월드 도로명주소 건물");
+    var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length, BU = D.bldUse && !D.bldUse._err;
+    function isHome(h) { return (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
+    var hh2 = BU ? D.houses.filter(isHome) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
+    V(G3, "s3", "주변 주택(이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", BU ? (hh2.length >= R.houses.n ? "수동확인필요" : "참고") : hf >= R.houses.n ? "수동확인필요" : "참고", null,
+      BU ? "건축물대장 주용도 기준 주택 " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
+        : R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택 여부 미구분" + (D.bldUse && D.bldUse._err ? " — 건축물대장 조회 실패: " + String(D.bldUse._err).slice(0, 80) + " (공공데이터포털에서 '국토교통부_건축HUB_건축물대장정보 서비스' 활용신청 필요할 수 있음)" : " — Apps Script를 새 코드로 배포하면 건축물대장 주용도로 주택만 셈"),
+      R.houses.src, BU ? "건축물대장 표제부(건축HUB) + 도로명주소 건물" : "브이월드 도로명주소 건물");
     V(G3, "s4", "시·군 조례 이격거리(주거지·도로)", "수동확인필요", null, "시군별 도시계획 조례 별표 수치는 아직 넣지 않음 — 해당 시군 조례 원문 확인", "국토계획법 시행령 별표1의2 + 시군 도시계획 조례", "-");
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
@@ -273,6 +290,7 @@
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
     return { rows: rows, per: per, tot: tot };
   }
+  function uniqA(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
   function area(P) { return P.reduce(function (s, p) { return s + p.area; }, 0); }
   function uniq(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
 

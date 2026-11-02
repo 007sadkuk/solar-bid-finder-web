@@ -20,7 +20,18 @@ function eco_(bb) {
   try { j = JSON.parse(r.getContentText()); } catch (x) { return { error: "응답 " + r.getResponseCode() + " " + r.getContentText().slice(0, 300) }; }
   return { f: (j.features || []).map(function (f) { var g = f.geometry || {}, cs = g.type === "Polygon" ? [g.coordinates] : (g.coordinates || []);
     var q = f.properties || {};
-    return [String(q.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); }), String(q.vtn_evl_grad || ""), q.plnt_cln_ttle || "", q.frph_agcl_code || ""]; }) };
+    return [String(q.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); }), String(q.vtn_evl_grad || ""), q.plnt_cln_ttle || "", q.frph_agcl_code || "",
+      { smld: String(q.smld_evl_grad || ""), smldNm: q.precise_smld_ttle || "", tpg: String(q.tpgrph_evl_grad || ""), tpgNm: q.tpgrph_ttle || "", amplt: String(q.amplt_evl_grad || ""), census: q.census_ttle || "" }]; }) };
+}
+function bld_(list) {  // 건축물대장 표제부(주용도): pnu 여러 개(쉼표) → {pnu: ["단독주택", ...]}
+  var ps = String(list || "").split(",").filter(function (x) { return /^\d{19}$/.test(x); }).slice(0, 40), key = encodeURIComponent(decodeURIComponent(DATA_KEY.trim()));
+  if (!ps.length) return { error: "pnu" };
+  var reqs = ps.map(function (p) { return { url: "https://apis.data.go.kr/1613000/BldRgstHubService/getBrTitleInfo?serviceKey=" + key + "&sigunguCd=" + p.slice(0, 5) + "&bjdongCd=" + p.slice(5, 10) + "&platGbCd=" + (p.charAt(10) === "2" ? "1" : "0") + "&bun=" + p.slice(11, 15) + "&ji=" + p.slice(15, 19) + "&numOfRows=30&pageNo=1&_type=json", muteHttpExceptions: true }; });
+  var rs = UrlFetchApp.fetchAll(reqs), out = {}, err = "";
+  rs.forEach(function (r, i) { var t = r.getContentText(), j = null; try { j = JSON.parse(t); } catch (x) { err = err || ("응답 " + r.getResponseCode() + " " + t.slice(0, 200)); return; }
+    var it = (((j.response || {}).body || {}).items || {}).item; if (!it) { out[ps[i]] = []; return; } if (!Array.isArray(it)) it = [it];
+    out[ps[i]] = it.map(function (x) { return x.mainPurpsCdNm || x.etcPurps || "?"; }); });
+  return { b: out, error: Object.keys(out).length ? "" : err };
 }
 function admin_(pw) {  // 관리자 화면: 비밀번호 확인(10회 틀리면 1시간 잠금) 후 기록 반환
   var c = CacheService.getScriptCache(), n = +(c.get("fail") || 0);
@@ -34,6 +45,7 @@ function admin_(pw) {  // 관리자 화면: 비밀번호 확인(10회 틀리면 
 function doGet(e) {
   var p = (e && e.parameter) || {};
   if (p.action === "eco") return json_(eco_(p.bbox || ""));
+  if (p.action === "bld") return json_(bld_(p.pnu || ""));
   if (p.action === "admin") return json_(admin_(p.pw));
   var ss = book_(); add_(ss, "검색", HS, [new Date(), "(접속 확인)"]);
   return ContentService.createTextOutput("정상 작동 중입니다. 기록 시트: " + ss.getUrl());
