@@ -255,7 +255,7 @@
     // c) 법정보호종
     var ex = D.eco.extra, sm1 = ex ? A(function (c) { return c.x && c.x.smld === "1"; }) : 0, sm2 = ex ? A(function (c) { return c.x && c.x.smld === "2"; }) : 0,
       smN = {}; D.cells.forEach(function (c) { if (c.x && c.x.smldNm) smN[c.x.smldNm] = 1; });
-    V(G, "c", "멸종위기 야생생물·천연기념물 등 법정보호종 서식지·산란처·철새도래지", !ex ? "수동확인필요" : sm1 ? "회피" : "수동확인필요", ex ? (sm1 || sm2 || null) : null,
+    V(G, "c", "멸종위기 야생생물·천연기념물 등 법정보호종 서식지·산란처·철새도래지", !ex ? "수동확인필요" : sm1 ? "회피" : sm2 ? "수동확인필요" : "해당없음(생태자연도 기준)", ex ? (sm1 || sm2 || null) : null,
       ex ? (sm1 ? "생태자연도 '멸종위기 야생생물 서식' 평가 1등급 구간 " + sm1.toLocaleString() + "㎡" + (Object.keys(smN).length ? "(" + Object.keys(smN).join(", ") + ")" : "") + " — 서식 확인 지역. " : "생태자연도 멸종위기종 평가 1등급(서식 확인) 구간 없음. ") + (sm2 ? "평가 2등급(주변 서식 가능) " + sm2.toLocaleString() + "㎡. " : "") + "생태자연도에 반영 안 된 서식지·철새도래지는 현지조사로만 확인 가능" : "공개 위치 데이터 없음 — Apps Script를 새 코드로 배포하면 생태자연도 멸종위기종 평가가 자동 반영됨. 그 전에는 에코뱅크 '멸종위기 야생 생물 서식 여부'로 확인",
       "지침 입지회피 3", "국립생태원 생태자연도(멸종위기종 평가)");
     // d) 생태자연도 1등급
@@ -337,13 +337,14 @@
     V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
     var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length, BU = D.bldUse && !D.bldUse._err;
     function isHome(h) { return (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
-    var hh2 = BU ? D.houses.filter(isHome) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
+    function byLot(arr) { var m = {}; arr.forEach(function (h) { var k = h.pnu || h.name; if (!m[k] || h.d < m[k].d) m[k] = h; }); return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return a.d - b.d; }); }
+    var hh2 = BU ? byLot(D.houses.filter(isHome)) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
     V(G3, "s3", "주변 주택(이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", BU ? (hh2.length >= R.houses.n ? "수동확인필요" : "참고") : hf >= R.houses.n ? "수동확인필요" : "참고", null,
-      BU ? "건축물대장 주용도 기준 주택 " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
+      BU ? "건축물대장 주용도 기준 주택(지번 단위) " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
         : R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택 여부 미구분" + (D.bldUse && D.bldUse._err ? " — 건축물대장 조회 실패: " + String(D.bldUse._err).slice(0, 80) + " (공공데이터포털에서 '국토교통부_건축HUB_건축물대장정보 서비스' 활용신청 필요할 수 있음)" : " — Apps Script를 새 코드로 배포하면 건축물대장 주용도로 주택만 셈"),
       R.houses.src, BU ? "건축물대장 표제부(건축HUB) + 도로명주소 건물" : "브이월드 도로명주소 건물");
     var SB = R.setback, rule = SB.sgg[D.sgg] || null, Dist = rule ? rule.house : SB.cap, NN = rule ? rule.n : SB.n;
-    var hl = (BU ? D.houses.filter(isHome) : D.houses).map(function (h) { return h.d; }).sort(function (a, b) { return a - b; }), d5 = hl.length >= NN ? hl[NN - 1] : null;
+    var hl = (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).map(function (h) { return h.d; }).sort(function (a, b) { return a - b; }), d5 = hl.length >= NN ? hl[NN - 1] : null;
     V(G3, "s4", "주거지 이격거리(법 상한 · 시군 조례)", d5 === null ? "해당없음" : d5 < Dist ? (rule ? "회피" : "수동확인필요") : "해당없음", null,
       (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
         (BU ? "주택" : "건물(주택 여부 미구분)") + " " + NN + "번째로 가까운 곳 " + (d5 === null ? R.houses.far + "m 밖" : d5 + "m") + (d5 !== null && d5 < Dist ? " → " + Dist + "m 안에 " + NN + "호 이상" : "") + ". 도로 이격은 법 개정으로 적용 안 함. '5호 이상 주거지'의 범위 산정 방식은 조례마다 달라 근사치",
