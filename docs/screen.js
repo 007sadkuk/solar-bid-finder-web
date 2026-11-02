@@ -85,9 +85,9 @@
   }
   function vgrade(o) { var R5 = { "Ⅰ": 1, "Ⅱ": 2, "Ⅲ": 3, "Ⅳ": 4, "Ⅴ": 5, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
     function val(v) { if (v === null || v === undefined) return null; var t = String(v).trim().replace(/등급$/, ""); if (R5[t]) return R5[t]; var n = +t; return n >= 1 && n <= 5 ? n : null; }
-    var pref = ["vtn_cnsv_grad", "vtn_cnsv_grd", "vtncnsv_grad", "cnsv_grad", "cnsv_grd", "vtn_grad", "vtn_evl_grad", "grad", "grade"];
+    var pref = ["vtn_cnsv_grad", "vtn_cnsv_grd", "vtncnsv_grad", "cnsv_grad", "cnsv_grd"];
     for (var i = 0; i < pref.length; i++) if (o[pref[i]] !== undefined && val(o[pref[i]]) !== null) return val(o[pref[i]]);
-    var ks = Object.keys(o).filter(function (k) { return /grad|grd|grade|등급/i.test(k); }); for (var k = 0; k < ks.length; k++) { var v = val(o[ks[k]]); if (v !== null) return v; } return null; }
+    return null; }
 
   async function allFeatures(layer, b, maxPage) { var out = []; for (var pg = 1; pg <= (maxPage || 3); pg++) {
       var q = await BFGeo.vwData(layer, { geomFilter: "BOX(" + b.join(",") + ")", size: "1000", page: String(pg) }).catch(function () { return { status: "ERR", features: [] }; });
@@ -127,11 +127,22 @@
     var zoneP = Promise.all(["LT_C_UQ111", "LT_C_UQ112", "LT_C_UQ113", "LT_C_UQ114"].map(function (L) { return allFeatures(L, B, 2); }));
     var nedP = Promise.all(P.map(function (p) { return BFGeo.nedQuery(p.pnu).then(function (x) { return x; }).catch(function (e) { return { err: e.message }; }); }));
     var lcP = Promise.all(P.map(function (p) { return BFGeo.landChar(p.pnu).catch(function () { return null; }); }));
-    var ecoP = ecoFetch(Breal), vtnP = vtnFetch(Breal);
+    var ecoP = ecoFetch(Breal), vtnP = Promise.resolve({ err: "식생평가 API에는 식생보전등급(Ⅰ~Ⅴ)이 없음" });
     var demP = demPrep(pad(Breal, 40)).then(function () { return null; }).catch(function (e) { return e.message; });
     var nbP = allFeatures("LP_PA_CBND_BUBUN", pad(B, 25), 2);
     var bldP = allFeatures("LT_C_SPBD", pad(Breal, R.houses.far + 20), 3);
     var zr = await zoneP, ned = await nedP, eco = await ecoP, demErr = await demP, nb = await nbP, bld = await bldP, vtn = await vtnP;
+
+    // 생태자연도 고시도면 식생 라벨(군락_식생보전등급)을 생태자연도 폴리곤에 붙임
+    var vlab = { cov: false, n: 0 };
+    try { if (eco.f) { var a5 = tm5186(Breal[0], Breal[1]), c5 = tm5186(Breal[2], Breal[3]), m5 = await fetch("vlab/meta.json").then(function (r) { return r.json(); });
+        var X0 = Math.min(a5[0], c5[0]) - 300, Y0 = Math.min(a5[1], c5[1]) - 300, X1 = Math.max(a5[0], c5[0]) + 300, Y1 = Math.max(a5[1], c5[1]) + 300;
+        vlab.cov = Object.keys(m5.sheets).some(function (k) { var b = m5.sheets[k]; return b[0] <= X0 && b[2] >= X1 && b[1] <= Y0 && b[3] >= Y1; }) ||
+          Object.keys(m5.sheets).filter(function (k) { var b = m5.sheets[k]; return b[0] < X1 && b[2] > X0 && b[1] < Y1 && b[3] > Y0; }).length >= 2;
+        var ks = []; for (var tx5 = Math.floor(X0 / m5.tile); tx5 <= Math.floor(X1 / m5.tile); tx5++) for (var ty5 = Math.floor(Y0 / m5.tile); ty5 <= Math.floor(Y1 / m5.tile); ty5++) ks.push(tx5 + "_" + ty5);
+        var labs5 = [].concat.apply([], await Promise.all(ks.map(function (k) { return fetch("vlab/" + k + ".json").then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; }); })));
+        eco.f.forEach(function (f) { var g = null, cd = ""; labs5.forEach(function (l) { if (f.rs.some(function (o) { return inB([l[0], l[1]], o.b) && pip([l[0], l[1]], o.r); })) { if (g === null || l[2] < g) { g = l[2]; cd = l[3]; } } }); f.vl = g; f.vlc = cd; if (g !== null) vlab.n++; });
+      } } catch (e) { vlab.err = e.message; }
 
     var zones = []; zr.forEach(function (fs) { fs.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { zones.push({ n: pr.uname || "?", y: pr.dyear || "", r: r, b: bbox(r) }); }); }); });
     var lc = await lcP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; });
@@ -145,12 +156,12 @@
       for (var k = 0; k < P.length && pi < 0; k++) if (P[k].rings.some(function (o) { return inB(q, o.b) && pip(q, o.r); })) pi = k;
       if (pi < 0) continue;
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
-      var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null;
-      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; } }
+      var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null, evl = null;
+      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; evl = eco.f[e].vl; } }
       var vt = null; if (vtn.f) { var t2 = tm5186(rl[0], rl[1]); for (var e2 = 0; e2 < vtn.f.length; e2++) if (vtn.f[e2].g !== null && vtn.f[e2].rs.some(function (o) { return inB(t2, o.b) && pip(t2, o.r); })) { vt = vtn.f[e2].g; break; } }
       var sl = null, el = null;
       if (!demErr) { el = elev(rl[0], rl[1]); if (!isFinite(el)) el = null; var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, vt: vt, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, vt: vt, vl: evl, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -207,7 +218,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -224,6 +235,7 @@
     function vegOf(c) {
       function inp(v) { return v === "3+" ? { ge3: true, ge4: true } : v === "4" ? { ge3: false, ge4: true } : v === "4+" ? { ge3: null, ge4: true } : v === "5" ? { ge3: false, ge4: false } : { ge3: null, ge4: null }; }
       if (c.vt) return { ge3: c.vt <= 3, ge4: c.vt <= 4, src: "vtn" };
+      if (c.vl && !veg2) return { ge3: c.vl <= 3, ge4: c.vl <= 4, src: "pdf" };
       if (c.v === "1") return { ge3: true, ge4: true, src: "eco" };
       if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
       if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
@@ -284,13 +296,13 @@
       eY = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === true; }) : null,
       eN = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === false; }) : null,
       eU = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === null; }) : null;
-    var eEst = ecoOK ? A(function (c) { return c.e === "2" && c.vg.est; }) : 0;
+    var eEst = ecoOK ? A(function (c) { return c.e === "2" && c.vg.est; }) : 0, ePdf = ecoOK ? A(function (c) { return c.e === "2" && c.vg.src === "pdf"; }) : 0;
     // 2등급 구간 군락 구성(면적 큰 순)
     var cl = {}; D.cells.forEach(function (c) { if (c.e === "2" && c.pn) cl[c.pn] = (cl[c.pn] || 0) + P[c.p].cellA; });
     var clT = Object.keys(cl).sort(function (x, y) { return cl[y] - cl[x]; }).slice(0, 4).map(function (k) { return k + " " + Math.round(cl[k]).toLocaleString() + "㎡"; }).join(", ");
     var hasV = D.eco.attrs;
     V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : eY ? (eEst ? "회피(추정)" : "회피") : eU ? "수동확인필요" : (eEst ? "해당없음(추정)" : "해당없음"), ecoOK ? (eY || eU || 0) : null,
-      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ 중 식생 Ⅲ 이상 " + (eY || 0).toLocaleString() + "㎡, Ⅳ " + (eN || 0).toLocaleString() + "㎡" + (eU ? ", 미확정 " + eU.toLocaleString() + "㎡(Ⅲ인지 Ⅳ인지 입력 필요)" : "") + (eEst ? ". [추정] 그중 " + eEst.toLocaleString() + "㎡는 군락명으로 나눔(식재림 → Ⅳ, 자연림 군락 → Ⅲ) — 에코뱅크 '등급 지정 사유'의 식생보전등급으로 확인하거나 위에서 직접 고르면 바뀜" : "") +
+      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ 중 식생 Ⅲ 이상 " + (eY || 0).toLocaleString() + "㎡, Ⅳ " + (eN || 0).toLocaleString() + "㎡" + (eU ? ", 미확정 " + eU.toLocaleString() + "㎡(Ⅲ인지 Ⅳ인지 입력 필요)" : "") + (ePdf ? ". 그중 " + ePdf.toLocaleString() + "㎡는 2026년 생태자연도 고시도면에 적힌 식생보전등급으로 확인" : "") + (eEst ? ". [추정] 그중 " + eEst.toLocaleString() + "㎡는 군락명으로 나눔(식재림 → Ⅳ, 자연림 군락 → Ⅲ) — 에코뱅크 '등급 지정 사유'의 식생보전등급으로 확인하거나 위에서 직접 고르면 바뀜" : "") +
         (hasV ? ". 생태자연도 식생 평가 2등급은 식생보전 Ⅲ 또는 Ⅳ라 둘을 구분하지 못함" : ". 생태자연도 식생 평가값을 받지 못해 입력값으로만 판정(Apps Script 갱신 필요)") + (clT ? " / 군락: " + clT + " [참고: 식재림은 보통 Ⅳ, 자연림은 Ⅲ 이상일 수 있음 — 추정]" : "") : "생태자연도 조회 실패",
       "지침 입지회피 5", "국립생태원 생태자연도(식생 평가) + 사용자 입력");
     // f) 경사 15° 이상 + 식생 Ⅳ 이상
