@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>태양광 입지 사전 스크리닝</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--pine:#1d3a2f;--ink:#16241e;--sub:#56685f;--field:#e9efe6;--sheet:#fbfcf9;--rule:#cfd9cc;--rule2:#e1e8de;--mark:#f3c623;--go:#226b46;--no:#b3261e;--warn:#b86e00;--q:#5b5f97}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6eee8;--sub:#a4b6ab;--field:#0b1712;--sheet:#13241c;--rule:#2b4136;--rule2:#203329;--go:#7fd1a3;--no:#f0a29a;--warn:#f3c26b;--q:#b7b9f0}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--field);color:var(--ink);font:16px/1.6 "Pretendard Variable",Pretendard,system-ui,sans-serif}
+header{background:var(--pine);color:#eef4ef;padding:20px 0 22px}header h1{margin:0;font-size:24px}header p{margin:2px 0 0;color:#c7d6cc;font-size:14.5px}
+.w{max-width:1180px;margin:0 auto;padding:0 16px}
+.card{background:var(--sheet);border-radius:14px;padding:18px;margin:16px 0;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+h2{margin:0 0 10px;font-size:19px}h3{margin:18px 0 8px;font-size:16.5px}
+textarea,input,select{font:inherit;padding:10px 12px;border:1.5px solid var(--rule);border-radius:10px;background:var(--field);color:var(--ink)}
+textarea{width:100%;min-height:76px}
+.btn{font:inherit;font-weight:800;border:0;border-radius:10px;padding:11px 20px;background:var(--mark);color:#1d1600;cursor:pointer}.btn.s{background:transparent;border:1.5px solid var(--rule);color:var(--ink);font-weight:600;padding:8px 14px}
+.sub{color:var(--sub);font-size:14px}.msg{color:var(--no)}
+.warn{border-left:4px solid var(--mark);background:rgba(243,198,35,.10);padding:10px 14px;border-radius:8px;font-size:14px;margin:10px 0}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi div{background:var(--field);border-radius:10px;padding:12px}.kpi b{display:block;font-size:24px}.kpi span{color:var(--sub);font-size:13px}
+.kpi .av b{color:var(--no)}.kpi .ca b{color:var(--warn)}.kpi .uk b{color:var(--q)}.kpi .ok b{color:var(--go)}
+#map{height:520px;border-radius:12px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.seg button{font:inherit;font-size:14px;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}.seg button[aria-pressed=true]{background:var(--pine);color:#fff;border-color:var(--pine)}
+.lg{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin-top:8px}.lg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.tw{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--rule2);padding:8px;text-align:left;vertical-align:top}th{color:var(--sub);font-weight:600;white-space:nowrap}td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.v{display:inline-block;font-weight:800;font-size:13px;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.v.회피,.v.맹지의심{background:rgba(179,38,30,.13);color:var(--no)}.v.신중검토,.v.대상{background:rgba(184,110,0,.14);color:var(--warn)}.v.수동확인필요,.v.확인불가{background:rgba(91,95,151,.14);color:var(--q)}.v.해당없음,.v.확인됨,.v.대상아님{background:rgba(34,107,70,.12);color:var(--go)}.v.참고{background:var(--field);color:var(--sub)}
+tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
+.veg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px;margin:8px 0}.veg label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14.5px}
+.prog{height:6px;background:var(--rule2);border-radius:9px;overflow:hidden;margin-top:10px}.prog i{display:block;height:100%;width:0;background:var(--mark);transition:width .3s}
+@media (max-width:720px){.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
+@media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head><body>
+<header><div class="w"><h1>태양광 입지 사전 스크리닝</h1><p>지번을 넣으면 육상태양광 협의지침·개발행위허가 기준으로 항목별 회피 / 신중검토 / 해당없음 / 수동확인필요를 면적과 함께 보여줍니다.</p></div></header>
+<main class="w">
+  <form class="card noprint" id="gate" hidden><p class="sub">사내용 페이지입니다. 비밀번호를 입력하세요.</p><input id="gpw" type="password" inputmode="numeric" autocomplete="off"> <button class="btn">열기</button> <span class="msg" id="gmsg"></span></form>
+
+  <section id="app" hidden>
+  <form class="card noprint" id="f">
+    <h2>지번</h2>
+    <textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea>
+    <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
+    <button class="btn" id="go">스크리닝</button> <span class="msg" id="m"></span>
+    <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
+  </form>
+
+  <div id="res" hidden>
+    <div class="warn"><b>사전 스크리닝 결과입니다.</b> 개발행위허가·환경청 협의의 확정 판정이 아닙니다. 공개 데이터로 판정할 수 없는 항목은 '수동확인필요' 또는 '확인 불가'로 두었고, 추정치는 [추정]으로 표시했습니다.</div>
+    <section class="card">
+      <h2 id="ttl"></h2><p class="sub" id="meta"></p>
+      <div class="kpi" id="kpi"></div>
+    </section>
+
+    <section class="card">
+      <h2>식생보전등급 입력</h2>
+      <p class="sub">식생보전등급은 공개 API가 없어 직접 넣어야 판정이 끝납니다(생태자연도 서비스의 식생평가 또는 현장조사 기준). 바꾸면 바로 다시 계산합니다.</p>
+      <div class="veg" id="veg"></div>
+    </section>
+
+    <section class="card">
+      <h2>지도</h2>
+      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">판정</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도[추정]</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
+      <div id="map"></div><div class="lg" id="lg"></div>
+      <p class="sub" id="shiftNote"></p>
+    </section>
+
+    <section class="card"><h2>항목별 판정</h2><div class="tw"><table id="rows"></table></div></section>
+    <section class="card"><h2>필지별 면적</h2><div class="tw"><table id="per"></table></div>
+      <p class="sub">면적은 필지 경계(연속지적도) 기준으로 계산해 토지대장 면적과 조금 다를 수 있습니다. 판정 열의 '확인 필요'는 식생보전등급을 넣으면 회피 여부가 정해지는 면적입니다.</p></section>
+    <section class="card"><h2>데이터·기준</h2><div class="sub" id="src"></div>
+      <p class="noprint"><button class="btn s" type="button" id="csv">CSV 받기</button> <button class="btn s" type="button" onclick="print()">인쇄·PDF</button></p></section>
+  </div>
+  </section>
+</main>
+<script src="site-config.js?v=20261030a"></script>
+<script src="geo.js?v=20261102c"></script>
+<script src="screen-rules.js?v=20261102a"></script>
+<script src="screen.js?v=20261102a"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  var R=window.SCREEN_RULES,D=null,J=null,veg2="",vegP=[],MODE="st",map=null,ov=null,lines=null;
+  function $(i){return document.getElementById(i)}
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  function n(a){return a==null?"-":Math.round(a).toLocaleString()+"㎡"}
+  // 가벼운 잠금(사내용 표시 목적). 데이터는 모두 공개 자료
+  var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
+  function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
+  function open(){$("gate").hidden=true;$("app").hidden=false;var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
+  var ok=false;try{ok=localStorage.getItem("scr_ok")===H}catch(e){}
+  if(ok)open();else $("gate").hidden=false;
+  $("gate").addEventListener("submit",function(e){e.preventDefault();sha($("gpw").value.trim()).then(function(h){if(h===H){try{localStorage.setItem("scr_ok",H)}catch(e){}open()}else $("gmsg").textContent="비밀번호가 맞지 않습니다"})});
+
+  $("f").addEventListener("submit",function(e){e.preventDefault();go()});
+  function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%"}
+  function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
+    try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
+    Screen.run(t,prog).then(function(d){D=d;veg2="";vegP=d.P.map(function(){return ""});vegUI();redo();$("res").hidden=false;$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
+      setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
+    .catch(function(e){$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
+
+  function vegUI(){var V=$("veg");V.innerHTML="";var has2=D.cells.some(function(c){return c.e==="2"});
+    function sel(lbl,opts,val,on){var l=el("label");l.appendChild(el("span",null,lbl));var s=el("select");opts.forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];s.appendChild(op)});s.value=val;s.addEventListener("change",function(){on(s.value);redo()});l.appendChild(s);V.appendChild(l)}
+    if(has2)sel("생태자연도 2등급 구간",[["","모름"],["3+","Ⅲ등급 이상"],["4","Ⅳ등급"]],veg2,function(v){veg2=v});
+    D.P.forEach(function(p,i){sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","모름"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})})}
+
+  function redo(){J=Screen.judge(D,veg2,vegP);head();rows();per();drawMap();srcs()}
+  function head(){var P=D.P;$("ttl").textContent=P[0].addr.replace(/\s\S+$/,"")+" "+P.map(function(p){return p.jibun}).join(", ")+(P.length>1?" ("+P.length+"필지)":"");
+    $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR")+" · 격자 "+D.step.toFixed(1)+"m 간격으로 계산";
+    var K=$("kpi"),T=J.tot;K.innerHTML="";[["av","회피",T.av],["ca","신중검토",T.cau],["uk","식생 확인 시 회피 가능",T.unk],["ok","그 밖의 면적",T.ok]].forEach(function(x){var d=el("div",x[0]);d.appendChild(el("b",null,n(x[2])));d.appendChild(el("span",null,x[1]+" · 전체 "+n(T.area)+" 중 "+(T.area?Math.round(x[2]/T.area*100):0)+"%"));K.appendChild(d)})}
+  function rows(){var t=$("rows");t.innerHTML="";var h=el("tr");["항목","판정","면적","내용","근거","데이터"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),g="";
+    J.rows.forEach(function(r){if(r.g!==g){g=r.g;var gr=el("tr","grp"),td=el("td",null,g);td.colSpan=6;gr.appendChild(td);tb.appendChild(gr)}
+      var tr=el("tr");tr.appendChild(el("td",null,r.t));var tv=el("td");tv.appendChild(el("span","v "+r.v.replace(/\s|\(.*\)/g,""),r.v));tr.appendChild(tv);tr.appendChild(el("td","n",r.a==null?"-":n(r.a)));tr.appendChild(el("td",null,r.d));tr.appendChild(el("td","sub",r.b));tr.appendChild(el("td","sub",r.src));tb.appendChild(tr)});t.appendChild(tb)}
+  function per(){var t=$("per");t.innerHTML="";var h=el("tr");["지번","지목","면적","생태 1등급","2등급","3등급","등급 없음·별도","경사 15°↑[추정]","회피","신중검토","확인 필요"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),S={area:0,e1:0,e2:0,e3:0,e0:0,s15:0,av:0,cau:0,unk:0};
+    J.per.forEach(function(r){var tr=el("tr");tr.appendChild(el("td",null,r.jibun));tr.appendChild(el("td",null,r.jimok+(r.forest&&/전|답|과/.test(r.jimok)?" (산림 연접)":"")));["area","e1","e2","e3","e0","s15","av","cau","unk"].forEach(function(k){S[k]+=r[k];tr.appendChild(el("td","n",r[k]?n(r[k]):"-"))});tb.appendChild(tr)});
+    var tr=el("tr");tr.appendChild(el("td",null,"합계"));tr.appendChild(el("td"));["area","e1","e2","e3","e0","s15","av","cau","unk"].forEach(function(k){tr.appendChild(el("td","n",S[k]?n(S[k]):"-"))});tr.style.fontWeight="800";tb.appendChild(tr);t.appendChild(tb)}
+
+  var COL={st:{2:[179,38,30],1:[224,140,0],3:[110,110,200],0:null},e:{"1":[0,90,40],"2":[60,170,80],"3":[200,220,120],"9":[150,90,200]},z:{}};
+  var ZC=[[66,133,244],[219,68,55],[244,180,0],[15,157,88],[171,71,188],[0,172,193]];
+  function cellColor(c){if(MODE==="st")return COL.st[c.st];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
+    if(MODE==="s"){if(c.s===null)return null;var s=c.s;return s<5?[46,125,50]:s<10?[139,195,74]:s<15?[255,235,59]:s<20?[255,193,7]:s<25?[255,111,0]:s<30?[229,57,53]:[183,28,28]}
+    if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
+  function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
+    if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
+    if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
+    var cv=document.createElement("canvas");cv.width=D.nx;cv.height=D.ny;var g=cv.getContext("2d"),im=g.createImageData(D.nx,D.ny);
+    D.cells.forEach(function(c){var col=cellColor(c);if(!col)return;var i=((D.ny-1-c.iy)*D.nx+c.ix)*4;im.data[i]=col[0];im.data[i+1]=col[1];im.data[i+2]=col[2];im.data[i+3]=150});g.putImageData(im,0,0);
+    var b=D.B,bounds=[[b[1]+sh.dy,b[0]+sh.dx],[b[1]+sh.dy+D.ny*D.dlat,b[0]+sh.dx+D.nx*D.dlon]];
+    ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
+    lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
+    D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m").addTo(lines)});
+    if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
+    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["회피",COL.st[2]],["신중검토",COL.st[1]],["식생 확인 시 회피 가능",COL.st[3]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
+    items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
+    var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
+    $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
+  $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
+  function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
+    [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],
+     ["경사도","[추정] Mapzen Terrarium 표고 타일(SRTM 기반 약 30m)을 5m 간격 차분으로 계산. 산지관리법 방식(10m 격자 평균경사도)·산지정보시스템 분석과 다르며 대체로 작게 나옴"+(D.demErr?" — 이번 조회 실패: "+D.demErr:"")],
+     ["용도지역","브이월드 용도지역 레이어(관리·농림·자연환경보전·도시지역). 고시연도 레이어 속성 기준"],["토지이용계획","브이월드 NED 토지이용계획속성(필지별 지역·지구)"],["지적·건물","브이월드 연속지적도, 도로명주소 건물"],
+     ["소규모 환경영향평가",R.seia.law+" — "+R.seia.status],["기준 파일","screen-rules.js 판 "+R.version+" (법령·지침 개정 시 이 파일 수정)"]].forEach(function(x){var p=el("p");p.appendChild(el("b",null,x[0]+": "));p.appendChild(document.createTextNode(x[1]));S.appendChild(p)})}
+  $("csv").addEventListener("click",function(){if(!J)return;var L=[["구분","항목","판정","면적㎡","내용","근거","데이터"]].concat(J.rows.map(function(r){return [r.g,r.t,r.v,r.a==null?"":r.a,r.d,r.b,r.src]}));
+    L.push([]);L.push(["지번","지목","면적㎡","생태1등급","2등급","3등급","등급없음·별도","경사15°이상[추정]","회피","신중검토","확인필요"]);J.per.forEach(function(r){L.push([r.jibun,r.jimok,r.area,r.e1,r.e2,r.e3,r.e0,r.s15,r.av,r.cau,r.unk])});
+    var csv=L.map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="태양광_스크리닝_"+D.P[0].jibun+".csv";a.click()});
+})();
+</script>
+</body></html>
