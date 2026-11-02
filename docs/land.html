@@ -116,6 +116,7 @@ p.t{margin:0 0 14px;color:var(--sub);font-size:15px}
 .trd .th{margin:0;font-size:17px;font-weight:700}.trd .th small{display:block;font-weight:500;color:var(--sub);font-size:14px}
 .trd ul{list-style:none;margin:10px 0 0;padding:0}.trd li{font-size:14.5px;padding:6px 0;border-top:1px dashed var(--rule2);font-variant-numeric:tabular-nums}.trd li b{font-weight:700}
 .trd .tn{margin:8px 0 0;font-size:12.5px;color:var(--sub)}
+.has-rep .hero .plot{display:none}
 .quick{margin:18px 0 0;border-top:2px solid var(--ink)}
 .quick .q{cursor:pointer}.quick .q:hover{background:var(--field)}.quick .q[aria-pressed=true]{background:var(--field);box-shadow:inset 4px 0 0 var(--mark)}
 .qhint{margin:8px 0 0;color:var(--sub);font-size:13.5px}.udet{margin:14px 0 0;padding:16px;border:1.5px solid var(--rule);border-radius:14px;background:var(--sheet)}.udet h3{margin:0 0 8px}.udet iframe{width:100%;border:0;min-height:700px;border-radius:12px}
@@ -296,7 +297,6 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 
     <div class="cond" id="rcond" hidden></div>
 
-    <div id="map" aria-label="필지 위치 지도"></div>
     </div>
 
     <div class="talk" id="talk">
@@ -684,7 +684,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     notes.forEach(function(t){NN.appendChild(el("p",null,t))});
 
     $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
-    $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);if(window.useSet)useSet($("addr").value.trim());if(window.pickFocus)pickFocus(par);
+    $("prog").style.display="none";$("rep").style.display="block";document.body.classList.add("has-rep");drawPlot(par,zone);if(window.useSet)useSet($("addr").value.trim());if(window.pickFocus)pickFocus(par);
     $("rep").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};
   }

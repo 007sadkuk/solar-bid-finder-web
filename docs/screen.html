@@ -25,7 +25,7 @@ textarea{width:100%;min-height:76px}
 .lg{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin-top:8px}.lg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .tw{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--rule2);padding:8px;text-align:left;vertical-align:top}th{color:var(--sub);font-weight:600;white-space:nowrap}td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .v{display:inline-block;font-weight:800;font-size:13px;border-radius:999px;padding:2px 10px;white-space:nowrap}
-.v.회피,.v.맹지의심{background:rgba(179,38,30,.13);color:var(--no)}.v.신중검토,.v.대상{background:rgba(184,110,0,.14);color:var(--warn)}.v.수동확인필요,.v.확인불가{background:rgba(91,95,151,.14);color:var(--q)}.v.해당없음,.v.확인됨,.v.대상아님,.v.확인됨현황도로{background:rgba(34,107,70,.12);color:var(--go)}.v.참고{background:var(--field);color:var(--sub)}
+.v.주의,.v.자료없음{background:rgba(184,110,0,.14);color:var(--warn)}.v.회피,.v.맹지의심{background:rgba(179,38,30,.13);color:var(--no)}.v.신중검토,.v.대상{background:rgba(184,110,0,.14);color:var(--warn)}.v.수동확인필요,.v.확인불가{background:rgba(91,95,151,.14);color:var(--q)}.v.해당없음,.v.확인됨,.v.대상아님,.v.확인됨현황도로{background:rgba(34,107,70,.12);color:var(--go)}.v.참고{background:var(--field);color:var(--sub)}
 tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 .veg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px;margin:8px 0}.veg label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14.5px}
 .prog{height:6px;background:var(--rule2);border-radius:9px;overflow:hidden;margin-top:10px}.prog i{display:block;height:100%;width:0;background:var(--mark);transition:width .3s}
@@ -53,6 +53,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   <div id="res" hidden>
     <section class="card verdict" id="vcard">
       <p class="sub" id="ttl"></p>
+      <div class="seg" id="biz" style="margin:4px 0 8px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
       <p id="vgrid" style="margin:10px 0 0;font-weight:700"></p>
@@ -86,10 +87,11 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261102s"></script>
+<script src="screen.js?v=20261102t"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
+  var BIZ="general";try{BIZ=localStorage.getItem("scr_biz")||"general"}catch(e){}
   var R=window.SCREEN_RULES,D=null,J=null,veg2="",vegP=[],MODE="st",map=null,ov=null,lines=null;
   function $(i){return document.getElementById(i)}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
@@ -119,7 +121,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
-  function redo(){J=Screen.judge(D,veg2,vegP);head();rows();per();drawMap();srcs()}
+  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});head();rows();per();drawMap();srcs()}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
@@ -155,6 +157,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
+  function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
+  $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
   function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
     [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],

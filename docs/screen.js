@@ -235,7 +235,8 @@
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
      식생 값: "3+" = Ⅲ등급 이상, "4" = Ⅳ등급, "4+" = Ⅳ등급 이상, "5" = Ⅴ등급 이하(농경지 등), "" = 모름 */
-  function judge(D, veg2, vegP) {
+  function judge(D, veg2, vegP, opt) {
+    opt = opt || {}; var village = opt.biz === "village";
     var S = R.slope, rows = [], P = D.P, sum = function (fn) { var a = 0; D.cells.forEach(function (c) { if (fn(c)) a += P[c.p].cellA; }); return Math.round(a); };
     /* 식생보전등급 판단: 생태자연도 '식생 평가등급'(vtn_evl_grad)이 있으면 그것으로, 없으면 사용자 입력으로.
        생태·자연도 작성지침: 식생 1등급 = 식생보전 Ⅰ·Ⅱ, 2등급 = Ⅲ·Ⅳ(또는 조사 안 된 자연식생 임상도 2영급 이상), 그 밖은 3등급(→ Ⅴ로 해석)
@@ -286,7 +287,7 @@
 
     // a) 백두대간·정맥
     var ha = legalHits("a"), rg = D.ridge || {}, rgOK = rg && !rg.err && rg.d !== undefined, rgNear = rgOK && rg.d !== null && rg.d <= R.ridgeNear;
-    V(G, "a", "백두대간·정맥 보호지역, 주요 산줄기 능선축(기맥 좌우 100m, 지맥 50m)", ha.length ? "회피" : rgNear ? "회피(정맥 근접)" : "수동확인필요", ha.length ? hitArea(ha) : null,
+    V(G, "a", "백두대간·정맥 보호지역, 주요 산줄기 능선축(기맥 좌우 100m, 지맥 50m)", ha.length ? "회피" : rgNear ? "회피(정맥 근접)" : rgOK ? "해당없음(정맥 기준)" : "자료 없음", ha.length ? hitArea(ha) : null,
       (ha.length ? hitText(ha) : "백두대간보호지역은 토지이용계획상 없음" + nedNote) + ". " +
         (rgOK ? (rg.d === null ? "가까운 9정맥 능선 없음(약 3km 안)" : "가장 가까운 정맥: " + rg.n + " 약 " + rg.d.toLocaleString() + "m" + (rgNear ? " — " + R.ridgeNear + "m 안" : "")) : "정맥 거리 계산 실패" + (rg.err ? "(" + rg.err + ")" : "")) +
         ". 기맥·지맥 선형은 공개 데이터가 없어 판정 못 함 — 산림청 산줄기 지도로 확인",
@@ -365,7 +366,6 @@
     var c2 = demOK ? sum(function (c) { return crops.indexOf(c.p) >= 0 && D.forestNb[c.p] && c.s !== null && c.s >= S.crop; }) : null;
     V(G2, "k2", "산림으로 둘러싸이거나 산림 경계와 연접한 경작지로 경사도 20° 이상", !crops.length ? "해당없음" : !demOK ? "확인 불가" : c2 ? "신중검토" : "해당없음", c2,
       crops.length ? "경작지(전·답·과) " + crops.map(function (i) { return P[i].jibun + (D.forestNb[i] ? "(산림 연접)" : ""); }).join(", ") + (demOK ? " — 20° 이상 " + (c2 || 0).toLocaleString() + "㎡ [추정]" : "") : "지목 전·답·과 필지 없음", "지침 신중검토", "지목·인접 필지 지목 + 표고[추정]");
-    V(G2, "k3", "동물 이동로·생태축, 양호한 산림 내부 100m 이상 진입로, 보호지역 1km 이내 등 나머지 항목", "수동확인필요", null, "공개 데이터로 자동 판정 불가 — 현장·도면 검토", "지침 신중검토 나머지", "-");
 
     // 인허가
     var zA = {}; D.cells.forEach(function (c) { var k = c.z || "(용도지역 없음)"; zA[k] = (zA[k] || 0) + P[c.p].cellA; });
@@ -383,20 +383,21 @@
     function isHome(h) { return (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
     function byLot(arr) { var m = {}; arr.forEach(function (h) { var k = h.pnu || h.name; if (!m[k] || h.d < m[k].d) m[k] = h; }); return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return a.d - b.d; }); }
     var hh2 = BU ? byLot(D.houses.filter(isHome)) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
-    V(G3, "s3", "주변 주택(이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", BU ? (hh2.length >= R.houses.n ? "수동확인필요" : "참고") : hf >= R.houses.n ? "수동확인필요" : "참고", null,
+    V(G3, "s3", "주변 주택(이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", "참고", null,
       BU ? "건축물대장 주용도 기준 주택(지번 단위) " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
         : R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택 여부 미구분" + (D.bldUse && D.bldUse._err ? " — 건축물대장 조회 실패: " + String(D.bldUse._err).slice(0, 80) + " (공공데이터포털에서 '국토교통부_건축HUB_건축물대장정보 서비스' 활용신청 필요할 수 있음)" : " — Apps Script를 새 코드로 배포하면 건축물대장 주용도로 주택만 셈"),
       R.houses.src, BU ? "건축물대장 표제부(건축HUB) + 도로명주소 건물" : "브이월드 도로명주소 건물");
     var SB = R.setback, rule = SB.sgg[D.sgg] || null, Dist = rule ? rule.house : SB.cap, NN = rule ? rule.n : SB.n;
     var hl = (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).map(function (h) { return h.d; }).sort(function (a, b) { return a - b; }), d5 = hl.length >= NN ? hl[NN - 1] : null;
-    V(G3, "s4", "주거지 이격거리(법 상한 · 시군 조례)", d5 === null ? "해당없음" : d5 < Dist ? (rule ? "회피" : "수동확인필요") : "해당없음", null,
-      (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
+    if (village) d5 = null;
+    V(G3, "s4", "주거지 이격거리(법 상한 · 시군 조례)", village ? "해당없음(주민참여형 예외)" : d5 === null ? "해당없음" : d5 < Dist ? (rule ? "회피" : "회피(법 상한 기준)") : "해당없음", null,
+      (village ? "햇빛소득마을(주민참여형 발전설비)은 재생에너지법 시행령상 이격거리 적용 제외로 판정. " : "") + (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
         (BU ? "주택" : "건물(주택 여부 미구분)") + " " + NN + "번째로 가까운 곳 " + (d5 === null ? R.houses.far + "m 밖" : d5 + "m") + (d5 !== null && d5 < Dist ? " → " + Dist + "m 안에 " + NN + "호 이상" : "") + ". 도로 이격은 법 개정으로 적용 안 함. '5호 이상 주거지'의 범위 산정 방식은 조례마다 달라 근사치",
       SB.law, BU ? "건축물대장 주용도" : "도로명주소 건물");
     var GR = D.grid, gbest = null;
     if (GR && GR.rows && GR.rows.length) GR.rows.forEach(function (r) { var f = Math.min(r.v1, r.v2, r.v3); if (isFinite(f) && (gbest === null || f > gbest.f)) gbest = { f: f, r: r }; });
-    V(G3, "s6", "한전 계통 여유용량", gbest ? (gbest.f > 0 ? "확인됨" : "회피") : "수동확인필요", null,
-      gbest ? gbest.r.sub + " 변전소 · 변압기 " + gbest.r.mtr + " · " + gbest.r.dl + " 선로 — 여유 변전소 " + Math.round(gbest.r.v1).toLocaleString() + "kW / 변압기 " + Math.round(gbest.r.v2).toLocaleString() + "kW / 선로 " + Math.round(gbest.r.v3).toLocaleString() + "kW → 이 중 가장 작은 " + Math.round(gbest.f).toLocaleString() + "kW까지 접속 여유. " + (GR.level !== "지번" ? "[주의] 지번 단위 자료가 없어 '" + GR.level + "' 단위 대표 선로 값 — 실제 연결 선로는 한전 확인 필요. " : "") + "조회 " + GR.ts + (GR.src === "saved" ? "(저장된 값)" : "")
+    V(G3, "s6", "한전 계통 여유용량(공개자료 참고값)", "참고", null,
+      gbest ? "한전 공개자료(분산전원 연계정보) 기준: " + gbest.r.sub + " 변전소 · 변압기 " + gbest.r.mtr + " · " + gbest.r.dl + " 선로 — 여유 변전소 " + Math.round(gbest.r.v1).toLocaleString() + "kW / 변압기 " + Math.round(gbest.r.v2).toLocaleString() + "kW / 선로 " + Math.round(gbest.r.v3).toLocaleString() + "kW → 이 중 가장 작은 " + Math.round(gbest.f).toLocaleString() + "kW까지 접속 여유. " + (GR.level !== "지번" ? "[주의] 지번 단위 자료가 없어 '" + GR.level + "' 단위 대표 선로 값 — 실제 연결 선로는 한전 확인 필요. " : "") + "조회 " + GR.ts + (GR.src === "saved" ? "(저장된 값)" : "") + ". 공개값에는 이미 접수돼 대기 중인 물량이 빠져 있을 수 있어 [추정] 실제 여유와 다를 수 있음 — 실제 접속 가능 여부는 한전 문의 결과가 우선"
         : "조회 못 함" + (GR && GR.err ? "(" + GR.err + ")" : "") + " — Apps Script에 한전키를 넣으면 자동 조회",
       "한전 분산전원 연계정보(여유 = 기준용량 − 접속용량, 단위 kW)", "한전 전력데이터 개방포털");
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
@@ -409,9 +410,10 @@
         s15: s(function (c) { return c.s !== null && c.s >= S.avoid; }), av: s(function (c) { return c.st === 2; }), cau: s(function (c) { return c.st === 1; }), unk: s(function (c) { return c.st === 3; }), forest: !!D.forestNb[i] }; });
     var tot = { av: per.reduce(function (a, r) { return a + r.av; }, 0), cau: per.reduce(function (a, r) { return a + r.cau; }, 0), unk: per.reduce(function (a, r) { return a + r.unk; }, 0), area: Math.round(area(P)) };
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
+    rows.forEach(function (r) { if (r.v === "수동확인필요") r.v = "주의"; });
     // ── 한눈 결론: 칸마다 설치 불가 사유(먼저 걸린 것 하나) ──
     var legalI = {}; ["a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") legalI[y.i] = x.name; }); }); });
-    var homesIn = (d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
+    var homesIn = (!village && d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
     var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
     D.cells.forEach(function (c) { var r = null;
       if (legalI[c.p]) r = legalI[c.p];
@@ -435,8 +437,8 @@
     var miss = []; if (!ecoOK) miss.push("생태자연도"); if (!demOK) miss.push("경사"); if (nedErr.length) miss.push("토지이용계획(" + nedErr.join(", ") + ")"); if (!hzOK && san.length) miss.push("산사태위험지도");
     var verdict = ok < 1000 ? "불가" : noA < total * 0.05 ? "가능" : "일부 가능";
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
-    var gridTxt = gbest ? "한전 계통 여유 약 " + (gbest.f >= 1000 ? (gbest.f / 1000).toFixed(1) + "MW" : Math.round(gbest.f) + "kW") + " (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위 값" : "") + ")" : "한전 계통 여유: 조회 못 함";
-    if (gbest && gbest.f <= 0) cond.unshift("한전 계통 여유 없음 — 접속 불가 가능성(선로·변압기 증설 대기)");
+    var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
+    cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     return { rows: rows, per: per, tot: tot, sum: sum };
   }
