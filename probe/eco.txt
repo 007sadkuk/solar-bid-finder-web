@@ -1,17 +1,16 @@
-TYPES ['tbl_opn_eczm', 'tbl_opn_smld_evl', 'tbl_opn_tpgrph_evl', 'tbl_opn_vtn_evl']
-== yeongcheon tbl_opn_eczm n 20 ['amplt_evl_grad', 'bbox', 'census_ttle', 'cln_symbl', 'eczm_grad', 'frph_agcl_code', 'plnt_cln_ttle', 'precise_smld_ttle', 'smld_evl_grad', 'tpgrph_evl_grad', 'tpgrph_ttle', 'vtn_evl_grad']
-    {"eczm_grad": "2", "vtn_evl_grad": "3", "amplt_evl_grad": "3", "smld_evl_grad": "2", "tpgrph_evl_grad": "3", "cln_symbl": null, "plnt_cln_ttle": null, "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "1", "vtn_evl_grad": "3", "amplt_evl_grad": "3", "smld_evl_grad": "1", "tpgrph_evl_grad": "3", "cln_symbl": null, "plnt_cln_ttle": null, "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "1", "vtn_evl_grad": "3", "amplt_evl_grad": "3", "smld_evl_grad": "1", "tpgrph_evl_grad": "3", "cln_symbl": null, "plnt_cln_ttle": null, "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "1", "vtn_evl_grad": "3", "amplt_evl_grad": "3", "smld_evl_grad": "1", "tpgrph_evl_grad": "3", "cln_symbl": null, "plnt_cln_ttle": null, "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-== yeongcheon tbl_opn_smld_evl ERR Expecting value: line 1 column 1 (char 0)
-== yeongcheon tbl_opn_tpgrph_evl ERR Expecting value: line 1 column 1 (char 0)
-== yeongcheon tbl_opn_vtn_evl ERR Expecting value: line 1 column 1 (char 0)
-== seosan tbl_opn_eczm n 20 ['amplt_evl_grad', 'bbox', 'census_ttle', 'cln_symbl', 'eczm_grad', 'frph_agcl_code', 'plnt_cln_ttle', 'precise_smld_ttle', 'smld_evl_grad', 'tpgrph_evl_grad', 'tpgrph_ttle', 'vtn_evl_grad']
-    {"eczm_grad": "2", "vtn_evl_grad": "2", "amplt_evl_grad": "3", "smld_evl_grad": "3", "tpgrph_evl_grad": "3", "cln_symbl": "PdQa", "plnt_cln_ttle": "소나무-상수리나무군락", "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "2", "vtn_evl_grad": "2", "amplt_evl_grad": "3", "smld_evl_grad": "3", "tpgrph_evl_grad": "3", "cln_symbl": "PdQa", "plnt_cln_ttle": "소나무-상수리나무군락", "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "2", "vtn_evl_grad": "2", "amplt_evl_grad": "3", "smld_evl_grad": "3", "tpgrph_evl_grad": "3", "cln_symbl": "PdPt", "plnt_cln_ttle": "소나무-곰솔군락", "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-    {"eczm_grad": "2", "vtn_evl_grad": "2", "amplt_evl_grad": "3", "smld_evl_grad": "3", "tpgrph_evl_grad": "3", "cln_symbl": "PdPt", "plnt_cln_ttle": "소나무-곰솔군락", "frph_agcl_code": "0", "precise_smld_ttle": null, "census_ttle": null, "tpgrph_ttle": null}
-== seosan tbl_opn_smld_evl ERR Expecting value: line 1 column 1 (char 0)
-== seosan tbl_opn_tpgrph_evl ERR Expecting value: line 1 column 1 (char 0)
-== seosan tbl_opn_vtn_evl ERR Expecting value: line 1 column 1 (char 0)
+== tbl_opn_vtn_evl application/json 432
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_vtn_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== tbl_opn_vtn_evl None 432
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_vtn_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== open:tbl_opn_vtn_evl application/json 432
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_vtn_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== open:tbl_opn_vtn_evl None 432
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_vtn_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== tbl_opn_smld_evl application/json 433
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_smld_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== tbl_opn_smld_evl None 433
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_smld_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== DESC tbl_opn_vtn_evl
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_vtn_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
+== DESC tbl_opn_smld_evl
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_smld_evl ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
