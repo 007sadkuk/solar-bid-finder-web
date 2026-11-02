@@ -397,7 +397,7 @@
       else if (c.e === "1") r = "생태자연도 1등급";
       else if (c.st === 2 && c.e === "2" && c.vg.ge3) r = "생태자연도 2등급 + 식생 양호";
       else if (c.st === 2 && c.s !== null && c.s >= S.avoid) r = "경사 15° 이상 산림";
-      else if (c.st === 3) r = "식생 등급 확인 안 됨";
+      else if (c.st === 3) r = "식생등급 자료 없음(안전하게 제외)";
       if (!r && san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2) r = "산사태위험 1·2등급";
       if (!r && c.x && c.x.smld === "1") r = "멸종위기종 서식";
       if (!r && rgNear) r = "정맥 100m 안";

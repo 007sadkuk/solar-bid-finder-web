@@ -85,7 +85,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261102p"></script>
+<script src="screen.js?v=20261102q"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -116,7 +116,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
   function redo(){J=Screen.judge(D,veg2,vegP);head();rows();per();drawMap();srcs()}
-  function head(){var P=D.P,S=J.sum;$("ttl").textContent=P[0].addr.replace(/\s\S+$/,"")+" "+P.map(function(p){return p.jibun}).join(", ")+" · "+n(S.total);
+  function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
