@@ -295,6 +295,13 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     <div id="map" aria-label="필지 위치 지도"></div>
     </div>
 
+    <div class="sheet" id="solarw" hidden>
+      <h2 class="t">태양광 입지 검토 <small style="font-weight:600;color:var(--sub)">(관리자)</small></h2>
+      <p class="t" id="solarHint">협의지침·경사·생태자연도·산사태·주택 이격·한전 여유용량까지 한 번에 판정합니다.</p>
+      <form id="solarLock" style="display:flex;gap:8px;flex-wrap:wrap"><input id="solarPw" type="password" inputmode="numeric" autocomplete="off" placeholder="관리자 비밀번호" style="font:inherit;padding:10px 12px;border-radius:10px;border:1.5px solid #cfd9cc"><button class="btn" type="submit">열기</button><span id="solarMsg" style="color:#9a3131;align-self:center"></span></form>
+      <iframe id="solarFrame" title="태양광 입지 검토" hidden style="width:100%;border:0;min-height:700px;border-radius:12px"></iframe>
+    </div>
+
     <div class="talk" id="talk">
       <h2>이 땅, 직접 상담받아 보세요</h2>
       <p>금호테크닉스가 인허가 조건과 사업성을 현장 기준으로 다시 확인해 연락드립니다.</p>
@@ -678,7 +685,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     notes.forEach(function(t){NN.appendChild(el("p",null,t))});
 
     $("eum").href="https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+P.pnu+"&mode=search&isNoScr=script";
-    $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);
+    $("prog").style.display="none";$("rep").style.display="block";drawMap(par);drawPlot(par,zone);if(window.solarShow)solarShow($("addr").value.trim());
     $("rep").scrollIntoView({behavior:"smooth",block:"start"});
     return {zone:zone,area:Math.round(area),best:U.filter(function(u){return u.l===0}).map(function(u){return u.name}).join(",")};
   }
@@ -847,6 +854,18 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
     if(o)m.scrollIntoView({behavior:"smooth",block:"start"})});
   window.addEventListener("beforeprint",function(){if(MAP&&MAP._bfPoly){MAP.invalidateSize()}});
   $("again").addEventListener("click",function(){$("rep").style.display="none";$("addr").value="";window.scrollTo({top:0,behavior:"smooth"});setTimeout(function(){$("addr").focus()},400)});
+})();
+</script>
+<script>
+/* 태양광 입지 검토(관리자): screen.html을 이 리포트 안에 끼워 보여줌 — 비밀번호는 해시로만 비교 */
+(function(){var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6",Q="";
+  function $(i){return document.getElementById(i)}
+  function ok(){try{return localStorage.getItem("scr_ok")===H}catch(e){return false}}
+  function load(){var f=$("solarFrame");$("solarLock").hidden=true;f.hidden=false;f.src="screen.html?embed=1&addr="+encodeURIComponent(Q)}
+  window.solarShow=function(q){Q=q;$("solarw").hidden=false;$("solarFrame").hidden=true;$("solarFrame").src="about:blank";if(ok())load();else $("solarLock").hidden=false};
+  $("solarLock").addEventListener("submit",function(e){e.preventDefault();crypto.subtle.digest("SHA-256",new TextEncoder().encode($("solarPw").value.trim())).then(function(b){var h=Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("");
+    if(h===H){try{localStorage.setItem("scr_ok",H)}catch(e){}load()}else $("solarMsg").textContent="비밀번호가 맞지 않습니다"})});
+  window.addEventListener("message",function(e){if(e.origin===location.origin&&e.data&&e.data.scrH)$("solarFrame").style.height=(e.data.scrH+20)+"px"});
 })();
 </script>
 </body></html>

@@ -98,6 +98,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
   function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
   function open(){$("gate").hidden=true;$("app").hidden=false;var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
+  var EMB=new URLSearchParams(location.search).get("embed")==="1";
+  if(EMB){document.querySelector("header").hidden=true;$("f").hidden=true;document.body.style.background="transparent";
+    setInterval(function(){try{parent.postMessage({scrH:document.documentElement.scrollHeight},location.origin)}catch(e){}},700)}
   var ok=false;try{ok=localStorage.getItem("scr_ok")===H}catch(e){}
   if(ok)open();else $("gate").hidden=false;
   $("gate").addEventListener("submit",function(e){e.preventDefault();sha($("gpw").value.trim()).then(function(h){if(h===H){try{localStorage.setItem("scr_ok",H)}catch(e){}open()}else $("gmsg").textContent="비밀번호가 맞지 않습니다"})});
@@ -105,9 +108,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   $("f").addEventListener("submit",function(e){e.preventDefault();go()});
   function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%"}
   function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
-    try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
+    if(!EMB)try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
     Screen.run(t,prog).then(function(d){D=d;veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
-      setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
+      if(!EMB)setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
     .catch(function(e){$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
 
   function vegUI(){var V=$("veg");V.innerHTML="";var has2=D.cells.some(function(c){return c.e==="2"&&c.v!=="1"&&c.v!=="3"});
