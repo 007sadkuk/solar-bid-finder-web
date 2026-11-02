@@ -3,24 +3,19 @@ from pyproj import Transformer
 K = urllib.parse.unquote(os.environ.get("DATA_GO_KR_KEY", "").strip())
 B = "https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService/wfs/getEcologyzmpWFS"
 t = Transformer.from_crs("EPSG:4326", "EPSG:5186", always_xy=True)
-def get(q, to=60):
-    with urllib.request.urlopen(B + "?" + urllib.parse.urlencode(dict({"ServiceKey": K}, **q)), timeout=to) as r:
-        return r.read().decode("utf-8", "replace")
-names = []
-try:
-    s = get({"service": "WFS", "request": "GetCapabilities"})
-    names = re.findall(r"<Name>open:([A-Za-z0-9_]+)</Name>", s)
-    print("TYPES", names)
-except Exception as e: print("ERR cap", str(e)[:200])
-# 영천 금호읍 원제리 부근 / 서산 명천리 부근
-for lab, lon, lat in [("yeongcheon", 128.87, 35.93), ("seosan", 126.4950, 36.8310)]:
-    x, y = t.transform(lon, lat); d = 600
-    for tn in names or ["tbl_opn_eczm"]:
-        try:
-            j = json.loads(get({"typeName": tn, "srsName": "EPSG:5186", "bbox": f"{x-d},{y-d},{x+d},{y+d}", "outputFormat": "application/json"}))
-            fs = j.get("features", []); keys = set()
-            for f in fs: keys |= set(f["properties"].keys())
-            print("==", lab, tn, "n", len(fs), sorted(keys))
-            for f in fs[:4]:
-                p = dict(f["properties"]); p.pop("bbox", None); print("   ", json.dumps(p, ensure_ascii=False)[:500])
-        except Exception as e: print("==", lab, tn, "ERR", str(e)[:200])
+def get(q, to=90):
+    try:
+        with urllib.request.urlopen(B + "?" + urllib.parse.urlencode(dict({"ServiceKey": K}, **q)), timeout=to) as r:
+            return r.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        return "HTTP %s %s" % (e.code, e.read().decode("utf-8", "replace")[:500])
+    except Exception as e:
+        return "ERR " + str(e)[:200]
+x, y = t.transform(126.4950, 36.8310); d = 400
+for tn in ["tbl_opn_vtn_evl", "open:tbl_opn_vtn_evl", "tbl_opn_smld_evl"]:
+    for fmt in ["application/json", None]:
+        q = {"typeName": tn, "srsName": "EPSG:5186", "bbox": f"{x-d},{y-d},{x+d},{y+d}", "maxFeatures": "5"}
+        if fmt: q["outputFormat"] = fmt
+        s = get(q); print("==", tn, fmt, len(s)); print(re.sub(r"\s+", " ", s)[:1500])
+for tn in ["tbl_opn_vtn_evl", "tbl_opn_smld_evl"]:
+    s = get({"service": "WFS", "version": "1.0.0", "request": "DescribeFeatureType", "typeName": tn}); print("== DESC", tn); print(re.sub(r"\s+", " ", s)[:1500])
