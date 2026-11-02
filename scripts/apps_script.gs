@@ -23,6 +23,14 @@ function eco_(bb) {
     return [String(q.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); }), String(q.vtn_evl_grad || ""), q.plnt_cln_ttle || "", q.frph_agcl_code || "",
       { smld: String(q.smld_evl_grad || ""), smldNm: q.precise_smld_ttle || "", tpg: String(q.tpgrph_evl_grad || ""), tpgNm: q.tpgrph_ttle || "", amplt: String(q.amplt_evl_grad || ""), census: q.census_ttle || "" }]; }) };
 }
+function vtn_(bb) {  // 국립생태원 식생평가(식생보전등급) WFS — 공공데이터포털 '국립생태원_식생평가 서비스' 활용신청 필요
+  if (!/^[\d.]+,[\d.]+,[\d.]+,[\d.]+$/.test(bb)) return { error: "bbox" };
+  var r = UrlFetchApp.fetch("https://apis.data.go.kr/B553084/ecoapi/ActvnmapService/wfs/getActvnmapWFS?ServiceKey=" + encodeURIComponent(decodeURIComponent(DATA_KEY.trim())) + "&typeName=tbl_opn_vtn_evl&srsName=EPSG:5186&outputFormat=application/json&bbox=" + bb, { muteHttpExceptions: true }), j;
+  try { j = JSON.parse(r.getContentText()); } catch (x) { return { error: "응답 " + r.getResponseCode() + " " + r.getContentText().slice(0, 300) }; }
+  return { f: (j.features || []).map(function (f) { var g = f.geometry || {}, cs = g.type === "Polygon" ? [g.coordinates] : (g.coordinates || []), q = f.properties || {}, o = {};
+    Object.keys(q).forEach(function (k) { if (k !== "bbox") o[k] = q[k]; });
+    return [o, cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); })]; }) };
+}
 function bld_(list) {  // 건축물대장 표제부(주용도): pnu 여러 개(쉼표) → {pnu: ["단독주택", ...]}
   var ps = String(list || "").split(",").filter(function (x) { return /^\d{19}$/.test(x); }).slice(0, 40), key = encodeURIComponent(decodeURIComponent(DATA_KEY.trim()));
   if (!ps.length) return { error: "pnu" };
@@ -46,6 +54,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   if (p.action === "eco") return json_(eco_(p.bbox || ""));
   if (p.action === "bld") return json_(bld_(p.pnu || ""));
+  if (p.action === "vtn") return json_(vtn_(p.bbox || ""));
   if (p.action === "admin") return json_(admin_(p.pw));
   var ss = book_(); add_(ss, "검색", HS, [new Date(), "(접속 확인)"]);
   return ContentService.createTextOutput("정상 작동 중입니다. 기록 시트: " + ss.getUrl());

@@ -74,6 +74,21 @@
     Object.keys(out).forEach(function (d) { out[d] = out[d].map(function (k) { return keys[k].v; }); });
     out.n = jobs.length; out.fail = fail; return out; }
 
+  /* 식생보전등급(국립생태원 식생평가 WFS, Apps Script 중계 action=vtn) — 속성 이름이 확정 안 돼 '등급'으로 보이는 값(1~5, Ⅰ~Ⅴ)을 찾음 */
+  function vtnFetch(bReal) {
+    if (!CFG.endpoint) return Promise.resolve({ err: "중계 없음" });
+    var a = tm5186(bReal[0], bReal[1]), c = tm5186(bReal[2], bReal[3]), bb = [Math.min(a[0], c[0]) - 5, Math.min(a[1], c[1]) - 5, Math.max(a[0], c[0]) + 5, Math.max(a[1], c[1]) + 5].map(function (v) { return v.toFixed(1); }).join(",");
+    return fetch(CFG.endpoint + "?action=vtn&bbox=" + bb).then(function (r) { return r.text(); }).then(function (t) { var j; try { j = JSON.parse(t); } catch (e) { return { err: "중계가 아직 식생평가를 지원하지 않음(Apps Script 새 버전 필요)" }; }
+      if (!j.f) return { err: j.error || "응답 형식" };
+      return { f: j.f.map(function (f) { return { g: vgrade(f[0]), o: f[0], rs: f[1].map(function (r) { return { r: r, b: bbox(r) }; }) }; }) };
+    }).catch(function (e) { return { err: e.message }; });
+  }
+  function vgrade(o) { var R5 = { "Ⅰ": 1, "Ⅱ": 2, "Ⅲ": 3, "Ⅳ": 4, "Ⅴ": 5, "I": 1, "II": 2, "III": 3, "IV": 4, "V": 5 };
+    function val(v) { if (v === null || v === undefined) return null; var t = String(v).trim().replace(/등급$/, ""); if (R5[t]) return R5[t]; var n = +t; return n >= 1 && n <= 5 ? n : null; }
+    var pref = ["vtn_cnsv_grad", "vtn_cnsv_grd", "vtncnsv_grad", "cnsv_grad", "cnsv_grd", "vtn_grad", "vtn_evl_grad", "grad", "grade"];
+    for (var i = 0; i < pref.length; i++) if (o[pref[i]] !== undefined && val(o[pref[i]]) !== null) return val(o[pref[i]]);
+    var ks = Object.keys(o).filter(function (k) { return /grad|grd|grade|등급/i.test(k); }); for (var k = 0; k < ks.length; k++) { var v = val(o[ks[k]]); if (v !== null) return v; } return null; }
+
   async function allFeatures(layer, b, maxPage) { var out = []; for (var pg = 1; pg <= (maxPage || 3); pg++) {
       var q = await BFGeo.vwData(layer, { geomFilter: "BOX(" + b.join(",") + ")", size: "1000", page: String(pg) }).catch(function () { return { status: "ERR", features: [] }; });
       out = out.concat(q.features || []); if (!q.features || q.features.length < 1000) break; } return out; }
@@ -112,11 +127,11 @@
     var zoneP = Promise.all(["LT_C_UQ111", "LT_C_UQ112", "LT_C_UQ113", "LT_C_UQ114"].map(function (L) { return allFeatures(L, B, 2); }));
     var nedP = Promise.all(P.map(function (p) { return BFGeo.nedQuery(p.pnu).then(function (x) { return x; }).catch(function (e) { return { err: e.message }; }); }));
     var lcP = Promise.all(P.map(function (p) { return BFGeo.landChar(p.pnu).catch(function () { return null; }); }));
-    var ecoP = ecoFetch(Breal);
+    var ecoP = ecoFetch(Breal), vtnP = vtnFetch(Breal);
     var demP = demPrep(pad(Breal, 40)).then(function () { return null; }).catch(function (e) { return e.message; });
     var nbP = allFeatures("LP_PA_CBND_BUBUN", pad(B, 25), 2);
     var bldP = allFeatures("LT_C_SPBD", pad(Breal, R.houses.far + 20), 3);
-    var zr = await zoneP, ned = await nedP, eco = await ecoP, demErr = await demP, nb = await nbP, bld = await bldP;
+    var zr = await zoneP, ned = await nedP, eco = await ecoP, demErr = await demP, nb = await nbP, bld = await bldP, vtn = await vtnP;
 
     var zones = []; zr.forEach(function (fs) { fs.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { zones.push({ n: pr.uname || "?", y: pr.dyear || "", r: r, b: bbox(r) }); }); }); });
     var lc = await lcP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; });
@@ -132,9 +147,10 @@
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
       var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null;
       if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; } }
+      var vt = null; if (vtn.f) { var t2 = tm5186(rl[0], rl[1]); for (var e2 = 0; e2 < vtn.f.length; e2++) if (vtn.f[e2].g !== null && vtn.f[e2].rs.some(function (o) { return inB(t2, o.b) && pip(t2, o.r); })) { vt = vtn.f[e2].g; break; } }
       var sl = null, el = null;
       if (!demErr) { el = elev(rl[0], rl[1]); if (!isFinite(el)) el = null; var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, vt: vt, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -191,7 +207,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -207,6 +223,7 @@
     function commGe3(n) { if (/식재림|조림|식재/.test(n)) return false; if (/초지|관목|덤불|나지|경작|과수|묘포/.test(n)) return null; return /군락/.test(n) ? true : null; }
     function vegOf(c) {
       function inp(v) { return v === "3+" ? { ge3: true, ge4: true } : v === "4" ? { ge3: false, ge4: true } : v === "4+" ? { ge3: null, ge4: true } : v === "5" ? { ge3: false, ge4: false } : { ge3: null, ge4: null }; }
+      if (c.vt) return { ge3: c.vt <= 3, ge4: c.vt <= 4, src: "vtn" };
       if (c.v === "1") return { ge3: true, ge4: true, src: "eco" };
       if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
       if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
@@ -359,7 +376,34 @@
         s15: s(function (c) { return c.s !== null && c.s >= S.avoid; }), av: s(function (c) { return c.st === 2; }), cau: s(function (c) { return c.st === 1; }), unk: s(function (c) { return c.st === 3; }), forest: !!D.forestNb[i] }; });
     var tot = { av: per.reduce(function (a, r) { return a + r.av; }, 0), cau: per.reduce(function (a, r) { return a + r.cau; }, 0), unk: per.reduce(function (a, r) { return a + r.unk; }, 0), area: Math.round(area(P)) };
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
-    return { rows: rows, per: per, tot: tot };
+    // ── 한눈 결론: 칸마다 설치 불가 사유(먼저 걸린 것 하나) ──
+    var legalI = {}; ["a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") legalI[y.i] = x.name; }); }); });
+    var homesIn = (d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
+    var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
+    D.cells.forEach(function (c) { var r = null;
+      if (legalI[c.p]) r = legalI[c.p];
+      else if (c.e === "1") r = "생태자연도 1등급";
+      else if (c.st === 2 && c.e === "2" && c.vg.ge3) r = "생태자연도 2등급 + 식생 양호";
+      else if (c.st === 2 && c.s !== null && c.s >= S.avoid) r = "경사 15° 이상 산림";
+      else if (c.st === 3) r = "식생 등급 확인 안 됨";
+      if (!r && san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2) r = "산사태위험 1·2등급";
+      if (!r && c.x && c.x.smld === "1") r = "멸종위기종 서식";
+      if (!r && rgNear) r = "정맥 100m 안";
+      if (!r && homesIn.length) { var lo = D.B[0] + (c.ix + 0.5) * D.dlon + sh.dx, la = D.B[1] + (c.iy + 0.5) * D.dlat + sh.dy;
+        if (homesIn.some(function (h) { return Math.hypot((h.c[1] - lo) * kx, (h.c[0] - la) * ky) < Dist; })) r = "주택 " + Dist + "m 이격"; }
+      c.no = r; if (r) { why[r] = (why[r] || 0) + P[c.p].cellA; noA += P[c.p].cellA; } });
+    var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
+    var cond = [];
+    if (/맹지/.test(rows.filter(function (r) { return r.id === "s2"; })[0].v) || (rd && lcAll)) cond.push("진입로: 지적도·현황상 도로 연결 확인 필요");
+    if (ratio >= 1 && !urb) cond.push("소규모 환경영향평가 대상(환경청 협의 절차 필요)");
+    if (gIdx !== null && gIdx >= 1.5) cond.push("토공량이 많을 수 있음(계단식 배치 필요)");
+    var field = ["생태자연도에 없는 보호종·철새도래지", "기맥·지맥 능선(정맥만 자동 확인)"]; if (BU && unk) field.push("건축물대장 없는 건물 " + unk + "동이 주택인지");
+    var est = D.cells.some(function (c) { return !c.no && c.vg && c.vg.est; });
+    var miss = []; if (!ecoOK) miss.push("생태자연도"); if (!demOK) miss.push("경사"); if (nedErr.length) miss.push("토지이용계획(" + nedErr.join(", ") + ")"); if (!hzOK && san.length) miss.push("산사태위험지도");
+    var verdict = ok < 1000 ? "불가" : noA < total * 0.05 ? "가능" : "일부 가능";
+    if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
+    var sum = { verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    return { rows: rows, per: per, tot: tot, sum: sum };
   }
   function uniqA(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
   function area(P) { return P.reduce(function (s, p) { return s + p.area; }, 0); }

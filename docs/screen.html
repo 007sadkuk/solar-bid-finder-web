@@ -29,7 +29,11 @@ textarea{width:100%;min-height:76px}
 tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 .veg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px;margin:8px 0}.veg label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14.5px}
 .prog{height:6px;background:var(--rule2);border-radius:9px;overflow:hidden;margin-top:10px}.prog i{display:block;height:100%;width:0;background:var(--mark);transition:width .3s}
-@media (max-width:720px){.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
+.verdict .vline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:4px 0 10px}.vbig{font-size:34px;font-weight:900}.vbig.g{color:var(--go)}.vbig.y{color:var(--warn)}.vbig.r{color:var(--no)}.vok{font-size:18px;font-weight:700}
+.bar{height:12px;border-radius:9px;background:rgba(179,38,30,.25);overflow:hidden}.bar i{display:block;height:100%;background:var(--go)}
+.vcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}.vcols ul{margin:0;padding-left:1.1em}.vcols li{margin:3px 0}
+details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.more[open]>summary{margin-bottom:12px}
+@media (max-width:720px){.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
 @media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
 </style>
 </head><body>
@@ -47,30 +51,32 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
   </form>
 
   <div id="res" hidden>
-    <div class="warn"><b>사전 스크리닝 결과입니다.</b> 개발행위허가·환경청 협의의 확정 판정이 아닙니다. 공개 데이터로 판정할 수 없는 항목은 '수동확인필요' 또는 '확인 불가'로 두었고, 추정치는 [추정]으로 표시했습니다.</div>
-    <section class="card">
-      <h2 id="ttl"></h2><p class="sub" id="meta"></p>
-      <div class="kpi" id="kpi"></div>
+    <section class="card verdict" id="vcard">
+      <p class="sub" id="ttl"></p>
+      <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
+      <div class="bar"><i id="vbar"></i></div>
+      <div class="vcols">
+        <div><h3>설치 못 하는 부분</h3><ul id="vwhy"></ul></div>
+        <div><h3>허가 전에 챙길 것</h3><ul id="vcond"></ul></div>
+      </div>
+      <p class="sub" id="vfield"></p>
+      <p class="sub">공공 데이터로 본 사전 검토 결과입니다(허가·협의 확정 아님). <span id="meta"></span></p>
     </section>
-
-    <section class="card">
-      <h2>식생보전등급 입력</h2>
-      <p class="sub">식생보전등급은 공개 API가 없어 직접 넣어야 판정이 끝납니다(생태자연도 서비스의 식생평가 또는 현장조사 기준). 바꾸면 바로 다시 계산합니다.</p>
-      <div class="veg" id="veg"></div><p class="sub" id="vegNote"></p>
-    </section>
-
     <section class="card">
       <h2>지도</h2>
-      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">판정</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
+      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
       <div id="map"></div><div class="lg" id="lg"></div>
       <p class="sub" id="shiftNote"></p>
     </section>
 
-    <section class="card"><h2>항목별 판정</h2><div class="tw"><table id="rows"></table></div></section>
-    <section class="card"><h2>필지별 면적</h2><div class="tw"><table id="per"></table></div>
-      <p class="sub">면적은 필지 경계(연속지적도) 기준으로 계산해 토지대장 면적과 조금 다를 수 있습니다. 판정 열의 '확인 필요'는 식생보전등급을 넣으면 회피 여부가 정해지는 면적입니다.</p></section>
-    <section class="card"><h2>데이터·기준</h2><div class="sub" id="src"></div>
-      <p class="noprint"><button class="btn s" type="button" id="csv">CSV 받기</button> <button class="btn s" type="button" onclick="print()">인쇄·PDF</button></p></section>
+    <details class="card more"><summary>자세히 보기 — 항목별 근거, 필지별 면적, 식생등급 바꾸기</summary>
+    <h2>식생보전등급</h2><p class="sub">자동으로 정해집니다. 에코뱅크 값과 다를 때만 바꾸세요.</p>
+    <div class="veg" id="veg"></div><p class="sub" id="vegNote"></p>
+    <h2>항목별 근거</h2><div class="tw"><table id="rows"></table></div>
+    <h2>필지별 면적</h2><div class="tw"><table id="per"></table></div>
+      <p class="sub">면적은 필지 경계(연속지적도) 기준으로 계산해 토지대장 면적과 조금 다를 수 있습니다. </p>
+    <h2>데이터·기준</h2><div class="sub" id="src"></div>
+      <p class="noprint"><button class="btn s" type="button" id="csv">CSV 받기</button> <button class="btn s" type="button" onclick="print()">인쇄·PDF</button></p></details>
   </div>
   </section>
 </main>
@@ -79,7 +85,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261102m"></script>
+<script src="screen.js?v=20261102n"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -108,11 +114,15 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
     if(has2)sel("생태자연도 2등급 구간",[["","자동(군락명으로 추정)"],["3+","Ⅲ등급 이상"],["4","Ⅳ등급"]],veg2,function(v){veg2=v});
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
-    var note=$("vegNote");note.textContent=D.eco.attrs?"생태자연도 식생 평가가 있는 곳은 자동으로 반영했습니다(식생 평가 1 = 식생보전 Ⅰ·Ⅱ, 2 = Ⅲ 또는 Ⅳ, 3 = Ⅴ). 평가 2는 Ⅲ과 Ⅳ를 구분하지 못해 위에서 골라야 합니다.":D.eco.err?"":"생태자연도 식생 평가값을 아직 받지 못하고 있습니다(Apps Script를 새 코드로 배포하면 자동 반영). 지금은 입력값으로만 판정합니다."}
+    var note=$("vegNote");var nv=D.cells.filter(function(c){return c.vt}).length;note.textContent=nv?"국립생태원 식생평가(식생보전등급) 자료가 있는 곳은 그 값을 그대로 썼습니다("+Math.round(nv/D.cells.length*100)+"%). 나머지는 생태자연도 군락명·이용상황으로 자동 판단했습니다.":"식생보전등급은 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다"+(D.vtn&&D.vtn.err?" (국립생태원 식생평가 자료 미연결: "+D.vtn.err+")":"")+"."}
   function redo(){J=Screen.judge(D,veg2,vegP);head();rows();per();drawMap();srcs()}
-  function head(){var P=D.P;$("ttl").textContent=P[0].addr.replace(/\s\S+$/,"")+" "+P.map(function(p){return p.jibun}).join(", ")+(P.length>1?" ("+P.length+"필지)":"");
-    $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR")+" · 격자 "+D.step.toFixed(1)+"m 간격으로 계산";
-    var K=$("kpi"),T=J.tot;K.innerHTML="";[["av","회피",T.av],["ca","신중검토",T.cau],["uk","식생 확인 시 회피 가능",T.unk],["ok","그 밖의 면적",T.ok]].forEach(function(x){var d=el("div",x[0]);d.appendChild(el("b",null,n(x[2])));d.appendChild(el("span",null,x[1]+" · 전체 "+n(T.area)+" 중 "+(T.area?Math.round(x[2]/T.area*100):0)+"%"));K.appendChild(d)})}
+  function head(){var P=D.P,S=J.sum;$("ttl").textContent=P[0].addr.replace(/\s\S+$/,"")+" "+P.map(function(p){return p.jibun}).join(", ")+" · "+n(S.total);
+    $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
+    var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
+    $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
+    var W=$("vwhy");W.innerHTML="";if(!S.why.length)W.appendChild(el("li",null,"없음"));S.why.forEach(function(x){W.appendChild(el("li",null,x[0]+" — "+n(x[1])))});
+    var C=$("vcond");C.innerHTML="";if(!S.cond.length)C.appendChild(el("li",null,"특별한 것 없음"));S.cond.forEach(function(x){C.appendChild(el("li",null,x))});
+    $("vfield").textContent="현장에서 한 번 볼 것: "+S.field.join(" · ")+(S.est?" · 식생등급 일부는 군락명·이용상황으로 자동 판단":"")}
   function rows(){var t=$("rows");t.innerHTML="";var h=el("tr");["항목","판정","면적","내용","근거","데이터"].forEach(function(x){h.appendChild(el("th",null,x))});var th=el("thead");th.appendChild(h);t.appendChild(th);var tb=el("tbody"),g="";
     J.rows.forEach(function(r){if(r.g!==g){g=r.g;var gr=el("tr","grp"),td=el("td",null,g);td.colSpan=6;gr.appendChild(td);tb.appendChild(gr)}
       var tr=el("tr");tr.appendChild(el("td",null,r.t));var tv=el("td");tv.appendChild(el("span","v "+r.v.replace(/\s|\(.*\)/g,""),r.v));tr.appendChild(tv);tr.appendChild(el("td","n",r.a==null?"-":n(r.a)));tr.appendChild(el("td",null,r.d));tr.appendChild(el("td","sub",r.b));tr.appendChild(el("td","sub",r.src));tb.appendChild(tr)});t.appendChild(tb)}
@@ -122,7 +132,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 
   var COL={st:{2:[179,38,30],1:[224,140,0],3:[110,110,200],0:null},e:{"1":[0,90,40],"2":[60,170,80],"3":[200,220,120],"9":[150,90,200]},z:{}};
   var ZC=[[66,133,244],[219,68,55],[244,180,0],[15,157,88],[171,71,188],[0,172,193]];
-  function cellColor(c){if(MODE==="st")return COL.st[c.st];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
+  function cellColor(c){if(MODE==="st")return c.no?[179,38,30]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
     if(MODE==="s"){if(c.s===null)return null;var s=c.s;return s<5?[46,125,50]:s<10?[139,195,74]:s<15?[255,235,59]:s<20?[255,193,7]:s<25?[255,111,0]:s<30?[229,57,53]:[183,28,28]}
     if(MODE==="h"){if(c.hz==null)return null;return [[183,28,28],[229,57,53],[255,152,0],[255,235,59],[139,195,74]][c.hz-1]}
     if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
@@ -136,7 +146,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
-    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["회피",COL.st[2]],["신중검토",COL.st[1]],["식생 확인 시 회피 가능",COL.st[3]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
+    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
