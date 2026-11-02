@@ -75,7 +75,7 @@ a{color:inherit}
 .btn:disabled{opacity:.6;cursor:wait}
 .tip{color:var(--sub);font-size:14.5px;margin:10px 0 0}
 .pickb{margin:14px 0 0;font:inherit;font-size:15px;font-weight:700;color:var(--pine2);background:transparent;border:1.5px dashed var(--rule);border-radius:10px;padding:10px 14px;width:100%;cursor:pointer}
-.pickb:hover{background:var(--field)}
+.pickb:hover{background:var(--field)}a.pickb.lk{display:block;text-align:center;text-decoration:none;box-sizing:border-box}.atag{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}.atag.hi{background:var(--no-bg);color:var(--no)}.atag.lo{background:var(--go-bg);color:var(--go)}.atag.mid{background:var(--may-bg);color:var(--may)}
 .pickw{margin:10px 0 0}.pickw .leaflet-control-layers{font-size:13px;line-height:1.5}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
 .pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 0;font-size:15px}.pbar .btn{white-space:nowrap}
 @media (max-width:640px){#pmap{height:440px}.pbar{flex-direction:column;align-items:stretch}}
@@ -251,6 +251,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     <div class="in"><div class="acw"><input id="addr" placeholder="예: 경상북도 영천시 금호읍 남성리 산12-1" required role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="acl"><ul class="acl" id="acl" role="listbox" hidden></ul></div><button class="btn" id="go" type="submit">리포트 보기</button></div>
     <p class="tip">시·군부터 번지까지 적어 주세요. 산에 있는 땅은 번지 앞에 '산'을 붙입니다. 여러 필지는 쉼표로 이어 적습니다(예: …도암리 100, 101, 102-1).</p>
     <div class="ex" id="ex"></div>
+    <a class="pickb lk" href="listing.html">네이버 부동산·디스코 매물 검토하기</a>
     <button class="pickb" type="button" id="pickb" aria-expanded="false" aria-controls="pickw">지도에서 땅 눌러서 고르기</button>
     <div class="pickw" id="pickw" hidden>
       <div id="pmap" aria-label="땅 고르기 지도"></div>
@@ -269,6 +270,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       <div class="lead" id="rlead"></div>
       <dl class="nums" id="rnums"></dl>
       <div class="mlt" id="rmlt" hidden><h3 id="rmlth"></h3><ul id="rmltl"></ul></div>
+      <div class="trd" id="rask" hidden></div>
       <div class="trd" id="rtrd" hidden><h3>주변 실거래가</h3><p class="th" id="rtrdh"></p><ul id="rtrdl"></ul><p class="tn">국토교통부 토지 매매 실거래가. 지번은 일부 가려져 공개되며, 지분 거래와 해제된 거래는 뺐습니다.</p></div>
       <div class="quick" id="rquick"></div>
       <div class="qcond" id="rqcond" hidden></div>
@@ -611,6 +613,14 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
       else{H.appendChild(document.createTextNode(TV.scope+" 최근 "+yrs+" 토지 거래 "+TV.n+"건 · "+(TV.jmUsed?TV.jmUsed+" ":"")+"평당 중간값 약 "+won(TV.med)));
         H.appendChild(el("small",null,(TV.ratio?"이 땅 공시지가(평당 "+(Math.round(price.won*3.3058/1000)/10).toLocaleString("ko-KR")+"만원)의 약 "+TV.ratio.toFixed(1)+"배. ":"")+"위치·모양·도로에 따라 값 차이가 큽니다."));
         TV.list.forEach(function(r){var li=el("li");li.appendChild(el("b",null,r[0].slice(0,4)+"."+r[0].slice(4,6)+" "));li.appendChild(document.createTextNode([r[1].split(" ").pop()+" "+(r[6]||""),r[2],Math.round(r[4]).toLocaleString()+"㎡("+py(r[4])+")",won(r[5]*1e4),"평당 "+won(TV.ppy(r))].filter(Boolean).join(" · ")));UL.appendChild(li)})}}
+    /* 매물 호가 비교(매물 검토 화면에서 넘어온 경우): 호가 평당가 vs 주변 거래 평당 중간값 */
+    var AB=$("rask");AB.hidden=true;AB.innerHTML="";
+    if(ASK>0&&area>0){var ap=ASK*1e4/area*3.3058;AB.hidden=false;AB.appendChild(el("h3",null,"매물 호가 비교"));
+      var t0=el("p","th","호가 "+won(ASK*1e4)+" · 평당 "+won(ap));AB.appendChild(t0);var df=null;
+      if(TV&&TV.n&&TV.med){df=(ap/TV.med-1)*100;var tg=el("span","atag "+(df>15?"hi":df<-10?"lo":"mid"),df>=0?"주변 거래보다 "+Math.round(df)+"% 비쌈":"주변 거래보다 "+Math.round(-df)+"% 쌈");t0.appendChild(tg);
+        AB.appendChild(el("p","tn",df>15?"주변 거래 평당 중간값(약 "+won(TV.med)+")보다 높습니다. 협상 여지를 보세요.":df<-10?"주변보다 싼 편입니다. 맹지·경사·규제 같은 이유가 없는지 아래 판정을 꼭 확인하세요.":"주변 거래와 비슷한 수준입니다."))}
+      else AB.appendChild(el("p","tn","주변 거래가 없어 비교하지 못했습니다."));
+      if(!LOGGED){LOGGED=true;send({type:"listing",addr:par.addr||P.addr,pnu:P.pnu,ask:ASK,src:LSRC,est:TV&&TV.med?Math.round(TV.med*area/3.3058/1e4):"",diff:df===null?"":Math.round(df),zone:zone,area:Math.round(area),jimok:jm})}}
     /* 한눈에 보기 */
     var Q=$("rquick");Q.innerHTML="";
     U.forEach(function(u){var d=el("div","q"),t;
@@ -764,7 +774,8 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   });
   if(!CFG.kakao)$("kakao").style.display="none";else $("kakao").href=kakaoUrl(); // 채널 주소가 생기면 site-config.js의 kakao에 넣으면 보임
   /* 공유 링크로 들어오면 바로 진단 */
-  (function(){var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
+  var QP=new URLSearchParams(location.search),ASK=+(QP.get("ask")||0)||0,LSRC=QP.get("src")||"",LOGGED=false;
+  (function(){var q=QP.get("addr");if(q){$("addr").value=q;setTimeout(function(){$("f").requestSubmit()},300)}})();
   /* 주소 자동완성: 일부만 입력해도 지번 후보를 보여줌 */
   (function(){var I=$("addr"),Lst=$("acl"),tm=null,seqA=0,items=[],sel=-1;
     function close(){Lst.hidden=true;I.setAttribute("aria-expanded","false");sel=-1}

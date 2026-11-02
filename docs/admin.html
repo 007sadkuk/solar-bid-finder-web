@@ -37,7 +37,7 @@ td a{color:var(--go)}.msg{color:var(--no)}.sub{color:var(--sub);font-size:13.5px
 <script src="site-config.js?v=20261030a"></script>
 <script>
 (function(){
-  var CFG=window.KT_CFG||{},D=null,TAB="관심 필지",SITE=location.origin+location.pathname.replace(/admin\.html$/,"");
+  var CFG=window.KT_CFG||{},D=null,TAB="관심 매물",SITE=location.origin+location.pathname.replace(/admin\.html$/,"");
   function $(i){return document.getElementById(i)}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
   $("login").addEventListener("submit",function(ev){ev.preventDefault();$("lmsg").textContent="불러오는 중…";
@@ -47,15 +47,15 @@ td a{color:var(--go)}.msg{color:var(--no)}.sub{color:var(--sub);font-size:13.5px
   function rows(k){var v=(D&&D[k])||[];return v.length?{h:v[0],r:v.slice(1).reverse()}:{h:[],r:[]}}
   function kpi(){var K=$("kpi");K.innerHTML="";var s=rows("검색").r.filter(function(r){return r[1]!=="(접속 확인)"}),now=Date.now(),wk=s.filter(function(r){return now-new Date(r[0]).getTime()<7*864e5}).length;
     [["검색(전체)",s.length],["최근 7일 검색",wk],["상담 신청",rows("상담").r.length],["관심 필지",rows("관심 필지").r.length]].forEach(function(x){var d=el("div");d.appendChild(el("b",null,x[1].toLocaleString()));d.appendChild(el("span",null,x[0]));K.appendChild(d)})}
-  function tabs(){var T=$("tabs");T.innerHTML="";["관심 필지","상담","검색","카톡 상담 클릭"].forEach(function(k){var b=el("button",null,k+" ("+rows(k).r.length+")");b.type="button";b.setAttribute("aria-pressed",String(k===TAB));b.addEventListener("click",function(){TAB=k;draw()});T.appendChild(b)})}
+  function tabs(){var T=$("tabs");T.innerHTML="";["관심 매물","관심 필지","상담","검색","카톡 상담 클릭"].forEach(function(k){var b=el("button",null,k+" ("+rows(k).r.length+")");b.type="button";b.setAttribute("aria-pressed",String(k===TAB));b.addEventListener("click",function(){TAB=k;draw()});T.appendChild(b)})}
   function view(){var R=rows(TAB),h=R.h.slice(),r=R.r,q=$("q").value.trim();
     if(TAB==="검색"){r=r.filter(function(x){return x[1]!=="(접속 확인)"});
       if($("grp").checked){var m={};r.forEach(function(x){var k=x[2]||x[1];if(!m[k])m[k]={row:x.slice(),n:0};m[k].n++});h=["최근 검색","입력 주소","찾은 주소","PNU","찾음","용도지역","면적㎡","가능 판정","오류","검색 횟수"];r=Object.keys(m).map(function(k){return m[k].row.concat([m[k].n])}).sort(function(a,b){return b[9]-a[9]})}}
     if($("solar").checked){var ci=h.indexOf("가능 판정");if(ci>=0)r=r.filter(function(x){return /태양광/.test(x[ci]||"")})}
     if(q)r=r.filter(function(x){return x.join(" ").indexOf(q)>=0});return {h:h,r:r}}
   function draw(){kpi();tabs();var V=view(),t=$("tbl");t.innerHTML="";var th=el("tr");V.h.concat(["리포트"]).forEach(function(x){th.appendChild(el("th",null,x))});var hd=el("thead");hd.appendChild(th);t.appendChild(hd);var tb=el("tbody");
-    var ai=V.h.indexOf("찾은 주소");if(ai<0)ai=V.h.indexOf("땅 주소");
-    V.r.slice(0,1000).forEach(function(x){var tr=el("tr");x.forEach(function(c){tr.appendChild(el("td",null,c))});var td=el("td");var a=ai>=0&&x[ai]?x[ai]:"";if(a){var l=el("a",null,"열기");l.href=SITE+"land.html?addr="+encodeURIComponent(a);l.target="_blank";td.appendChild(l)}tr.appendChild(td);tb.appendChild(tr)});t.appendChild(tb)}
+    var ai=V.h.indexOf("찾은 주소");if(ai<0)ai=V.h.indexOf("땅 주소");var si=V.h.indexOf("매물 링크");
+    V.r.slice(0,1000).forEach(function(x){var tr=el("tr");x.forEach(function(c,ci){var td0=el("td");if(ci===si&&/^https?:/.test(c)){var l0=el("a",null,"매물 열기");l0.href=c;l0.target="_blank";l0.rel="noopener";td0.appendChild(l0)}else td0.textContent=c;tr.appendChild(td0)});var td=el("td");var a=ai>=0&&x[ai]?x[ai]:"";if(a){var l=el("a",null,"열기");l.href=SITE+"land.html?addr="+encodeURIComponent(a);l.target="_blank";td.appendChild(l)}tr.appendChild(td);tb.appendChild(tr)});t.appendChild(tb)}
   ["q","solar","grp"].forEach(function(i){$(i).addEventListener("input",draw)});
   $("csv").addEventListener("click",function(){var V=view(),csv=[V.h].concat(V.r).map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
     var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="땅의가치_"+TAB+".csv";a.click()});

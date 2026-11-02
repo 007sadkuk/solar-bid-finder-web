@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>매물 검토 | 땅의 가치</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--pine:#1d3a2f;--ink:#16241e;--sub:#56685f;--field:#e9efe6;--sheet:#fbfcf9;--rule:#cfd9cc;--rule2:#e1e8de;--mark:#f3c623;--go:#226b46;--no:#9a3131}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6eee8;--sub:#a4b6ab;--field:#0b1712;--sheet:#13241c;--rule:#2b4136;--rule2:#203329;--go:#7fd1a3;--no:#f0a29a}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--field);color:var(--ink);font:17px/1.65 "Pretendard Variable",Pretendard,system-ui,sans-serif}
+header{background:var(--pine);color:#eef4ef;padding:22px 0 26px}.w{max-width:860px;margin:0 auto;padding:0 16px}h1{margin:0 0 4px;font-size:26px}header p{margin:0;color:#c7d6cc}
+.card{background:var(--sheet);border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 4px 18px rgba(0,0,0,.05)}h2{margin:0 0 8px;font-size:19px}
+textarea,input{font:inherit;width:100%;padding:12px 14px;border:1.5px solid var(--rule);border-radius:12px;background:var(--field);color:var(--ink)}textarea{min-height:140px}
+.btn{font:inherit;font-weight:800;border:0;border-radius:12px;padding:13px 22px;background:var(--mark);color:#1d1600;cursor:pointer;text-decoration:none;display:inline-block}
+.row{display:grid;grid-template-columns:7em 1fr;gap:8px 12px;align-items:center;margin:12px 0}.row label{color:var(--sub);font-size:14.5px}
+.bm{display:inline-block;padding:10px 16px;border:2px dashed var(--mark);border-radius:12px;font-weight:800;color:var(--ink);text-decoration:none;background:rgba(243,198,35,.12)}
+ol{padding-left:1.2em}li{margin:4px 0}.sub{color:var(--sub);font-size:14px}.msg{color:var(--no);font-size:14px}
+code{background:var(--field);padding:1px 6px;border-radius:6px;font-size:.9em}
+</style>
+</head><body>
+<header><div class="w"><h1>매물 검토</h1><p>네이버 부동산·디스코에서 본 매물을 땅의 가치로 바로 분석합니다.</p></div></header>
+<main class="w">
+  <section class="card" id="step2" hidden>
+    <h2>읽어온 매물 정보</h2><p class="sub">틀린 곳이 있으면 고친 뒤 분석하세요. 지번이 없으면 같은 리 후보 필지가 나옵니다.</p>
+    <div class="row"><label for="addr">주소</label><input id="addr" placeholder="예: 경상북도 구미시 해평면 오상리 산7"></div>
+    <div class="row"><label for="ask">매물 가격</label><input id="ask" inputmode="numeric" placeholder="만원 단위 (예: 35000 = 3억5천만원)"></div>
+    <div class="row"><label for="larea">면적(㎡)</label><input id="larea" inputmode="decimal" placeholder="선택"></div>
+    <div class="row"><label for="src">매물 링크</label><input id="src" placeholder="선택"></div>
+    <button class="btn" id="go" type="button">땅의 가치로 분석하기</button> <span class="msg" id="m2"></span>
+  </section>
+
+  <section class="card">
+    <h2>매물 내용 붙여넣기</h2>
+    <p class="sub">매물 화면의 글(주소·가격·면적이 들어 있는 부분)을 복사해 붙여넣으세요. 휴대폰에서도 됩니다.</p>
+    <textarea id="txt" placeholder="예) 경북 구미시 해평면 오상리 산7  임야  매매 3억 5,000  토지면적 9,917㎡(3,000평)"></textarea>
+    <p><button class="btn" id="parse" type="button">읽어오기</button> <span class="msg" id="m1"></span></p>
+  </section>
+
+  <section class="card">
+    <h2>"부지파인더로 보내기" 버튼 만들기 (PC)</h2>
+    <ol>
+      <li>크롬 즐겨찾기 막대가 안 보이면 <code>Ctrl+Shift+B</code>를 누릅니다.</li>
+      <li>아래 노란 버튼을 마우스로 끌어서 즐겨찾기 막대에 놓습니다.</li>
+      <li>네이버 부동산이나 디스코에서 <b>매물 상세를 연 상태</b>로 즐겨찾기의 그 버튼을 누르면 이 화면으로 정보가 넘어옵니다.</li>
+      <li>잘못 읽히면 매물 설명 부분을 마우스로 <b>드래그해 선택한 뒤</b> 버튼을 누르세요. 선택한 글만 읽습니다.</li>
+    </ol>
+    <p><a class="bm" id="bm" href="#">부지파인더로 보내기</a></p>
+    <p class="sub">이 버튼은 지금 보고 있는 화면 한 건의 글만 읽어서 이 페이지로 넘깁니다. 다른 곳으로 정보를 보내지 않습니다.</p>
+  </section>
+</main>
+<script src="site-config.js?v=20261030a"></script>
+<script>
+(function(){
+  var BASE=location.origin+location.pathname.replace(/listing\.html$/,"");
+  function $(i){return document.getElementById(i)}
+  // 북마클릿: 선택한 글(없으면 화면 글 앞부분)+제목+주소를 이 페이지 #해시로 넘김
+  var bm="javascript:(function(){var s=String(window.getSelection()||'').trim(),t=s||document.body.innerText||'';t=t.slice(0,8000);var d={t:t,u:location.href,h:document.title,sel:!!s};window.open('"+BASE+"listing.html#'+encodeURIComponent(JSON.stringify(d)),'_blank')})();";
+  $("bm").href=bm;$("bm").addEventListener("click",function(e){e.preventDefault();alert("이 버튼은 클릭이 아니라 즐겨찾기 막대로 끌어다 놓아 쓰는 버튼입니다.")});
+
+  // ── 매물 글 해석 ──
+  var SIDO={"경북":"경상북도","경상북도":"경상북도","대구":"대구광역시","대구광역시":"대구광역시","대구시":"대구광역시"};
+  function num(s){return parseFloat(String(s).replace(/,/g,""))}
+  function money(t){ // "3억 5,000" "3억5천만원" "35,000만원" "1억" → 만원
+    var m=t.match(/(\d[\d,]*(?:\.\d+)?)\s*억(?:\s*(\d[\d,]*)\s*(천)?(?:만)?)?/);
+    if(m){var v=num(m[1])*10000;if(m[2]){var r=num(m[2]);v+=m[3]?r*1000:r}return Math.round(v)}
+    m=t.match(/(\d[\d,]*)\s*만\s*원?/);if(m)return num(m[1]);return null}
+  function parse(text){var T=String(text||"").replace(/ /g," ").replace(/[ \t]+/g," "),o={};
+    // 주소: (시도) 시군구 읍면동 (리) (산)번지
+    var re=/(?:(경상북도|경북|대구광역시|대구시|대구)\s*)?([가-힣]{1,6}(?:시|군|구))\s+([가-힣0-9]{1,8}(?:읍|면|동|가))(?:\s+([가-힣0-9]{1,8}리))?(?:\s+(산\s?)?(\d{1,5}(?:-\d{1,5})?)(?![\d,.]*\s*(?:㎡|평|m|만|억|원|%)))?/g,m,best=null;
+    while((m=re.exec(T))){var sc=(m[1]?2:0)+(m[4]?2:0)+(m[6]?3:0);if(!best||sc>best.sc)best={m:m,sc:sc}}
+    if(best){var b=best.m;o.addr=[SIDO[b[1]]||b[1]||"",b[2],b[3],b[4]||"",(b[6]?(b[5]?"산":"")+b[6]:"")].filter(Boolean).join(" ")}
+    // 가격: '매매/매매가/가격/호가/금액' 뒤 → 없으면 첫 '억'
+    var pm=T.match(/(?:매매가?|가격|호가|금액|희망가)\s*[:：]?\s*([\d,.]+\s*억[^\n]{0,12}|[\d,]+\s*만\s*원?)/);o.ask=pm?money(pm[1]):money((T.match(/[\d,.]+\s*억[^\n]{0,10}/)||[""])[0]);
+    // 면적: '토지/대지/면적' 뒤 ㎡ 또는 평
+    var am=T.match(/(?:토지\s*면적|대지\s*면적|토지|대지|면적)\s*[:：]?\s*([\d,.]+)\s*(㎡|m²|m2|평)/)||T.match(/([\d,.]+)\s*(㎡|m²|m2)/)||T.match(/([\d,]{3,})\s*(평)/);
+    if(am){var v=num(am[1]);o.area=am[2]==="평"?Math.round(v*3.3058):v}
+    return o}
+  function show(o,src){$("step2").hidden=false;$("addr").value=o.addr||"";$("ask").value=o.ask||"";$("larea").value=o.area||"";$("src").value=src||"";
+    $("m2").textContent=o.addr?"":"주소를 찾지 못했습니다. 직접 입력해 주세요.";$("step2").scrollIntoView({behavior:"smooth"})}
+  $("parse").addEventListener("click",function(){var t=$("txt").value.trim();if(!t){$("m1").textContent="붙여넣은 내용이 없습니다";return}$("m1").textContent="";var o=parse(t),u=(t.match(/https?:\/\/\S+/)||[""])[0];show(o,u)});
+  $("go").addEventListener("click",function(){var a=$("addr").value.trim();if(!a){$("m2").textContent="주소가 필요합니다";return}
+    var q=new URLSearchParams({addr:a});var k=$("ask").value.replace(/[^\d]/g,"");if(k)q.set("ask",k);var la=$("larea").value.replace(/[^\d.]/g,"");if(la)q.set("larea",la);var s=$("src").value.trim();if(s)q.set("src",s);
+    location.href=BASE+"land.html?"+q.toString()});
+  // 북마클릿으로 넘어온 경우
+  if(location.hash.length>1){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(1)));$("txt").value=d.t||"";var o=parse((d.h||"")+"\n"+(d.t||""));show(o,d.u||"");history.replaceState(null,"",location.pathname)}catch(e){}}
+  window.__parse=parse;
+})();
+</script>
+</body></html>

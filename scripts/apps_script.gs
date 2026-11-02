@@ -26,7 +26,7 @@ function admin_(pw) {  // 관리자 화면: 비밀번호 확인(10회 틀리면 
   if (n >= 10) return { error: "잠시 후 다시 시도하세요" };
   if (hex_(pw || "") !== "6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6") { c.put("fail", String(n + 1), 3600); return { error: "비밀번호가 맞지 않습니다" }; }
   var ss = book_(), out = {};
-  ["검색", "상담", "관심 필지", "카톡 상담 클릭"].forEach(function (k) { var s = ss.getSheetByName(k); if (!s || s.getLastRow() < 2) { out[k] = []; return; }
+  ["검색", "상담", "관심 필지", "관심 매물", "카톡 상담 클릭"].forEach(function (k) { var s = ss.getSheetByName(k); if (!s || s.getLastRow() < 2) { out[k] = []; return; }
     var v = s.getDataRange().getDisplayValues(); out[k] = [v[0]].concat(v.slice(Math.max(1, v.length - 500))); });
   out.sheet = ss.getUrl(); return out;
 }
@@ -46,6 +46,8 @@ function doPost(e) {
   } else if (d.type === "watch") {
     add_(ss, "관심 필지", HW, [new Date(), d.email || "", "'" + (d.phone || ""), d.addr, "'" + (d.pnu || ""), d.li || "", d.jimok || "", Utilities.formatDate(new Date(), "Asia/Seoul", "yyyyMMdd")]);
     if (NOTIFY_EMAIL) MailApp.sendEmail(NOTIFY_EMAIL, "[땅의 가치] 관심 필지 등록: " + (d.addr || ""), "이메일: " + (d.email || "-") + "\n연락처: " + (d.phone || "-") + "\n땅: " + d.addr);
+  } else if (d.type === "listing") {
+    add_(ss, "관심 매물", ["시각","땅 주소","PNU","호가(만원)","주변 시세 추정(만원)","차이(%)","용도지역","지목","면적㎡","매물 링크"], [new Date(), d.addr, "'" + (d.pnu || ""), d.ask, d.est, d.diff, d.zone, d.jimok, d.area, d.src || ""]);
   } else if (d.type === "kakao_click") add_(ss, "카톡 상담 클릭", ["시각","땅 주소","PNU","용도지역","면적㎡","가능 판정"], [new Date(), d.addr, "'" + (d.pnu || ""), s.zone, s.area, s.best]);
   else add_(ss, "검색", HS, [new Date(), d.query, d.addr, "'" + (d.pnu || ""), d.found, d.zone, d.area, d.best, d.error || ""]);
   return ContentService.createTextOutput("ok");
