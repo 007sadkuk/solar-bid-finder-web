@@ -76,7 +76,7 @@ a{color:inherit}
 .tip{color:var(--sub);font-size:14.5px;margin:10px 0 0}
 .pickb{margin:14px 0 0;font:inherit;font-size:15px;font-weight:700;color:var(--pine2);background:transparent;border:1.5px dashed var(--rule);border-radius:10px;padding:10px 14px;width:100%;cursor:pointer}
 .pickb:hover{background:var(--field)}a.pickb.lk{display:block;text-align:center;text-decoration:none;box-sizing:border-box}.atag{display:inline-block;margin-left:8px;font-size:13px;font-weight:700;padding:2px 9px;border-radius:999px;vertical-align:middle}.atag.hi{background:var(--no-bg);color:var(--no)}.atag.lo{background:var(--go-bg);color:var(--go)}.atag.mid{background:var(--may-bg);color:var(--may)}
-.pickw{margin:10px 0 0}.pickw .leaflet-control-layers{font-size:13px;line-height:1.5}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
+.pickw{margin:10px 0 0}.jb span{display:inline-block;color:#fff;font:600 11px var(--font);text-shadow:0 0 3px #000,0 0 2px #000;white-space:nowrap;transform:translate(-50%,-50%)}.pickw .leaflet-control-layers{font-size:13px;line-height:1.5}#pmap{height:380px;border-radius:12px;border:1px solid var(--rule)}
 .pbar{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:10px 0 0;font-size:15px}.pbar .btn{white-space:nowrap}
 @media (max-width:640px){#pmap{height:440px}.pbar{flex-direction:column;align-items:stretch}}
 .ex{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -335,7 +335,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261029j"></script>
+<script src="geo.js?v=20261102a"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -810,13 +810,20 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
       PM=L.map("pmap",{zoomControl:true}).setView([36.2,128.7],9);
       if(k){var sat=L.layerGroup([L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}),L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19})]).addTo(PM),
           base=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Base/{z}/{y}/{x}.png",{maxZoom:19,attribution:"V-World"});
-        // 연속지적도(필지 경계·지번), 확대했을 때만 표시
-        var cad=L.tileLayer.wms("https://api.vworld.kr/req/wms",{layers:"lp_pa_cbnd_bubun",styles:"lp_pa_cbnd_bubun",format:"image/png",transparent:true,version:"1.3.0",key:k,domain:BFGeo.domain(),minZoom:15,maxZoom:19,attribution:"지적도 V-World"}).addTo(PM);
+        // 지적선: 브이월드 지적도 그림(WMS)은 위성사진과 어긋나는 경우가 있어, 필지 경계 좌표를 직접 받아 그림(땅을 고를 때 쓰는 좌표와 같음)
+        var cad=L.layerGroup().addTo(PM),cr=L.canvas({padding:0.3}),cadKey="",cadSeq=0;
+        async function loadCad(){if(!PM.hasLayer(cad))return;var z=PM.getZoom();if(z<16){cad.clearLayers();cadKey="";return}
+          var b=PM.getBounds(),w=b.getWest(),s0=b.getSouth(),e=b.getEast(),n=b.getNorth(),key=[w,s0,e,n].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++cadSeq;
+          var feats=[];for(var pg=1;pg<=3;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+w+","+s0+","+e+","+n+")",size:"1000",page:String(pg)}).catch(function(){return {status:"ERR",features:[]}});if(my!==cadSeq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}
+          cad.clearLayers();feats.forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
+            P.forEach(function(pl){var ll=pl[0].map(function(c){return [c[1],c[0]]});L.polygon(ll,{renderer:cr,color:"#ffe066",weight:1.2,opacity:.9,fill:false,interactive:false}).addTo(cad);
+              if(z>=18&&f.properties&&f.properties.jibun){var la=0,lo=0;ll.forEach(function(c){la+=c[0];lo+=c[1]});L.marker([la/ll.length,lo/ll.length],{interactive:false,icon:L.divIcon({className:"jb",html:"<span>"+String(f.properties.jibun).replace(/</g,"")+"</span>",iconSize:[0,0]})}).addTo(cad)}})})}
+        var cadT=null;PM.on("moveend",function(){clearTimeout(cadT);cadT=setTimeout(loadCad,250)});PM.on("overlayadd",function(e){if(e.layer===cad){cadKey="";loadCad()}});
         L.control.layers({"위성":sat,"일반 지도":base},{"지적도(필지 경계)":cad},{collapsed:false,position:"topright"}).addTo(PM);
-        PM.on("zoomend",function(){if(PM.getZoom()<15)$("ptxt").textContent="지도를 확대하면 필지 경계(지적도)가 나옵니다. 땅을 눌러 주세요.";else if(!picked)$("ptxt").textContent="필지 경계선 안의 땅을 눌러 주세요."})}
+        PM.on("zoomend",function(){if(PM.getZoom()<16)$("ptxt").textContent="지도를 더 확대하면 필지 경계(지적선)가 나옵니다. 땅을 눌러 주세요.";else if(!picked)$("ptxt").textContent="필지 경계선 안의 땅을 눌러 주세요."})}
       else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(PM);
       PM.on("click",async function(e){
-        if(PM.getZoom()<15){PM.setView(e.latlng,Math.min(PM.getZoom()+3,16));$("ptxt").textContent="조금 더 확대한 뒤 땅을 눌러 주세요.";return}
+        if(PM.getZoom()<16){PM.setView(e.latlng,Math.min(PM.getZoom()+3,17));$("ptxt").textContent="조금 더 확대한 뒤 땅을 눌러 주세요.";return}
         var my=++busy;$("ptxt").textContent="땅을 찾는 중…";$("pgo").hidden=true;
         try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;
           if(!x){$("ptxt").textContent="이 위치에서 땅을 찾지 못했습니다. 다른 곳을 눌러 주세요.";return}
