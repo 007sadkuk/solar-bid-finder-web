@@ -1,9 +1,14 @@
-== e/wfs/getActvnmapWFS tbl_opn_vtn_evl 275
-HTTP 403 <?xml version="1.0" encoding="UTF-8"?> <OpenAPI_ServiceResponse> <cmmMsgHeader> <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg> <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg> <returnReasonCode>30</returnReasonCode> </cmmMsgHeader> </OpenAPI_ServiceResponse> 
-== e/wfs/getActvnmapWFS tbl_opn_actvnmap 275
-HTTP 403 <?xml version="1.0" encoding="UTF-8"?> <OpenAPI_ServiceResponse> <cmmMsgHeader> <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg> <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg> <returnReasonCode>30</returnReasonCode> </cmmMsgHeader> </OpenAPI_ServiceResponse> 
+== e/wfs/getActvnmapWFS tbl_opn_vtn_evl 108337
+n 5
+   {"vtn_evl_grad": "2", "cln_symbl": "PdQa", "plnt_cln_ttle": "소나무-상수리나무군락", "frph_agcl_code": "0"}
+   {"vtn_evl_grad": "2", "cln_symbl": "PdQa", "plnt_cln_ttle": "소나무-상수리나무군락", "frph_agcl_code": "0"}
+   {"vtn_evl_grad": "2", "cln_symbl": null, "plnt_cln_ttle": null, "frph_agcl_code": "3"}
+   {"vtn_evl_grad": "2", "cln_symbl": "Pd", "plnt_cln_ttle": "소나무군락", "frph_agcl_code": "0"}
+   {"vtn_evl_grad": "2", "cln_symbl": "Pd", "plnt_cln_ttle": "소나무군락", "frph_agcl_code": "0"}
+== e/wfs/getActvnmapWFS tbl_opn_actvnmap 433
+<ows:ExceptionReport xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:ows="http://www.opengis.net/ows/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.0" xsi:schemaLocation="http://www.opengis.net/ows/1.1"><ows:Exception exceptionCode="10" locator="request parsing"><ows:ExceptionText>INVALID_REQUEST_PARAMETER_ERROR유효하지 않는 레이어명 포함[ tbl_opn_actvnmap ]</ows:ExceptionText></ows:Exception></ows:ExceptionReport>
 == e/wfs/getActvnmapWfs tbl_opn_vtn_evl 273
 HTTP 400 <?xml version="1.0" encoding="UTF-8"?> <OpenAPI_ServiceResponse> <cmmMsgHeader> <errMsg>NO_OPENAPI_SERVICE_ERROR</errMsg> <returnAuthMsg>해당 오픈API 서비스가 없거나 폐기됨</returnAuthMsg> <returnReasonCode>12</returnReasonCode> </cmmMsgHeader> </OpenAPI_ServiceResponse> 
 == e/wfs/getActvnmapWfs tbl_opn_actvnmap 273
 HTTP 400 <?xml version="1.0" encoding="UTF-8"?> <OpenAPI_ServiceResponse> <cmmMsgHeader> <errMsg>NO_OPENAPI_SERVICE_ERROR</errMsg> <returnAuthMsg>해당 오픈API 서비스가 없거나 폐기됨</returnAuthMsg> <returnReasonCode>12</returnReasonCode> </cmmMsgHeader> </OpenAPI_ServiceResponse> 
-CAP [] HTTP 403 <?xml version="1.0" encoding="UTF-8"?> <OpenAPI_ServiceResponse> <cmmMsgHeader> <errMsg>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</errMsg> <returnAuthMsg>등록되지 않은 서비스키</returnAuthMsg> <returnReasonCode>30</returnReasonCode> </cmmMsgHeader> </OpenAPI_ServiceResponse> 
+CAP ['WFS', 'open:tbl_opn_eczm', 'open:tbl_opn_smld_evl', 'open:tbl_opn_tpgrph_evl', 'open:tbl_opn_vtn_evl'] <?xml version="1.0" encoding="UTF-8"?><WFS_Capabilities version="1.0.0" xmlns="http://www.opengis.net/wfs" xmlns:open="kr.nie-ecobank" xmlns:ogc="http://www.opengis.net/ogc" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengis.net/wfs https://www.nie-ecobank.k
