@@ -197,7 +197,11 @@
       if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
       if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
       if (c.e === "2") return inp(veg2);
-      return inp(vegP[c.p] || ""); }
+      if (vegP[c.p]) return inp(vegP[c.p]);
+      var u = useOf(c.p); if (u) { var y = inp(u); y.est = true; y.src = "use"; return y; }
+      return inp(""); }
+    /* [추정] 생태자연도 식생 평가가 없는 곳: 토지특성 '이용상황'으로 식생 추정. 자연림·조림·임야 → Ⅳ 이상, 전·답·과수원·대지·공장 등 → Ⅴ */
+    function useOf(i) { var u = (P[i].lc && P[i].lc.use) || ""; if (!u) return ""; if (/자연림|조림|임야|목장/.test(u)) return "4+"; if (/전|답|과수|주거|상업|공업|공장|대|창고|도로|하천|나지|주차|묘지|기타/.test(u)) return "5"; return ""; }
     function slopeSrc() { return fsCov > 0.95 ? "산림청 산사태정보시스템 경사 격자(10m)" : fsCov > 0 ? "산림청 경사 격자(10m) " + Math.round(fsCov * 100) + "% + 공개 표고(약 30m)" : "공개 표고(약 30m, Mapzen Terrarium)"; }
     function slopeNote() { return fsCov > 0.95 ? "경사는 산림청 산사태위험지도 작성용 10m 경사 격자 값(서산 명천리 검증: 15° 이상 7,000㎡ vs 보고서 7,036㎡). 허가 서류의 평균경사도는 산지관리법 방식으로 따로 산정" : fsCov > 0 ? "경사 일부(" + Math.round((1 - fsCov) * 100) + "%)는 산림청 격자 값이 없어 공개 표고로 계산 [추정, 실제보다 작게 나올 수 있음]" : "[추정] 산림청 경사 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 공개 표고(약 30m)로 계산해 실제보다 작게 나올 수 있음"; }
     var ecoOK = !D.eco.err, fsCov = D.cells.length ? D.cells.filter(function (c) { return c.sf; }).length / D.cells.length : 0, demOK = !D.demErr || fsCov > 0;
@@ -260,9 +264,10 @@
     var fS = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid; }) : null,
       fY = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === true; }) : null,
       fU = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === null; }) : null,
-      fE = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.src === "eco" && c.vg.ge4 !== null; }) : null;
-    V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? "회피" : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
-      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + ". " + slopeNote() : "경사 자료 조회 실패: " + (D.fsErr || D.demErr),
+      fE = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.src === "eco" && c.vg.ge4 !== null; }) : null,
+      fUse = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.src === "use"; }) : 0;
+    V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? (fUse ? "회피(일부 추정)" : "회피") : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
+      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + (fUse ? ". [추정] " + fUse.toLocaleString() + "㎡는 토지특성 이용상황(" + uniq(P.map(function (p) { return p.lc && p.lc.use; })).join("·") + ")으로 식생을 추정 — 위에서 직접 고르면 바뀜" : "") + ". " + slopeNote() : "경사 자료 조회 실패: " + (D.fsErr || D.demErr),
       "지침 입지회피 6(경사 산정은 산지관리법 준용)", slopeSrc() + " + 식생 평가");
     // g) 지형변화지수
     V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", "수동확인필요", null, "토공 설계(절·성토량)가 있어야 계산 가능", "지침 입지회피 7", "-");

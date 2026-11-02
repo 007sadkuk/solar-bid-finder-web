@@ -79,7 +79,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102a"></script>
-<script src="screen.js?v=20261102h"></script>
+<script src="screen.js?v=20261102i"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -105,9 +105,9 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 
   function vegUI(){var V=$("veg");V.innerHTML="";var has2=D.cells.some(function(c){return c.e==="2"&&c.v!=="1"&&c.v!=="3"});
     function sel(lbl,opts,val,on){var l=el("label");l.appendChild(el("span",null,lbl));var s=el("select");opts.forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];s.appendChild(op)});s.value=val;s.addEventListener("change",function(){on(s.value);redo()});l.appendChild(s);V.appendChild(l)}
-    if(has2)sel("생태자연도 2등급 구간",[["","모름"],["3+","Ⅲ등급 이상"],["4","Ⅳ등급"]],veg2,function(v){veg2=v});
+    if(has2)sel("생태자연도 2등급 구간",[["","자동(군락명으로 추정)"],["3+","Ⅲ등급 이상"],["4","Ⅳ등급"]],veg2,function(v){veg2=v});
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
-    D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","모름"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
+    D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");note.textContent=D.eco.attrs?"생태자연도 식생 평가가 있는 곳은 자동으로 반영했습니다(식생 평가 1 = 식생보전 Ⅰ·Ⅱ, 2 = Ⅲ 또는 Ⅳ, 3 = Ⅴ). 평가 2는 Ⅲ과 Ⅳ를 구분하지 못해 위에서 골라야 합니다.":D.eco.err?"":"생태자연도 식생 평가값을 아직 받지 못하고 있습니다(Apps Script를 새 코드로 배포하면 자동 반영). 지금은 입력값으로만 판정합니다."}
   function redo(){J=Screen.judge(D,veg2,vegP);head();rows();per();drawMap();srcs()}
   function head(){var P=D.P;$("ttl").textContent=P[0].addr.replace(/\s\S+$/,"")+" "+P.map(function(p){return p.jibun}).join(", ")+(P.length>1?" ("+P.length+"필지)":"");
