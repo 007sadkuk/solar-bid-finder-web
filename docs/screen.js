@@ -439,6 +439,7 @@
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
+    if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
     var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     return { rows: rows, per: per, tot: tot, sum: sum };
   }
