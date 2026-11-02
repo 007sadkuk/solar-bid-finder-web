@@ -198,15 +198,17 @@ var BFGeo=(function(){
   async function shiftAt(lon,lat){var key=(Math.round(lon/0.004)*0.004).toFixed(3)+","+(Math.round(lat/0.004)*0.004).toFixed(3);if(SHIFTC[key]!==undefined)return SHIFTC[key];
     var d=0.0018,box=(lon-d)+","+(lat-d)+","+(lon+d)+","+(lat+d),res=null;
     try{var B=await vwData("LT_C_SPBD",{geomFilter:"BOX("+box+")",size:"200"}),P=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+box+")",size:"1000"});
-      var byP={};P.features.forEach(function(f){byP[String((f.properties||{}).pnu)]=f.geometry});
-      function cen(G){var ps=polys(G);if(!ps.length)return null;var r=ps[0],x=0,y=0;r.forEach(function(p){x+=p[0];y+=p[1]});return [x/r.length,y/r.length,r]}
-      var dx=[],dy=[],out=0,n=0;B.features.forEach(function(f){var pn=String((f.properties||{}).bd_mgt_sn||"").slice(0,19),G=byP[pn];if(!G)return;var b=cen(f.geometry),p=cen(G);if(!b||!p)return;n++;
-        if(!pip([b[0],b[1]],p[2]))out++;dx.push(b[0]-p[0]);dy.push(b[1]-p[1])});
-      function med(a){a=a.slice().sort(function(x,y){return x-y});return a[Math.floor(a.length/2)]}
-      if(n>=6&&out/n>=0.6){var mx=med(dx),my=med(dy),m=Math.hypot(mx*90000,my*110540);
-        // 대부분의 건물이 같은 방향으로 밀려 있을 때만 보정(흩어져 있으면 보정하지 않음)
-        var agree=dx.filter(function(v,i){return Math.hypot((v-mx)*90000,(dy[i]-my)*110540)<12}).length/n;
-        if(m>=8&&agree>=0.6)res={dx:mx,dy:my,m:Math.round(m),n:n}}}catch(e){}
+      var byP={};P.features.forEach(function(f){byP[String((f.properties||{}).pnu)]=polys(f.geometry)});
+      var kx=1/(111320*Math.cos(lat*Math.PI/180)),ky=1/110540,pairs=[];
+      B.features.forEach(function(f){var R=byP[String((f.properties||{}).bd_mgt_sn||"").slice(0,19)];if(!R||!R.length)return;var b=polys(f.geometry)[0];if(!b)return;var x=0,y=0;b.forEach(function(p){x+=p[0];y+=p[1]});pairs.push([x/b.length,y/b.length,R])});
+      var n=pairs.length;
+      // 건물이 자기 지번 경계 안에 가장 많이 들어가는 이동량(m)을 찾음
+      function cnt(mx,my){var c=0;pairs.forEach(function(q){var pt=[q[0]-mx*kx,q[1]-my*ky];if(q[2].some(function(r){return pip(pt,r)}))c++});return c}
+      if(n>=6){var base=cnt(0,0),best=[0,0,base],X,Y,c;
+        for(X=-90;X<=90;X+=4)for(Y=-90;Y<=90;Y+=4){c=cnt(X,Y);if(c>best[2]||(c===best[2]&&Math.hypot(X,Y)<Math.hypot(best[0],best[1])))best=[X,Y,c]}
+        var b2=best.slice();for(X=best[0]-4;X<=best[0]+4;X++)for(Y=best[1]-4;Y<=best[1]+4;Y++){c=cnt(X,Y);if(c>b2[2])b2=[X,Y,c]}
+        var m=Math.hypot(b2[0],b2[1]);
+        if(m>=8&&b2[2]>=0.6*n&&b2[2]-base>=Math.max(4,0.3*n))res={dx:b2[0]*kx,dy:b2[1]*ky,m:Math.round(m),n:n,fit:b2[2],base:base}}}catch(e){}
     SHIFTC[key]=res;return res}
   function shiftRing(r,s){return s?r.map(function(p){return [p[0]+s.dx,p[1]+s.dy]}):r}
   async function parcelAt(lon,lat){ // 지도에서 누른 위치의 필지 {pnu, addr, jibun, point, ring:[[lat,lon]...]}
