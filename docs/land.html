@@ -255,7 +255,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
     <button class="pickb" type="button" id="pickb" aria-expanded="false" aria-controls="pickw">지도에서 땅 눌러서 고르기</button>
     <div class="pickw" id="pickw" hidden>
       <div id="pmap" aria-label="땅 고르기 지도"></div>
-      <div class="pbar" id="pbar2"><span id="ptxt">지도를 확대하면 필지 경계(지적도)가 나옵니다. 땅을 눌러 주세요.</span><button class="btn" type="button" id="pgo" hidden>이 땅 리포트 보기</button></div>
+      <p class="pshift" id="pshift" hidden style="margin:6px 0;font-size:14px;color:var(--sub)"></p><div class="pbar" id="pbar2"><span id="ptxt">지도를 확대하면 필지 경계(지적도)가 나옵니다. 땅을 눌러 주세요.</span><button class="btn" type="button" id="pgo" hidden>이 땅 리포트 보기</button></div>
     </div>
   </form>
 
@@ -335,7 +335,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
 <script src="core.js?v=20261029c"></script>
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261029l"></script>
-<script src="geo.js?v=20261102a"></script>
+<script src="geo.js?v=20261102b"></script>
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)};
@@ -815,9 +815,11 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
         async function loadCad(){var on=PM.hasLayer(cad),onL=PM.hasLayer(lab);if(!on&&!onL)return;var z=PM.getZoom();if(z<16){cad.clearLayers();lab.clearLayers();cadKey="";return}
           var b=PM.getBounds(),w=b.getWest(),s0=b.getSouth(),e=b.getEast(),n=b.getNorth(),key=[w,s0,e,n,z>=18].map(String).join(",");if(key===cadKey)return;cadKey=key;var my=++cadSeq;
           var feats=[];for(var pg=1;pg<=3;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+w+","+s0+","+e+","+n+")",size:"1000",page:String(pg)}).catch(function(){return {status:"ERR",features:[]}});if(my!==cadSeq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}
+          var c0=PM.getCenter(),SH=null;try{SH=await BFGeo.shiftAt(c0.lng,c0.lat)}catch(_){}if(my!==cadSeq)return;
+          var dX=SH?SH.dx:0,dY=SH?SH.dy:0;$("pshift").hidden=!SH;if(SH)$("pshift").textContent="이 동네는 국가 지적도 좌표가 실제 위치(건물·사진)와 약 "+SH.m+"m 어긋나 있어, 주변 건물 "+SH.n+"곳 기준으로 맞춰 보정해 그렸습니다.";
           cad.clearLayers();lab.clearLayers();var nl=0;
           feats.forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[],jb=String((f.properties||{}).jibun||""),road=/\s(도|구|천)$/.test(jb);
-            P.forEach(function(pl){var ll=pl[0].map(function(c){return [c[1],c[0]]});
+            P.forEach(function(pl){var ll=pl[0].map(function(c){return [c[1]+dY,c[0]+dX]});
               // 도로·구거·하천 필지는 옅은 회색으로 칠해 구분
               L.polygon(ll,{renderer:cr,color:"#ffe066",weight:1.1,opacity:.85,fill:road,fillColor:"#c9cfd6",fillOpacity:.28,interactive:false}).addTo(cad);
               if(z>=18&&nl<250&&jb&&!road){var la=0,lo=0;ll.forEach(function(c){la+=c[0];lo+=c[1]});nl++;L.marker([la/ll.length,lo/ll.length],{interactive:false,icon:L.divIcon({className:"jb",html:"<span>"+jb.replace(/</g,"")+"</span>",iconSize:[0,0]})}).addTo(lab)}})})}

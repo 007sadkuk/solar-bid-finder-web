@@ -192,11 +192,29 @@ var BFGeo=(function(){
     var pr=q.features[0].properties||{};
     return {pnu:String(pr.pnu),addr:String(pr.addr||addr),jibun:String(pr.jibun||""),point:pt};
   }
+  /* 지적도 위치 보정: 일부 지역은 브이월드 연속지적도가 실제(건물·위성사진)와 수십 m 밀려 있음(예: 대구 수성구 고모동 약 44m 북쪽).
+     주변 건물(도로명주소 건물, 등록 지번 포함)과 그 지번의 지적 경계 중심을 비교해 일정하게 밀려 있으면 그만큼 옮겨 표시 */
+  var SHIFTC={};
+  async function shiftAt(lon,lat){var key=(Math.round(lon/0.004)*0.004).toFixed(3)+","+(Math.round(lat/0.004)*0.004).toFixed(3);if(SHIFTC[key]!==undefined)return SHIFTC[key];
+    var d=0.0018,box=(lon-d)+","+(lat-d)+","+(lon+d)+","+(lat+d),res=null;
+    try{var B=await vwData("LT_C_SPBD",{geomFilter:"BOX("+box+")",size:"200"}),P=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+box+")",size:"1000"});
+      var byP={};P.features.forEach(function(f){byP[String((f.properties||{}).pnu)]=f.geometry});
+      function cen(G){var ps=polys(G);if(!ps.length)return null;var r=ps[0],x=0,y=0;r.forEach(function(p){x+=p[0];y+=p[1]});return [x/r.length,y/r.length,r]}
+      var dx=[],dy=[],out=0,n=0;B.features.forEach(function(f){var pn=String((f.properties||{}).bd_mgt_sn||"").slice(0,19),G=byP[pn];if(!G)return;var b=cen(f.geometry),p=cen(G);if(!b||!p)return;n++;
+        if(!pip([b[0],b[1]],p[2]))out++;dx.push(b[0]-p[0]);dy.push(b[1]-p[1])});
+      function med(a){a=a.slice().sort(function(x,y){return x-y});return a[Math.floor(a.length/2)]}
+      if(n>=6&&out/n>=0.6){var mx=med(dx),my=med(dy),m=Math.hypot(mx*90000,my*110540);
+        // 대부분의 건물이 같은 방향으로 밀려 있을 때만 보정(흩어져 있으면 보정하지 않음)
+        var agree=dx.filter(function(v,i){return Math.hypot((v-mx)*90000,(dy[i]-my)*110540)<12}).length/n;
+        if(m>=8&&agree>=0.6)res={dx:mx,dy:my,m:Math.round(m),n:n}}}catch(e){}
+    SHIFTC[key]=res;return res}
+  function shiftRing(r,s){return s?r.map(function(p){return [p[0]+s.dx,p[1]+s.dy]}):r}
   async function parcelAt(lon,lat){ // 지도에서 누른 위치의 필지 {pnu, addr, jibun, point, ring:[[lat,lon]...]}
-    var q=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"POINT("+lon+" "+lat+")",size:"1"});
+    var sh=await shiftAt(lon,lat),qx=sh?lon-sh.dx:lon,qy=sh?lat-sh.dy:lat;  // 누른 곳(실제 위치) → 지적도 좌표
+    var q=await vwData("LP_PA_CBND_BUBUN",{geomFilter:"POINT("+qx+" "+qy+")",size:"1"});
     if(q.status!=="OK"||!q.features.length)return null;
     var f=q.features[0],pr=f.properties||{},ps=polys(f.geometry),ring=ps.length?ps.reduce(function(a,b){return b.length>a.length?b:a}):[];
-    return {pnu:String(pr.pnu),addr:String(pr.addr||""),jibun:String(pr.jibun||""),point:[lon,lat],ring:ring.map(function(p){return [p[1],p[0]]})};
+    return {pnu:String(pr.pnu),addr:String(pr.addr||""),jibun:String(pr.jibun||""),point:[lon,lat],shift:sh,ring:shiftRing(ring,sh).map(function(p){return [p[1],p[0]]})};
   }
   async function resolveParcel(item){ // → {pnus:[...], method, rep}
     var name=item.name||"",rep={multi:multiCount(name)};
@@ -241,8 +259,10 @@ var BFGeo=(function(){
     var ji=jibunInfo(f.properties&&f.properties.jibun);
     var lons=ring.map(function(p){return p[0]}),lats=ring.map(function(p){return p[1]});
     var bb={x0:Math.min.apply(0,lons),x1:Math.max.apply(0,lons),y0:Math.min.apply(0,lats),y1:Math.max.apply(0,lats)};
-    var rr=ring.length>60?ring.filter(function(_,i){return i%Math.ceil(ring.length/60)===0}):ring;
-    out.parcel={ring:rr.map(function(p){return [+p[1].toFixed(6),+p[0].toFixed(6)]}),center:[+((bb.y0+bb.y1)/2).toFixed(6),+((bb.x0+bb.x1)/2).toFixed(6)],pnu:used,addr:(f.properties||{}).addr||"",jibun:(f.properties||{}).jibun||"",jimok:ji.name,jimokCode:ji.code,areaGeo:Math.round(area(P)),polys:ps.length};
+    var SH=null;try{SH=await shiftAt((bb.x0+bb.x1)/2,(bb.y0+bb.y1)/2)}catch(e){}
+    var ringR=shiftRing(ring,SH);  // 실제 위치(위성사진·표고·생태자연도 계산용)
+    var rr=ringR.length>60?ringR.filter(function(_,i){return i%Math.ceil(ringR.length/60)===0}):ringR;
+    out.parcel={ring:rr.map(function(p){return [+p[1].toFixed(6),+p[0].toFixed(6)]}),center:[+((bb.y0+bb.y1)/2+(SH?SH.dy:0)).toFixed(6),+((bb.x0+bb.x1)/2+(SH?SH.dx:0)).toFixed(6)],shift:SH,pnu:used,addr:(f.properties||{}).addr||"",jibun:(f.properties||{}).jibun||"",jimok:ji.name,jimokCode:ji.code,areaGeo:Math.round(area(P)),polys:ps.length};
     var box=function(d){return "BOX("+(bb.x0-d)+","+(bb.y0-d)+","+(bb.x1+d)+","+(bb.y1+d)+")"};
 
     /* 토지이용계획(NED) 우선 */
@@ -292,7 +312,7 @@ var BFGeo=(function(){
         nb.features.forEach(function(ft){
           if(ft.properties&&ft.properties.pnu===used)return;
           var nj=jibunInfo(ft.properties&&ft.properties.jibun);
-          polys(ft.geometry).forEach(function(pg){var st=Math.max(1,Math.ceil(pg.length/30));out.parcel.nb.push({c:nj.code,r:pg.filter(function(_,i){return i%st===0}).map(function(q){return [+q[1].toFixed(6),+q[0].toFixed(6)]})})});
+          polys(ft.geometry).map(function(pg){return shiftRing(pg,SH)}).forEach(function(pg){var st=Math.max(1,Math.ceil(pg.length/30));out.parcel.nb.push({c:nj.code,r:pg.filter(function(_,i){return i%st===0}).map(function(q){return [+q[1].toFixed(6),+q[0].toFixed(6)]})})});
           var d=Math.min.apply(0,polys(ft.geometry).map(function(pg){return minDist(P,to(pg))}));
           if(d<=2){if(nj.code==="도")roadTouch.push(ft.properties.jibun);else if(nj.code==="구"||nj.code==="천"||nj.code==="제"||nj.code==="철")others.push(nj.name+" "+ft.properties.jibun)}
         });
@@ -302,7 +322,7 @@ var BFGeo=(function(){
 
     /* 경사 */
     if(opt.slope!==false){
-      try{out.slope=Object.assign({status:"ok"},await slopeOf(ring,lon0,lat0))}
+      try{out.slope=Object.assign({status:"ok"},await slopeOf(ringR,lon0+(SH?SH.dx:0),lat0+(SH?SH.dy:0)))}
       catch(e){out.slope={status:"error",detail:e.message}}
     }
     return out;
@@ -324,5 +344,5 @@ var BFGeo=(function(){
     var level=flags.length?"문제":(warns.length||unk.length)?"주의":"양호";
     return {level:level,flags:flags,warns:warns,unk:unk,info:info};
   }
-  return {version:"2026-10-28-r (검토)",vwData:vwData,check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,parcelAt:parcelAt,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
+  return {version:"2026-10-28-r (검토)",vwData:vwData,shiftAt:shiftAt,check:check,summarize:summarize,getKey:getKey,setKey:setKey,domain:domain,pnuVariants:pnuVariants,landChar:landChar,searchAddr:searchAddr,parcelAt:parcelAt,landPrice:landPrice,findParcel:findParcel,parseJibun:parseJibun,parseRoad:parseRoad,multiCount:multiCount,nedQuery:nedQuery,stale:stale,isSan:isSan,jibunInfo:jibunInfo,ls:ls,lsSet:lsSet};
 })();
