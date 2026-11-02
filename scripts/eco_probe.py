@@ -3,21 +3,24 @@ from pyproj import Transformer
 K = urllib.parse.unquote(os.environ.get("DATA_GO_KR_KEY", "").strip())
 B = "https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService/wfs/getEcologyzmpWFS"
 t = Transformer.from_crs("EPSG:4326", "EPSG:5186", always_xy=True)
-def get(q):
-    with urllib.request.urlopen(B + "?" + urllib.parse.urlencode(dict({"ServiceKey": K}, **q)), timeout=40) as r:
+def get(q, to=60):
+    with urllib.request.urlopen(B + "?" + urllib.parse.urlencode(dict({"ServiceKey": K}, **q)), timeout=to) as r:
         return r.read().decode("utf-8", "replace")
-# 1) 속성 이름 전체(영천 금호읍 부근)
-x, y = t.transform(128.875, 35.935); d = 1500
+names = []
 try:
-    j = json.loads(get({"typeName": "tbl_opn_eczm", "srsName": "EPSG:5186", "bbox": f"{x-d},{y-d},{x+d},{y+d}", "outputFormat": "application/json"}))
-    fs = j.get("features", [])
-    print("n", len(fs)); keys = set()
-    for f in fs: keys |= set(f["properties"].keys())
-    print("keys", sorted(keys))
-    for f in fs[:5]: print(json.dumps(f["properties"], ensure_ascii=False)[:400])
-except Exception as e: print("ERR1", str(e)[:300])
-# 2) 서비스 목록
-for q in [{"service": "WFS", "request": "GetCapabilities"}, {"service": "WFS", "version": "1.1.0", "request": "DescribeFeatureType", "typeName": "tbl_opn_eczm"}]:
-    try:
-        s = get(q); print("---", q.get("request"), len(s)); print(re.sub(r"\s+", " ", s)[:3000])
-    except Exception as e: print("ERR", q.get("request"), str(e)[:200])
+    s = get({"service": "WFS", "request": "GetCapabilities"})
+    names = re.findall(r"<Name>open:([A-Za-z0-9_]+)</Name>", s)
+    print("TYPES", names)
+except Exception as e: print("ERR cap", str(e)[:200])
+# 영천 금호읍 원제리 부근 / 서산 명천리 부근
+for lab, lon, lat in [("yeongcheon", 128.87, 35.93), ("seosan", 126.4950, 36.8310)]:
+    x, y = t.transform(lon, lat); d = 600
+    for tn in names or ["tbl_opn_eczm"]:
+        try:
+            j = json.loads(get({"typeName": tn, "srsName": "EPSG:5186", "bbox": f"{x-d},{y-d},{x+d},{y+d}", "outputFormat": "application/json"}))
+            fs = j.get("features", []); keys = set()
+            for f in fs: keys |= set(f["properties"].keys())
+            print("==", lab, tn, "n", len(fs), sorted(keys))
+            for f in fs[:4]:
+                p = dict(f["properties"]); p.pop("bbox", None); print("   ", json.dumps(p, ensure_ascii=False)[:500])
+        except Exception as e: print("==", lab, tn, "ERR", str(e)[:200])
