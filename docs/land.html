@@ -811,15 +811,18 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
       if(k){var sat=L.layerGroup([L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}),L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19})]).addTo(PM),
           base=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Base/{z}/{y}/{x}.png",{maxZoom:19,attribution:"V-World"});
         // 지적선: 브이월드 지적도 그림(WMS)은 위성사진과 어긋나는 경우가 있어, 필지 경계 좌표를 직접 받아 그림(땅을 고를 때 쓰는 좌표와 같음)
-        var cad=L.layerGroup().addTo(PM),cr=L.canvas({padding:0.3}),cadKey="",cadSeq=0;
-        async function loadCad(){if(!PM.hasLayer(cad))return;var z=PM.getZoom();if(z<16){cad.clearLayers();cadKey="";return}
-          var b=PM.getBounds(),w=b.getWest(),s0=b.getSouth(),e=b.getEast(),n=b.getNorth(),key=[w,s0,e,n].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++cadSeq;
+        var cad=L.layerGroup().addTo(PM),lab=L.layerGroup(),cr=L.canvas({padding:0.3}),cadKey="",cadSeq=0;
+        async function loadCad(){var on=PM.hasLayer(cad),onL=PM.hasLayer(lab);if(!on&&!onL)return;var z=PM.getZoom();if(z<16){cad.clearLayers();lab.clearLayers();cadKey="";return}
+          var b=PM.getBounds(),w=b.getWest(),s0=b.getSouth(),e=b.getEast(),n=b.getNorth(),key=[w,s0,e,n,z>=18].map(String).join(",");if(key===cadKey)return;cadKey=key;var my=++cadSeq;
           var feats=[];for(var pg=1;pg<=3;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+w+","+s0+","+e+","+n+")",size:"1000",page:String(pg)}).catch(function(){return {status:"ERR",features:[]}});if(my!==cadSeq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}
-          cad.clearLayers();feats.forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
-            P.forEach(function(pl){var ll=pl[0].map(function(c){return [c[1],c[0]]});L.polygon(ll,{renderer:cr,color:"#ffe066",weight:1.2,opacity:.9,fill:false,interactive:false}).addTo(cad);
-              if(z>=18&&f.properties&&f.properties.jibun){var la=0,lo=0;ll.forEach(function(c){la+=c[0];lo+=c[1]});L.marker([la/ll.length,lo/ll.length],{interactive:false,icon:L.divIcon({className:"jb",html:"<span>"+String(f.properties.jibun).replace(/</g,"")+"</span>",iconSize:[0,0]})}).addTo(cad)}})})}
-        var cadT=null;PM.on("moveend",function(){clearTimeout(cadT);cadT=setTimeout(loadCad,250)});PM.on("overlayadd",function(e){if(e.layer===cad){cadKey="";loadCad()}});
-        L.control.layers({"위성":sat,"일반 지도":base},{"지적도(필지 경계)":cad},{collapsed:false,position:"topright"}).addTo(PM);
+          cad.clearLayers();lab.clearLayers();var nl=0;
+          feats.forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[],jb=String((f.properties||{}).jibun||""),road=/\s(도|구|천)$/.test(jb);
+            P.forEach(function(pl){var ll=pl[0].map(function(c){return [c[1],c[0]]});
+              // 도로·구거·하천 필지는 옅은 회색으로 칠해 구분
+              L.polygon(ll,{renderer:cr,color:"#ffe066",weight:1.1,opacity:.85,fill:road,fillColor:"#c9cfd6",fillOpacity:.28,interactive:false}).addTo(cad);
+              if(z>=18&&nl<250&&jb&&!road){var la=0,lo=0;ll.forEach(function(c){la+=c[0];lo+=c[1]});nl++;L.marker([la/ll.length,lo/ll.length],{interactive:false,icon:L.divIcon({className:"jb",html:"<span>"+jb.replace(/</g,"")+"</span>",iconSize:[0,0]})}).addTo(lab)}})})}
+        var cadT=null;PM.on("moveend",function(){clearTimeout(cadT);cadT=setTimeout(loadCad,250)});PM.on("overlayadd",function(e){cadKey="";loadCad()});
+        L.control.layers({"위성":sat,"일반 지도":base},{"지적선":cad,"지번 표시(많이 확대 시)":lab},{collapsed:false,position:"topright"}).addTo(PM);
         PM.on("zoomend",function(){if(PM.getZoom()<16)$("ptxt").textContent="지도를 더 확대하면 필지 경계(지적선)가 나옵니다. 땅을 눌러 주세요.";else if(!picked)$("ptxt").textContent="필지 경계선 안의 땅을 눌러 주세요."})}
       else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(PM);
       PM.on("click",async function(e){
@@ -828,7 +831,9 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
         try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;
           if(!x){$("ptxt").textContent="이 위치에서 땅을 찾지 못했습니다. 다른 곳을 눌러 주세요.";return}
           picked=x;if(poly)PM.removeLayer(poly);if(x.ring.length>2)poly=L.polygon(x.ring,{color:"#ff4d3d",weight:4,fillColor:"#ff4d3d",fillOpacity:.25}).addTo(PM);
-          var jm=BFGeo.jibunInfo(x.jibun).name;$("ptxt").textContent="선택: "+x.addr+(jm?" ("+jm+")":"");$("pgo").hidden=false}
+          var ji=BFGeo.jibunInfo(x.jibun),jm=ji.name;
+          if(/^(도|구|천|제|철)$/.test(ji.code)){$("ptxt").textContent="누른 곳은 "+x.addr+" — 지적상 '"+jm+"' 필지입니다(회색 칠한 곳). 옆의 땅을 다시 눌러 주세요.";$("pgo").hidden=true;return}
+          $("ptxt").textContent="선택: "+x.addr+(jm?" ("+jm+")":"");$("pgo").hidden=false}
         catch(err){if(my===busy)$("ptxt").textContent="땅 정보를 불러오지 못했습니다: "+err.message}});
     }
     $("pickb").addEventListener("click",function(){var w=$("pickw"),o=w.hidden;w.hidden=!o;this.setAttribute("aria-expanded",String(o));this.textContent=o?"지도 닫기":"지도에서 땅 눌러서 고르기";
