@@ -53,7 +53,7 @@
     var ac = new AbortController(), tm = setTimeout(function () { ac.abort(); }, 30000);
     return fetch(CFG.endpoint + "?action=eco&bbox=" + bb, { signal: ac.signal }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(tm);
       if (!j || !j.f) return { err: (j && j.error) || "응답 형식 이상" };
-      return { f: j.f.map(function (f) { return { g: String(f[0]), rs: f[1].map(function (r) { return { r: r, b: bbox(r) }; }) }; }) };
+      return { attrs: j.f.some(function (f) { return f.length > 2; }), f: j.f.map(function (f) { return { g: String(f[0]), v: f.length > 2 ? String(f[2] || "") : null, pn: f[3] || "", rs: f[1].map(function (r) { return { r: r, b: bbox(r) }; }) }; }) };
     }).catch(function (e) { clearTimeout(tm); return { err: e.name === "AbortError" ? "시간 초과(30초)" : e.message }; });
   }
 
@@ -113,11 +113,11 @@
       for (var k = 0; k < P.length && pi < 0; k++) if (P[k].rings.some(function (o) { return inB(q, o.b) && pip(q, o.r); })) pi = k;
       if (pi < 0) continue;
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
-      var rl = [q[0] + dx, q[1] + dy], eg = null;
-      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) eg = eco.f[e].g; }
+      var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "";
+      if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; } }
       var sl = null;
       if (!demErr) { var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, s: sl });
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, s: sl });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -149,26 +149,34 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length }, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs }, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
      식생 값: "3+" = Ⅲ등급 이상, "4" = Ⅳ등급, "4+" = Ⅳ등급 이상, "5" = Ⅴ등급 이하(농경지 등), "" = 모름 */
   function judge(D, veg2, vegP) {
     var S = R.slope, rows = [], P = D.P, sum = function (fn) { var a = 0; D.cells.forEach(function (c) { if (fn(c)) a += P[c.p].cellA; }); return Math.round(a); };
-    function vegOf(c) { if (c.e === "2") return veg2 === "3+" ? "3+" : veg2 === "4" ? "4" : ""; return vegP[c.p] || ""; }
-    function ge4(v) { return v === "3+" || v === "4" || v === "4+"; }
+    /* 식생보전등급 판단: 생태자연도 '식생 평가등급'(vtn_evl_grad)이 있으면 그것으로, 없으면 사용자 입력으로.
+       생태·자연도 작성지침: 식생 1등급 = 식생보전 Ⅰ·Ⅱ, 2등급 = Ⅲ·Ⅳ(또는 조사 안 된 자연식생 임상도 2영급 이상), 그 밖은 3등급(→ Ⅴ로 해석)
+       ge3 = Ⅲ등급 이상인가, ge4 = Ⅳ등급 이상인가 (true / false / null=모름) */
+    function vegOf(c) {
+      function inp(v) { return v === "3+" ? { ge3: true, ge4: true } : v === "4" ? { ge3: false, ge4: true } : v === "4+" ? { ge3: null, ge4: true } : v === "5" ? { ge3: false, ge4: false } : { ge3: null, ge4: null }; }
+      if (c.v === "1") return { ge3: true, ge4: true, src: "eco" };
+      if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
+      if (c.v === "2") { var x = inp(veg2); return { ge3: x.ge3, ge4: true, src: "eco" }; }
+      if (c.e === "2") return inp(veg2);
+      return inp(vegP[c.p] || ""); }
     var ecoOK = !D.eco.err, demOK = !D.demErr;
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
-    D.cells.forEach(function (c) { var v = vegOf(c), st = 0;
+    D.cells.forEach(function (c) { var v = vegOf(c), st = 0, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
-      else if (c.e === "2" && v === "3+") st = 2;
-      else if (c.s !== null && c.s >= S.avoid && ge4(v)) st = 2;
-      else if (c.e === "2" && !v) st = 3;
-      else if (c.s !== null && c.s >= S.avoid && !v) st = 3;
-      else if (c.e === "2" && v === "4" && c.s !== null && c.s < S.avoid) st = 1;
+      else if (c.e === "2" && v.ge3 === true) st = 2;
+      else if (steep && v.ge4 === true) st = 2;
+      else if (c.e === "2" && v.ge3 === null) st = 3;
+      else if (steep && v.ge4 === null) st = 3;
+      else if (c.e === "2" && v.ge3 === false && v.ge4 === true && c.s !== null && c.s < S.avoid) st = 1;
       else if (/^(전|답|과)$/.test(P[c.p].jcode) && D.forestNb[c.p] && c.s !== null && c.s >= S.crop) st = 1;
-      c.st = st; });
+      c.st = st; c.vg = v; });
 
     var ned = {}; P.forEach(function (p, i) { (Array.isArray(p.ned) ? p.ned : []).forEach(function (x) { var k = x[0]; (ned[k] = ned[k] || []).push({ i: i, c: x[1] }); }); });
     var nedErr = P.filter(function (p) { return p.ned && p.ned.err; }).map(function (p) { return p.jibun; });
@@ -196,17 +204,27 @@
     var a1 = ecoOK ? sum(function (c) { return c.e === "1"; }) : null;
     V(G, "d", "생태·자연도 1등급(식생보전 Ⅰ-Ⅱ등급 / 비오톱 Ⅰ-Ⅱ등급)", !ecoOK ? "확인 불가" : a1 ? "회피" : "해당없음", a1, ecoOK ? "1등급 " + (a1 || 0).toLocaleString() + "㎡ (조회 결과에 폴리곤이 없는 곳은 1·2등급·별도관리지역 밖, 곧 3등급으로 봄)" : "생태자연도 조회 실패: " + D.eco.err, "지침 입지회피 4", "국립생태원 생태자연도(WFS) 조회 시점 기준");
     // e) 생태자연도 2등급 + 식생 Ⅲ 이상
-    var a2 = ecoOK ? sum(function (c) { return c.e === "2"; }) : null;
-    V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : veg2 === "3+" ? "회피" : veg2 === "4" ? "해당없음" : "수동확인필요", a2,
-      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ — " + (veg2 === "3+" ? "식생 Ⅲ 이상으로 입력 → 회피" : veg2 === "4" ? "식생 Ⅳ로 입력 → 회피 아님(신중검토 항목으로)" : a2 ? "식생보전등급을 입력하면 판정(Ⅲ 이상이면 이 면적 회피)" : "") : "생태자연도 조회 실패",
-      "지침 입지회피 5", "국립생태원 생태자연도 + 식생보전등급(사용자 입력)");
+    function A(fn) { return sum(fn); }
+    var a2 = ecoOK ? A(function (c) { return c.e === "2"; }) : null,
+      eY = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === true; }) : null,
+      eN = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === false; }) : null,
+      eU = ecoOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === null; }) : null;
+    // 2등급 구간 군락 구성(면적 큰 순)
+    var cl = {}; D.cells.forEach(function (c) { if (c.e === "2" && c.pn) cl[c.pn] = (cl[c.pn] || 0) + P[c.p].cellA; });
+    var clT = Object.keys(cl).sort(function (x, y) { return cl[y] - cl[x]; }).slice(0, 4).map(function (k) { return k + " " + Math.round(cl[k]).toLocaleString() + "㎡"; }).join(", ");
+    var hasV = D.eco.attrs;
+    V(G, "e", "생태·자연도 2등급이면서 식생보전등급 Ⅲ등급 이상", !ecoOK ? "확인 불가" : !a2 ? "해당없음" : eY ? "회피" : eU ? "수동확인필요" : "해당없음", ecoOK ? (eY || eU || 0) : null,
+      ecoOK ? "2등급 " + (a2 || 0).toLocaleString() + "㎡ 중 식생 Ⅲ 이상 " + (eY || 0).toLocaleString() + "㎡, Ⅳ " + (eN || 0).toLocaleString() + "㎡" + (eU ? ", 미확정 " + eU.toLocaleString() + "㎡(Ⅲ인지 Ⅳ인지 입력 필요)" : "") +
+        (hasV ? ". 생태자연도 식생 평가 2등급은 식생보전 Ⅲ 또는 Ⅳ라 둘을 구분하지 못함" : ". 생태자연도 식생 평가값을 받지 못해 입력값으로만 판정(Apps Script 갱신 필요)") + (clT ? " / 군락: " + clT + " [참고: 식재림은 보통 Ⅳ, 자연림은 Ⅲ 이상일 수 있음 — 추정]" : "") : "생태자연도 조회 실패",
+      "지침 입지회피 5", "국립생태원 생태자연도(식생 평가) + 사용자 입력");
     // f) 경사 15° 이상 + 식생 Ⅳ 이상
-    var fS = demOK ? sum(function (c) { return c.s !== null && c.s >= S.avoid; }) : null,
-      fY = demOK ? sum(function (c) { return c.s !== null && c.s >= S.avoid && ge4(vegOf(c)); }) : null,
-      fU = demOK ? sum(function (c) { return c.s !== null && c.s >= S.avoid && !vegOf(c); }) : null;
+    var fS = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid; }) : null,
+      fY = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === true; }) : null,
+      fU = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === null; }) : null,
+      fE = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.src === "eco" && c.vg.ge4 !== null; }) : null;
     V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? "회피" : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
-      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + ". [추정] 표고 약 30m 해상도라 실제(산지관리법 방식 10m 격자)보다 작게 나옴 — 서산 명천리 검증에서 보고서 7,036㎡ 대비 약 25% 적었음. 산지정보시스템 경사 분석으로 확정" : "표고 자료 조회 실패: " + D.demErr,
-      "지침 입지회피 6(경사 산정은 산지관리법 준용)", "Mapzen Terrarium 표고(SRTM 기반)");
+      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + ". [추정] 표고 약 30m 해상도라 실제(산지관리법 방식 10m 격자)보다 작게 나옴 — 서산 명천리 검증에서 보고서 7,036㎡ 대비 약 25% 적었음. 산지정보시스템 경사 분석으로 확정" : "표고 자료 조회 실패: " + D.demErr,
+      "지침 입지회피 6(경사 산정은 산지관리법 준용)", "Mapzen Terrarium 표고(SRTM 기반) + 식생 평가");
     // g) 지형변화지수
     V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", "수동확인필요", null, "토공 설계(절·성토량)가 있어야 계산 가능", "지침 입지회피 7", "-");
     // h) 경관보전
@@ -218,9 +236,9 @@
       san.length ? "산지(지목 임야): " + san.map(function (p) { return p.jibun; }).join(", ") + " — 산사태정보시스템 위험지도로 1·2등급 여부 확인" : "지목 임야 필지 없음(지목 기준)", "지침 입지회피 9", "지목(지적도)");
 
     // 신중검토
-    var c1 = ecoOK && demOK ? sum(function (c) { return c.e === "2" && c.s !== null && c.s < S.avoid; }) : null;
-    V(G2, "k1", "생태·자연도 2등급(식생보전 Ⅳ등급)이면서 경사도 15° 미만", !ecoOK ? "확인 불가" : !c1 ? "해당없음" : veg2 === "4" ? "신중검토" : veg2 === "3+" ? "해당없음" : "수동확인필요", c1,
-      c1 ? "2등급 중 경사 15° 미만 " + c1.toLocaleString() + "㎡ — " + (veg2 === "4" ? "식생 Ⅳ로 입력 → 신중검토" : veg2 === "3+" ? "식생 Ⅲ 이상 → 회피 항목(e)으로" : "식생 Ⅳ이면 신중검토") : "해당 구간 없음", "지침 신중검토 1", "생태자연도 + 표고[추정]");
+    var c1 = ecoOK && demOK ? A(function (c) { return c.st === 1 && c.e === "2"; }) : null, c1U = ecoOK && demOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === null && c.s !== null && c.s < S.avoid; }) : null;
+    V(G2, "k1", "생태·자연도 2등급(식생보전 Ⅳ등급)이면서 경사도 15° 미만", !ecoOK ? "확인 불가" : c1 ? "신중검토" : c1U ? "수동확인필요" : "해당없음", ecoOK ? (c1 || c1U || 0) : null,
+      (c1 ? "식생 Ⅳ·경사 15° 미만 " + c1.toLocaleString() + "㎡" : "") + (c1U ? (c1 ? ", " : "") + "식생 미확정 " + c1U.toLocaleString() + "㎡(Ⅳ이면 신중검토, Ⅲ 이상이면 회피)" : "") || "해당 구간 없음", "지침 신중검토 1", "생태자연도 + 표고[추정]");
     var crops = P.map(function (p, i) { return i; }).filter(function (i) { return /^(전|답|과)$/.test(P[i].jcode); });
     var c2 = demOK ? sum(function (c) { return crops.indexOf(c.p) >= 0 && D.forestNb[c.p] && c.s !== null && c.s >= S.crop; }) : null;
     V(G2, "k2", "산림으로 둘러싸이거나 산림 경계와 연접한 경작지로 경사도 20° 이상", !crops.length ? "해당없음" : !demOK ? "확인 불가" : c2 ? "신중검토" : "해당없음", c2,

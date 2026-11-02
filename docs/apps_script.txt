@@ -19,7 +19,8 @@ function eco_(bb) {
   var r = UrlFetchApp.fetch("https://apis.data.go.kr/B553084/ecoapi/EcologyzmpService/wfs/getEcologyzmpWFS?ServiceKey=" + encodeURIComponent(decodeURIComponent(DATA_KEY.trim())) + "&typeName=tbl_opn_eczm&srsName=EPSG:5186&outputFormat=application/json&bbox=" + bb, { muteHttpExceptions: true }), j;
   try { j = JSON.parse(r.getContentText()); } catch (x) { return { error: "응답 " + r.getResponseCode() + " " + r.getContentText().slice(0, 300) }; }
   return { f: (j.features || []).map(function (f) { var g = f.geometry || {}, cs = g.type === "Polygon" ? [g.coordinates] : (g.coordinates || []);
-    return [String(f.properties.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); })]; }) };
+    var q = f.properties || {};
+    return [String(q.eczm_grad), cs.map(function (pl) { return pl[0].map(function (p) { return [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]; }); }), String(q.vtn_evl_grad || ""), q.plnt_cln_ttle || "", q.frph_agcl_code || ""]; }) };
 }
 function admin_(pw) {  // 관리자 화면: 비밀번호 확인(10회 틀리면 1시간 잠금) 후 기록 반환
   var c = CacheService.getScriptCache(), n = +(c.get("fail") || 0);
