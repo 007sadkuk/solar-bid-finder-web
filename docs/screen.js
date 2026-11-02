@@ -436,8 +436,8 @@
     var rep = { pp: { d: ppOf(function (c) { return c.e === "1"; }), e: ppOf(function (c) { return c.e === "2" && c.vg.ge3 === true; }), f: ppOf(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === true; }),
         i: ppOf(function (c) { return san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2; }), k1: ppOf(function (c) { return c.st === 1 && c.e === "2"; }), k2: ppOf(function (c) { return c.st === 1 && c.e !== "2"; }) },
       slope: { bins: bins.map(Math.round), total: Math.round(binN), mAll: mAll, mRest: mRest, src: slopeSrc() }, ridge: D.ridge, legal: legalI };
-    if (mAll !== null && san.length) rows.push({ g: G3, id: "s7", t: "산지 평균경사도 15° 이하(태양광 산지일시사용, 산지관리법 시행령 별표3의2)", v: mRest !== null && mRest > 15 ? "회피" : "해당없음", a: null,
-      d: "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
+    if (mAll !== null && san.length) rows.push({ g: G3, id: "s7", t: "산지 평균경사도 15° 이하(태양광 산지일시사용, 산지관리법 시행령 별표3의2)", v: mRest !== null && mRest > 15 ? "회피" : mAll > 15 ? "주의(전체 평균 15° 초과)" : "해당없음", a: null,
+      d: (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = [];
     if (/맹지/.test(rows.filter(function (r) { return r.id === "s2"; })[0].v) || (rd && lcAll)) cond.push("진입로: 지적도·현황상 도로 연결 확인 필요");

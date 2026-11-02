@@ -93,7 +93,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261103a"></script>
+<script src="screen.js?v=20261103b"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -152,7 +152,13 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     if(P.length>1){var tr=el("tr");[ "","합계","","",n(S.total)].forEach(function(x){tr.appendChild(el("td",null,x))});tr.style.fontWeight="800";T.appendChild(tr)}R2.appendChild(T);
     var hits=J.rows.filter(function(r){return r.g===G&&/^회피/.test(r.v)});
     var cc=el("div","concl");cc.appendChild(el("b",null,"※ 결론 ※ "));
-    cc.appendChild(document.createTextNode(hits.length?"「육상태양광발전사업 환경성 평가 협의 지침」을 근거로 경사도, 생태자연도, 산사태위험지도 등을 검토한 결과 "+hits.map(function(r){var pp=J.rep.pp[r.id];return pp&&pp.length?ppTxt(pp):r.t.split("(")[0]}).filter(function(x,i,a){return a.indexOf(x)===i}).slice(0,4).join(" / ")+"이(가) 입지회피지역으로 검토되었습니다. 설치 가능 면적은 "+n(S.ok)+"("+(S.total?Math.round(S.ok/S.total*100):0)+"%)로, 태양광 "+S.verdict+"입니다.":"협의지침의 입지회피 항목에 해당하는 구간이 없는 것으로 검토되었습니다. 설치 가능 면적 "+n(S.ok)+", 태양광 "+S.verdict+"."));
+    var why=S.why.filter(function(x){return !/경사 15|생태|산사태|멸종|정맥|법정|보호/.test(x[0])}),sl0=S.slope,txt;
+    if(hits.length){txt="「육상태양광발전사업 환경성 평가 협의 지침」을 근거로 경사도, 생태자연도, 산사태위험지도 등을 검토한 결과 "+hits.map(function(r){return r.t.split("(")[0].trim()+" "+(r.a!=null?n(r.a):"")}).join(", ")+"이(가) 입지회피지역으로 검토되었습니다."}
+    else txt="협의지침의 입지회피 항목에 해당하는 구간이 없는 것으로 검토되었습니다.";
+    if(sl0&&sl0.mAll!=null&&sl0.mAll>15)txt+=" 산지 평균경사도는 약 "+sl0.mAll.toFixed(1)+"°로 산지관리법 기준(15° 이하)을 넘어"+(sl0.mRest!=null&&sl0.mRest<=15?", 가파른 구간을 빼고 계획해야 합니다(나머지 평균 약 "+sl0.mRest.toFixed(1)+"°).":" 산지 부분 설치가 어렵습니다.");
+    if(why.length)txt+=" 그 밖에 "+why.map(function(x){return x[0]+" "+n(x[1])}).join(", ")+"도 설치에서 빠집니다.";
+    txt+=" 따라서 설치 가능 면적은 "+n(S.ok)+"("+(S.total?Math.round(S.ok/S.total*100):0)+"%)로, 태양광 발전시설 입지로는 "+(S.verdict==="가능"?"양호한 편":S.verdict==="불가"?"양호하지 않은 것":"일부만 가능한 것")+"으로 검토됩니다.";
+    cc.appendChild(document.createTextNode(txt));
     R2.appendChild(cc);
     R2.appendChild(el("h3",null,"2. 입지를 회피해야 할 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G}),["입지 회피 지역","해당 여부","비고"]));
     R2.appendChild(el("h3",null,"3. 신중 검토 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
