@@ -57,6 +57,23 @@
     }).catch(function (e) { clearTimeout(tm); return { err: e.name === "AbortError" ? "시간 초과(30초)" : e.message }; });
   }
 
+  /* ── 산림청 산사태정보시스템 격자(10m): 경사(Slope), 산사태위험등급(hazard2025) — EPSG:5181 ── */
+  var FS = "https://sansatai.forest.go.kr/gis1/ictout/iserver/services/data-HazardParam2025/rest/data/datasources/HazardParam2025/datasets/";
+  var FSG = { Slope: { L: -11019.2162346517, T: 584060.6190678639, r: 10 }, hazard2025: { L: -7279.2162346516, T: 570000.6190678641, r: 10 } };
+  async function forestGrid(pts5181, prog) { // pts: [[x,y],...] → {Slope: [..], hazard2025: [..]} (null = 값 없음)
+    var out = { Slope: [], hazard2025: [] }, keys = {}, jobs = [];
+    Object.keys(FSG).forEach(function (d) { var g = FSG[d]; pts5181.forEach(function (p, i) { var c = Math.floor((p[0] - g.L) / g.r), r = Math.floor((g.T - p[1]) / g.r), k = d + ":" + c + ":" + r; out[d][i] = k; if (!keys[k]) { keys[k] = { v: undefined }; jobs.push({ k: k, d: d, x: g.L + (c + 0.5) * g.r, y: g.T - (r + 0.5) * g.r }); } }); });
+    if (jobs.length > 6000) throw new Error("사업지가 너무 커서 산림청 격자 조회를 건너뜀(" + jobs.length + "칸)");
+    var done = 0, fail = 0, idx = 0;
+    async function worker() { while (idx < jobs.length) { var j = jobs[idx++];
+      try { var r = await fetch(FS + j.d + "/gridValue.json?x=" + j.x.toFixed(2) + "&y=" + j.y.toFixed(2)); var t = await r.json(); var v = t && t.value != null ? +t.value : null;
+        if (v !== null && (v < -1e30 || v > 1e6 || (j.d === "hazard2025" && (v < 1 || v > 5)))) v = null; keys[j.k].v = v; } catch (e) { fail++; keys[j.k].v = null; }
+      done++; if (prog && done % 50 === 0) prog("산림청 경사·산사태위험 격자를 받고 있습니다 (" + done + "/" + jobs.length + ")", 75 + Math.round(done / jobs.length * 15)); } }
+    var W = []; for (var w = 0; w < 16; w++) W.push(worker()); await Promise.all(W);
+    if (fail > jobs.length * 0.3) throw new Error("산림청 격자 조회 실패 " + fail + "/" + jobs.length);
+    Object.keys(out).forEach(function (d) { out[d] = out[d].map(function (k) { return keys[k].v; }); });
+    out.n = jobs.length; out.fail = fail; return out; }
+
   async function allFeatures(layer, b, maxPage) { var out = []; for (var pg = 1; pg <= (maxPage || 3); pg++) {
       var q = await BFGeo.vwData(layer, { geomFilter: "BOX(" + b.join(",") + ")", size: "1000", page: String(pg) }).catch(function () { return { status: "ERR", features: [] }; });
       out = out.concat(q.features || []); if (!q.features || q.features.length < 1000) break; } return out; }
@@ -121,6 +138,12 @@
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
+    // 산림청 10m 경사·산사태위험등급으로 덮어쓰기(실패하면 위 표고 계산값 유지)
+    var fsErr = null, fsN = 0;
+    try { var p5181 = cells.map(function (c) { var rx = B[0] + (c.ix + 0.5) * dlon + dx, ry = B[1] + (c.iy + 0.5) * dlat + dy, t = tm5186(rx, ry); return [t[0], t[1] - 100000]; });
+      var FG = await forestGrid(p5181, prog); fsN = FG.n;
+      cells.forEach(function (c, i) { c.sd = c.s; var sv = FG.Slope[i]; if (sv !== null && sv !== undefined) { c.s = sv; c.sf = 1; } c.hz = FG.hazard2025[i]; });
+    } catch (e) { fsErr = e.message; }
 
     // 진입로(지적상 도로 접함), 이웃 산림
     var mine = {}; P.forEach(function (p) { mine[p.pnu] = 1; });
@@ -154,7 +177,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -175,7 +198,9 @@
       if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
       if (c.e === "2") return inp(veg2);
       return inp(vegP[c.p] || ""); }
-    var ecoOK = !D.eco.err, demOK = !D.demErr;
+    function slopeSrc() { return fsCov > 0.95 ? "산림청 산사태정보시스템 경사 격자(10m)" : fsCov > 0 ? "산림청 경사 격자(10m) " + Math.round(fsCov * 100) + "% + 공개 표고(약 30m)" : "공개 표고(약 30m, Mapzen Terrarium)"; }
+    function slopeNote() { return fsCov > 0.95 ? "경사는 산림청 산사태위험지도 작성용 10m 경사 격자 값(서산 명천리 검증: 15° 이상 7,000㎡ vs 보고서 7,036㎡). 허가 서류의 평균경사도는 산지관리법 방식으로 따로 산정" : fsCov > 0 ? "경사 일부(" + Math.round((1 - fsCov) * 100) + "%)는 산림청 격자 값이 없어 공개 표고로 계산 [추정, 실제보다 작게 나올 수 있음]" : "[추정] 산림청 경사 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 공개 표고(약 30m)로 계산해 실제보다 작게 나올 수 있음"; }
+    var ecoOK = !D.eco.err, fsCov = D.cells.length ? D.cells.filter(function (c) { return c.sf; }).length / D.cells.length : 0, demOK = !D.demErr || fsCov > 0;
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
     D.cells.forEach(function (c) { var v = vegOf(c), st = 0, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
@@ -237,17 +262,22 @@
       fU = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.ge4 === null; }) : null,
       fE = demOK ? A(function (c) { return c.s !== null && c.s >= S.avoid && c.vg.src === "eco" && c.vg.ge4 !== null; }) : null;
     V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? "회피" : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
-      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + ". [추정] 표고 약 30m 해상도라 실제(산지관리법 방식 10m 격자)보다 작게 나옴 — 서산 명천리 검증에서 보고서 7,036㎡ 대비 약 25% 적었음. 산지정보시스템 경사 분석으로 확정" : "표고 자료 조회 실패: " + D.demErr,
-      "지침 입지회피 6(경사 산정은 산지관리법 준용)", "Mapzen Terrarium 표고(SRTM 기반) + 식생 평가");
+      demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + ". " + slopeNote() : "경사 자료 조회 실패: " + (D.fsErr || D.demErr),
+      "지침 입지회피 6(경사 산정은 산지관리법 준용)", slopeSrc() + " + 식생 평가");
     // g) 지형변화지수
     V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", "수동확인필요", null, "토공 설계(절·성토량)가 있어야 계산 가능", "지침 입지회피 7", "-");
     // h) 경관보전
     var hh = legalHits("h");
     V(G, "h", "생태·경관보전지역, 문화재보호구역 등 경관보전이 필요한 지역", hh.length ? "회피" : nedErr.length === P.length ? "확인 불가" : "해당없음", hh.length ? hitArea(hh) : null, hh.length ? hitText(hh) : "토지이용계획에 해당 지역·지구 없음" + nedNote, "지침 입지회피 8", luSrc);
     // i) 산사태위험
-    var san = P.filter(function (p) { return p.jcode === "임"; });
-    V(G, "i", "산사태위험 1·2등급지 (사업지구가 산지인 경우)", san.length ? "수동확인필요" : "해당없음", san.length ? Math.round(san.reduce(function (s, p) { return s + p.area; }, 0)) : null,
-      san.length ? "산지(지목 임야): " + san.map(function (p) { return p.jibun; }).join(", ") + " — 산사태정보시스템 위험지도로 1·2등급 여부 확인" : "지목 임야 필지 없음(지목 기준)", "지침 입지회피 9", "지목(지적도)");
+    var san = P.map(function (p, i) { return i; }).filter(function (i) { return P[i].jcode === "임"; }), hzOK = D.cells.some(function (c) { return c.hz !== undefined; });
+    var h12 = hzOK ? A(function (c) { return san.indexOf(c.p) >= 0 && c.hz !== null && c.hz <= 2; }) : null, h12all = hzOK ? A(function (c) { return c.hz !== null && c.hz <= 2; }) : null;
+    var hzB = {}; if (hzOK) D.cells.forEach(function (c) { if (san.indexOf(c.p) >= 0 && c.hz) hzB[c.hz] = (hzB[c.hz] || 0) + P[c.p].cellA; });
+    V(G, "i", "산사태위험 1·2등급지 (사업지구가 산지인 경우)", !san.length ? "해당없음" : !hzOK ? "수동확인필요" : h12 ? "회피" : "해당없음", san.length ? (hzOK ? h12 : null) : null,
+      !san.length ? "지목 임야 필지 없음(지목 기준)" + (h12all ? " — 다만 위험지도 1·2등급 " + h12all.toLocaleString() + "㎡ 있음(산지 아닌 필지)" : "")
+        : hzOK ? "산지(지목 임야 " + san.map(function (i) { return P[i].jibun; }).join(", ") + ") 위험등급 면적: " + [1, 2, 3, 4, 5].filter(function (g) { return hzB[g]; }).map(function (g) { return g + "등급 " + Math.round(hzB[g]).toLocaleString() + "㎡"; }).join(", ") + (Object.keys(hzB).length ? "" : "위험지도 값 없음") + ". 10m 격자 값이라 경계부는 ±10m 오차"
+        : "산림청 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 산사태정보시스템 위험지도로 확인",
+      "지침 입지회피 9", "산림청 산사태위험지도(2025) 10m 격자");
 
     // 신중검토
     var c1 = ecoOK && demOK ? A(function (c) { return c.st === 1 && c.e === "2"; }) : null, c1U = ecoOK && demOK ? A(function (c) { return c.e === "2" && c.vg.ge3 === null && c.s !== null && c.s < S.avoid; }) : null;
