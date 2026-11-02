@@ -238,11 +238,14 @@
       if (c.vl && !veg2) return { ge3: c.vl <= 3, ge4: c.vl <= 4, src: "pdf" };
       if (c.v === "1") return { ge3: true, ge4: true, src: "eco" };
       if (c.v === "3") return { ge3: false, ge4: false, src: "eco" };
-      if (c.v === "2") { var x = inp(veg2); if (x.ge3 === null && c.pn) { var g3 = commGe3(c.pn); if (g3 !== null) return { ge3: g3, ge4: true, src: "eco", est: true }; } return { ge3: x.ge3, ge4: true, src: "eco" }; }
-      if (c.e === "2") return inp(veg2);
+      if (c.v === "2" || c.e === "2") { var x = inp(veg2); if (x.ge3 !== null) return { ge3: x.ge3, ge4: true, src: "user" };
+        var g3 = c.pn ? commGe3(c.pn) : null;
+        // 군락명이 없거나(임상도 영급으로 지정된 2등급 등) 판단이 안 되면: 고시도면에 Ⅲ 표시가 없는 2등급이므로 Ⅳ로 봄 [추정]
+        return { ge3: g3 === true, ge4: true, src: "eco", est: true }; }
       if (vegP[c.p]) return inp(vegP[c.p]);
       var u = useOf(c.p); if (u) { var y = inp(u); y.est = true; y.src = "use"; return y; }
-      return inp(""); }
+      // 마지막: 지목으로 — 임야면 Ⅳ 이상, 그 밖은 Ⅴ [추정]
+      return P[c.p].jcode === "임" ? { ge3: false, ge4: true, src: "use", est: true } : { ge3: false, ge4: false, src: "use", est: true }; }
     /* [추정] 생태자연도 식생 평가가 없는 곳: 토지특성 '이용상황'으로 식생 추정. 자연림·조림·임야 → Ⅳ 이상, 전·답·과수원·대지·공장 등 → Ⅴ */
     function useOf(i) { var u = (P[i].lc && P[i].lc.use) || ""; if (!u) return ""; if (/자연림|조림|임야|목장/.test(u)) return "4+"; if (/전|답|과수|주거|상업|공업|공장|대|창고|도로|하천|나지|주차|묘지|기타/.test(u)) return "5"; return ""; }
     function slopeSrc() { return fsCov > 0.95 ? "산림청 산사태정보시스템 경사 격자(10m)" : fsCov > 0 ? "산림청 경사 격자(10m) " + Math.round(fsCov * 100) + "% + 공개 표고(약 30m)" : "공개 표고(약 30m, Mapzen Terrarium)"; }
