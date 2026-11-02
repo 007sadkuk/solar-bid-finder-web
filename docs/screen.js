@@ -124,14 +124,18 @@
     // 진입로(지적상 도로 접함), 이웃 산림
     var mine = {}; P.forEach(function (p) { mine[p.pnu] = 1; });
     var roads = [], forestNb = {};
+    // 경계를 1m 간격으로 따라가며 다른 필지와 맞닿은 길이(m)
+    function shared(A, Bs) { var L = 0; for (var i = 0; i < A.length - 1; i++) { var a = A[i], b = A[i + 1], len = Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * ky), n = Math.max(1, Math.ceil(len)); for (var k = 0; k < n; k++) { var t = (k + 0.5) / n, pt = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; if (Bs.some(function (r) { return ringDist(pt, r, kx, ky) < 0.6; })) L += len / n; } } return L; }
     nb.forEach(function (f) { var pr = f.properties || {}; if (mine[String(pr.pnu)]) return; var ji = BFGeo.jibunInfo(pr.jibun); if (!/^(도|임)$/.test(ji.code)) return;
-      var rs = polys(f.geometry), touch = []; P.forEach(function (p, i) { var hit = rs.some(function (r) { return p.rings.some(function (o) {
-          return r.some(function (v) { return ringDist(v, o.r, kx, ky) < 1.0; }) || o.r.some(function (v) { return ringDist(v, r, kx, ky) < 1.0; }); }); }); if (hit) touch.push(i); });
+      var rs = polys(f.geometry), touch = [];
+      P.forEach(function (p, i) { var bx = p.rings.reduce(function (m, o) { return [Math.min(m[0], o.b[0]), Math.min(m[1], o.b[1]), Math.max(m[2], o.b[2]), Math.max(m[3], o.b[3])]; }, [Infinity, Infinity, -Infinity, -Infinity]);
+        if (!rs.some(function (r) { var rb = bbox(r); return rb[0] <= bx[2] + 1e-5 && rb[2] >= bx[0] - 1e-5 && rb[1] <= bx[3] + 1e-5 && rb[3] >= bx[1] - 1e-5; })) return;
+        var L = p.rings.reduce(function (s, o) { return s + shared(o.r, rs); }, 0); if (L > 0.5) touch.push({ i: i, L: L }); });
       if (!touch.length) return;
-      if (ji.code === "도") roads.push({ jibun: String(pr.jibun), touch: touch }); else touch.forEach(function (i) { forestNb[i] = (forestNb[i] || 0) + 1; }); });
-    // 사업지 안 지목 '임' 필지와 붙은 경작지도 산림 연접으로 봄
+      if (ji.code === "도") roads.push({ jibun: String(pr.jibun), touch: touch }); else touch.forEach(function (t) { if (t.L >= 2) forestNb[t.i] = (forestNb[t.i] || 0) + 1; }); });
+    // 사업지 안 지목 '임' 필지와 맞닿은 경작지도 산림 연접으로 봄
     P.forEach(function (p, i) { if (p.jcode !== "임") return; P.forEach(function (q, j) { if (i === j || forestNb[j]) return;
-      var hit = p.rings.some(function (o) { return q.rings.some(function (o2) { return o.r.some(function (v) { return ringDist(v, o2.r, kx, ky) < 1.0; }); }); }); if (hit) forestNb[j] = (forestNb[j] || 0) + 1; }); });
+      var L = q.rings.reduce(function (s, o) { return s + shared(o.r, p.rings.map(function (x) { return x.r; })); }, 0); if (L >= 2) forestNb[j] = (forestNb[j] || 0) + 1; }); });
 
     // 주변 건물(도로명주소 건물) — 실제 위치 기준, 사업지 안 건물 제외
     var realRings = []; P.forEach(function (p) { p.rings.forEach(function (o) { realRings.push(o.r.map(function (v) { return [v[0] + dx, v[1] + dy]; })); }); });
@@ -228,9 +232,9 @@
     var urb = Object.keys(zA).some(function (k) { return /주거|상업|공업|녹지/.test(k); });
     V(G3, "s1", "소규모 환경영향평가 대상 여부", urb ? "수동확인필요" : ratio >= 1 ? "대상" : "대상 아님(면적 기준)", Math.round(area(P)),
       zt.join(", ") + (urb ? " — 도시지역 포함: 별표4 다른 기준 적용, 수동 확인" : " → 면적÷기준면적 합 " + ratio.toFixed(2) + (ratio >= 1 ? " (1 이상)" : " (1 미만)")) + ". 사업면적을 줄이면 달라짐. 용도지역 경계는 지적과 다를 수 있어 토지이음으로 확인",
-      R.seia.law + " — " + R.seia.status, "브이월드 용도지역 레이어(고시연도 " + uniq(D.zones.map(function (z) { return z.y; })).join("/") + ")");
-    var rd = D.roads.length;
-    V(G3, "s2", "진입로(지적상 도로 접함)", rd ? "확인됨" : "맹지 의심", null, rd ? "접한 도로 지번: " + D.roads.map(function (r) { return r.jibun + "(" + r.touch.map(function (i) { return P[i].jibun; }).join("·") + ")"; }).join(", ") + " — 실제 통행 가능 여부·폭은 현장 확인" : "사업지 필지에 붙은 지목 '도로' 필지가 없음 — 현황도로·사용승낙으로 진입 가능한지 확인", "개발행위허가 기준(진입로)", "연속지적도");
+      R.seia.law + " — " + R.seia.status, "브이월드 용도지역 레이어(고시연도 " + uniq(D.zones.map(function (z) { return z.y; }).filter(function (y) { return y && y !== "0000"; })).join("/") + ")");
+    var rdOK = D.roads.filter(function (r) { return r.touch.some(function (t) { return t.L >= 2; }); }), rd = rdOK.length;
+    V(G3, "s2", "진입로(지적상 도로 접함)", rd ? "확인됨" : "맹지 의심", null, (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
     var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length;
     V(G3, "s3", "주변 건물(주택 이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", hf >= R.houses.n ? "수동확인필요" : "참고", null,
       R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택인지 창고인지는 데이터가 비어 있어 미구분" + (hf >= R.houses.n ? " — " + R.houses.n + "동 이상이라 주택 여부·호수 확인" : ""),
