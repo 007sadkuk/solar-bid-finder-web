@@ -285,18 +285,20 @@
     V(G, "f", "경사도 15° 이상이면서 식생보전등급 Ⅳ등급 이상", !demOK ? "확인 불가" : fY ? (fUse ? "회피(일부 추정)" : "회피") : fU ? "수동확인필요" : "해당없음", demOK ? (fY || fU || 0) : null,
       demOK ? "경사 15° 이상 " + fS.toLocaleString() + "㎡ 중 식생 Ⅳ 이상 " + fY.toLocaleString() + "㎡" + (fU ? ", 식생 미입력 " + fU.toLocaleString() + "㎡" : "") + (fE ? " (그중 " + fE.toLocaleString() + "㎡는 생태자연도 식생 평가값으로 판단)" : "") + (fUse ? ". [추정] " + fUse.toLocaleString() + "㎡는 토지특성 이용상황(" + uniq(P.map(function (p) { return p.lc && p.lc.use; })).join("·") + ")으로 식생을 추정 — 위에서 직접 고르면 바뀜" : "") + ". " + slopeNote() : "경사 자료 조회 실패: " + (D.fsErr || D.demErr),
       "지침 입지회피 6(경사 산정은 산지관리법 준용)", slopeSrc() + " + 식생 평가");
-    // g) 지형변화지수 [추정]: 회피 구간을 뺀 곳을 한 평면으로 정지한다고 가정(최소제곱 평면) → (절토+성토)/면적
-    var gz = D.cells.filter(function (c) { return c.st !== 2 && c.el !== null && c.el !== undefined; }), gIdx = null, gA = 0;
-    if (gz.length >= 10) { var n0 = 0, sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0;
-      gz.forEach(function (c) { var w = P[c.p].cellA; n0 += w; sx += w * c.mx; sy += w * c.my; sz += w * c.el; sxx += w * c.mx * c.mx; syy += w * c.my * c.my; sxy += w * c.mx * c.my; sxz += w * c.mx * c.el; syz += w * c.my * c.el; });
-      var M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n0]], V3 = [sxz, syz, sz];
+    // g) 지형변화지수 [추정]: 회피 구간을 뺀 곳을 약 30m 블록(어레이 몇 열 크기)마다 한 평면으로 정지한다고 가정 → (절토+성토)/면적
+    function planeVol(cs) { var n0 = 0, sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0;
+      cs.forEach(function (c) { var w = P[c.p].cellA; n0 += w; sx += w * c.mx; sy += w * c.my; sz += w * c.el; sxx += w * c.mx * c.mx; syy += w * c.my * c.my; sxy += w * c.mx * c.my; sxz += w * c.mx * c.el; syz += w * c.my * c.el; });
       function det(m) { return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]); }
-      var dt = det(M);
-      if (Math.abs(dt) > 1e-9) { var co = [0, 1, 2].map(function (k) { var m = M.map(function (r, i) { return r.map(function (v, j) { return j === k ? V3[i] : v; }); }); return det(m) / dt; });
-        var vol = 0; gz.forEach(function (c) { vol += Math.abs(c.el - (co[0] * c.mx + co[1] * c.my + co[2])) * P[c.p].cellA; gA += P[c.p].cellA; });
-        gIdx = vol / gA; } }
+      var M = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, n0]], V3 = [sxz, syz, sz], dt = det(M), v = 0;
+      if (Math.abs(dt) < 1e-6) { var mz = sz / n0; cs.forEach(function (c) { v += Math.abs(c.el - mz) * P[c.p].cellA; }); return v; }
+      var co = [0, 1, 2].map(function (k) { return det(M.map(function (r, i) { return r.map(function (x, j) { return j === k ? V3[i] : x; }); })) / dt; });
+      cs.forEach(function (c) { v += Math.abs(c.el - (co[0] * c.mx + co[1] * c.my + co[2])) * P[c.p].cellA; }); return v; }
+    var gz = D.cells.filter(function (c) { return c.st !== 2 && c.el !== null && c.el !== undefined; }), gIdx = null, gAll = null, gA = 0;
+    if (gz.length >= 10) { gz.forEach(function (c) { gA += P[c.p].cellA; }); gAll = planeVol(gz) / gA;
+      var blk = {}; gz.forEach(function (c) { var k = Math.floor(c.mx / 30) + ":" + Math.floor(c.my / 30); (blk[k] = blk[k] || []).push(c); });
+      var vb = 0; Object.keys(blk).forEach(function (k) { vb += blk[k].length >= 3 ? planeVol(blk[k]) : 0; }); gIdx = vb / gA; }
     V(G, "g", "지형변화지수 1.5 이상 예상 지역 (절토+성토 ㎥ ÷ 사업면적 ㎡)", gIdx === null ? "수동확인필요" : gIdx >= 1.5 ? "수동확인필요" : "해당없음(추정)", null,
-      gIdx === null ? "표고 자료가 부족해 계산 못 함" : "[추정] 회피 구간을 뺀 " + Math.round(gA).toLocaleString() + "㎡를 한 평면으로 깎고 메운다고 가정하면 지수 약 " + gIdx.toFixed(2) + (gIdx >= 1.5 ? " — 1.5 이상: 계단식·지형 순응 배치로 토공을 줄이는 설계 필요" : " — 1.5 미만") + ". 공개 표고(약 30m)라 실제 요철은 덜 반영됨. 확정은 토공 설계로",
+      gIdx === null ? "표고 자료가 부족해 계산 못 함" : "[추정] 회피 구간을 뺀 " + Math.round(gA).toLocaleString() + "㎡를 약 30m 블록마다 평면으로 정지(계단식)하면 지수 약 " + gIdx.toFixed(2) + (gIdx >= 1.5 ? " — 1.5 이상" : " — 1.5 미만") + " / 전체를 한 평면으로 깎으면 약 " + gAll.toFixed(2) + ". 공개 표고(약 30m)라 작은 요철은 빠짐. 확정은 토공 설계로",
       "지침 입지회피 7", "공개 표고(약 30m) 기반 추정");
     // h) 경관보전
     var hh = legalHits("h");
@@ -324,14 +326,15 @@
     // 인허가
     var zA = {}; D.cells.forEach(function (c) { var k = c.z || "(용도지역 없음)"; zA[k] = (zA[k] || 0) + P[c.p].cellA; });
     var ratio = 0, zt = []; Object.keys(zA).forEach(function (k) { var a = Math.round(zA[k]); zt.push(k + " " + a.toLocaleString() + "㎡"); var th = R.seia.zones[k]; if (th) ratio += a / th; });
-    var urb = Object.keys(zA).some(function (k) { return /주거|상업|공업|녹지/.test(k); });
+    var urb = Object.keys(zA).some(function (k) { return /주거|상업|공업|보전녹지/.test(k); });
     V(G3, "s1", "소규모 환경영향평가 대상 여부", urb ? "수동확인필요" : ratio >= 1 ? "대상" : "대상 아님(면적 기준)", Math.round(area(P)),
       zt.join(", ") + (urb ? " — 도시지역 포함: 별표4 다른 기준 적용, 수동 확인" : " → 면적÷기준면적 합 " + ratio.toFixed(2) + (ratio >= 1 ? " (1 이상)" : " (1 미만)")) + ". 사업면적을 줄이면 달라짐. 용도지역 경계는 지적과 다를 수 있어 토지이음으로 확인",
       R.seia.law + " — " + R.seia.status, "브이월드 용도지역 레이어(고시연도 " + uniq(D.zones.map(function (z) { return z.y; }).filter(function (y) { return y && y !== "0000"; })).join("/") + ")");
     var rdOK = D.roads.filter(function (r) { return r.touch.some(function (t) { return t.L >= 2; }); }), rd = rdOK.length;
     var lcT = P.map(function (p) { return p.lc && p.lc.road ? p.jibun + " " + p.lc.road + (p.lc.year ? "(" + p.lc.year + "년 조사)" : "") : null; }).filter(Boolean);
     var lcBlind = P.some(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); }), lcAll = P.every(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); });
-    V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
+    var lcRoad = P.filter(function (p) { return p.lc && p.lc.road && !/맹지/.test(p.lc.road); });
+    V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
     var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length, BU = D.bldUse && !D.bldUse._err;
     function isHome(h) { return (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
     var hh2 = BU ? D.houses.filter(isHome) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
