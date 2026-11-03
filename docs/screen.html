@@ -20,7 +20,7 @@ textarea{width:100%;min-height:76px}
 .warn{border-left:4px solid var(--mark);background:rgba(243,198,35,.10);padding:10px 14px;border-radius:8px;font-size:14px;margin:10px 0}
 .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.kpi div{background:var(--field);border-radius:10px;padding:12px}.kpi b{display:block;font-size:24px}.kpi span{color:var(--sub);font-size:13px}
 .kpi .av b{color:var(--no)}.kpi .ca b{color:var(--warn)}.kpi .uk b{color:var(--q)}.kpi .ok b{color:var(--go)}
-#map{height:520px;border-radius:12px}#pmap{background:#0b1712}@media (max-width:720px){#pmap{height:300px!important}}
+#map{height:520px;border-radius:12px}#pmap{background:#0b1712}@media (max-width:720px){#pmap{height:420px!important}}
 .seg{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.seg button{font:inherit;font-size:14px;border:1px solid var(--rule);background:transparent;color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}.seg button[aria-pressed=true]{background:var(--pine);color:#fff;border-color:var(--pine)}
 .lg{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin-top:8px}.lg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .tw{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--rule2);padding:8px;text-align:left;vertical-align:top}th{color:var(--sub);font-weight:600;white-space:nowrap}td.n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -56,7 +56,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     <div class="acw"><textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea><ul class="acl" id="acl" role="listbox" hidden></ul></div>
     <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
     <div id="pickWrap" style="margin:4px 0 14px"><p class="sub" style="margin:0 0 6px"><b style="color:var(--ink)">지도에서 고르기</b> — 땅을 누르면 위 칸에 지번이 들어갑니다. 여러 필지는 계속 누르고, 다시 누르면 빠집니다. <span id="pmsg"></span></p>
-      <div id="pmap" style="height:380px;border-radius:12px"></div></div>
+      <div id="pmap" style="height:560px;border-radius:12px"></div><p style="margin:8px 0 0"><button class="btn s" type="button" id="pclear">지번 초기화</button></p></div>
     <button class="btn" id="go">검토하기</button> <span class="msg" id="m"></span>
     <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
   </form>
@@ -307,28 +307,31 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 })();
 
 /* 지도에서 땅 고르기: 누르면 지번 칸에 추가, 다시 누르면 빼기. 17레벨 이상에서 지적선 표시(지적 좌표 어긋남 보정) */
-(function(){var PM=null,sel={},cad=null,selL=null,cadKey="",seq=0,busy=0;var I=document.getElementById("addr"),M=document.getElementById("pmsg");
+(function(){var PM=null,sel={},cad=null,selL=null,cadKey="",seq=0,busy=0,CR=null;var I=document.getElementById("addr"),M=document.getElementById("pmsg");
   function msg(t){M.textContent=t||""}
   function syncText(){var lines=I.value.split("\n").map(function(x){return x.trim()}).filter(Boolean),addrs=Object.keys(sel).map(function(k){return sel[k].addr});
     var keep=lines.filter(function(l){return !(l in syncText.rm)});syncText.rm={};
     addrs.forEach(function(a){if(keep.indexOf(a)<0)keep.push(a)});I.value=keep.join("\n")}
   syncText.rm={};
-  function drawSel(){selL.clearLayers();Object.keys(sel).forEach(function(k){L.polygon(sel[k].ring,{color:"#f3c623",weight:3,fillColor:"#f3c623",fillOpacity:.25,interactive:false}).addTo(selL)})}
-  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<17){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
-    var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(",")+")",size:"1000"}).catch(function(){return {features:[]}});if(my!==seq)return;
-    var c=PM.getCenter(),SH=null;try{SH=await BFGeo.shiftAt(c.lng,c.lat)}catch(_){}if(my!==seq)return;var dX=SH?SH.dx:0,dY=SH?SH.dy:0;cad.clearLayers();
-    (q.features||[]).forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];P.forEach(function(pl){L.polygon(pl[0].map(function(v){return [v[1]+dY,v[0]+dX]}),{color:"#ffe066",weight:1,opacity:.8,fill:false,interactive:false}).addTo(cad)})})}
+  var CUR={dx:0,dy:0};
+  function ringNow(x){var o=x.shift||{dx:0,dy:0};return x.ring.map(function(p){return [p[0]-o.dy+CUR.dy,p[1]-o.dx+CUR.dx]})}
+  function drawSel(){selL.clearLayers();Object.keys(sel).forEach(function(k){L.polygon(ringNow(sel[k]),{color:"#f3c623",weight:3,fillColor:"#f3c623",fillOpacity:.25,interactive:false}).bindTooltip(sel[k].addr.split(" ").slice(-2).join(" ")).addTo(selL)})}
+  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<15){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
+    var feats=[];for(var pg=1;pg<=4;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(",")+")",size:"1000",page:String(pg)}).catch(function(){return {features:[]}});if(my!==seq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}var q={features:feats};
+    var c=PM.getCenter(),SH=null;try{SH=await BFGeo.shiftAt(c.lng,c.lat)}catch(_){}if(my!==seq)return;var dX=SH?SH.dx:0,dY=SH?SH.dy:0;CUR={dx:dX,dy:dY};cad.clearLayers();drawSel();
+    (q.features||[]).forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];P.forEach(function(pl){L.polygon(pl[0].map(function(v){return [v[1]+dY,v[0]+dX]}),{renderer:CR,color:"#ffe066",weight:1,opacity:.75,fill:false,interactive:false}).addTo(cad)})})}
   window.PICK_INIT=function(){if(PM||typeof L==="undefined")return;var k=BFGeo.getKey();PM=L.map("pmap").setView([36.3,128.2],8);
     if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(PM);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(PM)}
     else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(PM);
-    cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("크게 확대한 뒤 땅을 누르세요.");
+    CR=L.canvas({padding:0.3});cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("확대하면 필지 경계가 보입니다. 땅을 누르세요.");
     PM.on("moveend",function(){loadCad()});
-    PM.on("click",async function(e){if(PM.getZoom()<16){PM.setView(e.latlng,17);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
+    PM.on("click",async function(e){if(PM.getZoom()<15){PM.setView(e.latlng,16);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
       try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;if(!x){msg("그 자리에 필지가 없습니다.");return}
         if(sel[x.pnu]){syncText.rm[sel[x.pnu].addr]=1;delete sel[x.pnu];msg("빼기: "+x.addr)}else{sel[x.pnu]=x;msg("추가: "+x.addr+" (지목 "+x.jibun.replace(/^[산\d\-\s]+/,"")+")")}
         x.addr=x.addr.trim();syncText();drawSel()}catch(err){msg("필지를 불러오지 못했습니다.")}});
     // 지번 칸을 직접 고치면 지도 선택도 맞춤(칸에서 지운 지번은 지도에서도 빼기)
     I.addEventListener("change",function(){var t=I.value;Object.keys(sel).forEach(function(k){if(t.indexOf(sel[k].addr)<0)delete sel[k]});drawSel()});
+    document.getElementById("pclear").addEventListener("click",function(){sel={};syncText.rm={};I.value="";drawSel();msg("지번을 모두 지웠습니다.");I.focus()});
     window.PICK_ADD=async function(pt){if(!PM||!pt)return;PM.setView([pt[1],pt[0]],18);try{var x=await BFGeo.parcelAt(pt[0],pt[1]);if(x&&!sel[x.pnu]){x.addr=x.addr.trim();sel[x.pnu]=x;drawSel();msg("추가: "+x.addr)}}catch(_){}};
     setTimeout(function(){PM.invalidateSize()},100)};
   if(!document.getElementById("app").hidden)PICK_INIT();
