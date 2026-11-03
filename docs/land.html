@@ -874,7 +874,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   function render(k){var D=$("udet");D.innerHTML="";D.hidden=false;CUR=k;mark(k);
     var card=document.querySelector('#ruses .use[data-k="'+k+'"]');
     if(card){var c=card.cloneNode(true);c.classList.remove("top3");D.appendChild(c)}
-    if(k==="solar"){var f=document.createElement("iframe");f.id="solarFrame";f.title="태양광 입지 검토";f.src="screen.html?embed=1&addr="+encodeURIComponent(Q);D.appendChild(f)}
+    if(k==="solar"){var f=document.createElement("iframe");f.id="solarFrame";f.title="태양광 입지 검토";f.src="screen.html?embed=1&v=20261103c&addr="+encodeURIComponent(Q);D.appendChild(f)}
     D.scrollIntoView({behavior:"smooth",block:"start"})}
   function lock(k){var D=$("udet");D.innerHTML="";D.hidden=false;mark(k);
     var f=document.createElement("form");f.innerHTML='<span>관리자 비밀번호</span><input type="password" inputmode="numeric" autocomplete="off"><button class="btn" type="submit">열기</button><span class="m" style="color:#9a3131"></span>';
