@@ -36,7 +36,7 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   <div class="card">
     <div class="bar">
       <label class="sub">사업 형태 <select id="biz"><option value="general">일반 태양광</option><option value="village">햇빛소득마을(주택 이격 없음)</option></select></label>
-      <label class="sub">최소 면적 <select id="minA"><option value="1500">1,500㎡</option><option value="3000" selected>3,000㎡</option><option value="5000">5,000㎡</option><option value="10000">10,000㎡</option></select></label>
+      <label class="sub">최소 면적 <select id="minA"><option value="0" selected>제한 없음(작은 땅도 묶어서 봄)</option><option value="500">500㎡</option><option value="1500">1,500㎡</option><option value="3000">3,000㎡</option><option value="10000">10,000㎡</option></select></label>
       <button class="btn" id="go" type="button">이 화면에서 찾기</button> <span class="sub" id="msg">지도를 원하는 동네로 옮기고 확대한 뒤(읍·면 일부 정도) 누르세요.</span>
     </div>
     <div id="fmap"></div>
@@ -46,6 +46,7 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   <div class="card" id="res" hidden>
     <h2 style="margin:0 0 6px;font-size:19px">후보지 순위</h2>
     <p class="sub" id="sum"></p>
+    <div id="cwrap" hidden><h3 style="margin:8px 0 4px;font-size:16.5px">붙어 있는 필지 묶음 (작은 땅 합치기)</h3><p class="sub" style="margin:0 0 6px">초록·노랑 필지 중 경계가 맞닿은 것끼리 묶었습니다. 누르면 지도에서 묶음을 굵게 보여주고, "묶어서 정밀 검토"는 그 필지들을 한 번에 입지검토로 보냅니다(최대 30필지).</p><div style="overflow:auto"><table id="ctbl"></table></div><h3 style="margin:16px 0 4px;font-size:16.5px">필지별 순위</h3></div>
     <div style="overflow:auto"><table id="tbl"></table></div>
     <p class="sub" style="margin-top:12px">빠른 걸러내기용 어림값입니다. 반영: 용도지역(자연환경보전·도시지역 제외), 농업진흥구역, 생태자연도 1등급(불가)·2등급(식생 확인 전이라 노랑으로 따로 표시), KEI 국토환경성평가 1등급(불가)·2등급(노랑), 경사 15° 이상(1차 공개 표고, 상위 40곳은 산림청 10m 경사로 재확인), 산사태위험 1·2등급(상위 40곳, 임야만), 주변 건물 200m 안 5동 이상(주택 여부 미구분 — 보수적), 실제 도로(수치지형도) 접함 여부. 미반영: 식생보전등급·정맥·공익용산지·조례 이격·한전 용량 → 후보를 고른 뒤 <b>태양광 입지검토</b>에서 정밀 확인.</p>
   </div>
@@ -97,7 +98,7 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
         var r=polys(f.geometry).reduce(function(a,c){return c.length>a.length?c:a},[]);if(r.length<4)return;var A=0;for(var i=0,j=r.length-1;i<r.length;j=i++)A+=(r[j][0]-r[i][0])*kx*(r[j][1]+r[i][1])*ky/2;A=Math.abs(A);
         if(A<minA)return;var rr=r.map(function(p){return [p[0]+dx,p[1]+dy]});C.push({addr:String(pr.addr||"").trim(),pnu:pr.pnu,jm:jm,A:A,raw:r,r:rr,b:bb(rr)})});
       if(!C.length){prog(100,"이 범위에 조건(지목 임·전·답·과·목·잡, 면적 "+minA.toLocaleString()+"㎡ 이상)에 맞는 땅이 없습니다.");$("go").disabled=false;return}
-      if(C.length>400){C.sort(function(a,b){return b.A-a.A});C=C.slice(0,400)}
+      var cut=0;if(C.length>1500){C.sort(function(a,b){return b.A-a.A});cut=C.length-1500;C=C.slice(0,1500)}
       prog(20,"후보 "+C.length+"필지 — 용도지역·농업진흥구역 확인 중…");
       var pad=0.0025,BB=[B[0]-pad,B[1]-pad,B[2]+pad,B[3]+pad];
       var zf=await Promise.all(["LT_C_UQ111","LT_C_UQ114","LT_C_AGRIXUE101"].map(function(L){return all(L,B,3)}));
@@ -107,7 +108,10 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
       var keys={};C.forEach(function(c){var t=Screen.tm5186((c.b[0]+c.b[2])/2,(c.b[1]+c.b[3])/2);for(var ox=-1;ox<=1;ox++)for(var oy=-1;oy<=1;oy++)keys[(Math.floor(t[0]/5000)+ox)+"_"+(Math.floor(t[1]/5000)+oy)]=1});await keiTiles(Object.keys(keys));
       prog(50,"경사(표고) 확인 중…");var demErr=null;try{await Screen.demPrep(BB)}catch(e){demErr=e.message}
       prog(62,"주변 건물·도로 확인 중…");
+      var BK={};function bkey(x,y){return Math.floor(x*kx/100)+"_"+Math.floor(y*ky/100)}
       var bld=village?[]:(await all("LT_C_SPBD",BB,4)).map(function(f){var r=polys(f.geometry)[0];if(!r)return null;var x=0,y=0;r.forEach(function(p){x+=p[0];y+=p[1]});return [x/r.length,y/r.length]}).filter(Boolean);
+      bld.forEach(function(p){var k=bkey(p[0],p[1]);(BK[k]=BK[k]||[]).push(p)});
+      function near5(x,y){var cx=Math.floor(x*kx/100),cy=Math.floor(y*ky/100),cnt=0;for(var a=-2;a<=2;a++)for(var b=-2;b<=2;b++){var L0=BK[(cx+a)+"_"+(cy+b)];if(!L0)continue;for(var q=0;q<L0.length;q++){if(Math.hypot((L0[q][0]-x)*kx,(L0[q][1]-y)*ky)<200&&++cnt>=5)return true}}return false}
       var rds=(await all("LT_L_N3A0020000",B,3)).map(function(f){var g=f.geometry||{},ls=g.type==="LineString"?[g.coordinates]:g.type==="MultiLineString"?g.coordinates:[];return {w:+((f.properties||{}).rvwd)||0,ls:ls}}).filter(function(x){return x.w>=3});
       prog(75,"필지별로 계산 중…");
       // 필지 안 표본점(최대 약 60개)으로 설치 가능 비율 계산
@@ -117,7 +121,7 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
           var t=Screen.tm5186(x,y),yl=null;if(!r)for(var e=0;e<ECO.length&&!r&&!yl;e++){if(ECO[e].g!=="1"&&ECO[e].g!=="2")continue;if(ECO[e].rs.some(function(o){return inB(t[0],t[1],o.b)&&pip(t[0],t[1],o.r)})){if(ECO[e].g==="1")r="생태 1등급";else yl="생태 2등급"}}
           if(!r){var kg=kei(t);if(kg===1)r="KEI 1등급";else if(kg===2&&!yl)yl="KEI 2등급"}
           if(!r&&!demErr){var H=6,gx=(Screen.elev(x+H/kx,y)-Screen.elev(x-H/kx,y))/(2*H),gy=(Screen.elev(x,y+H/ky)-Screen.elev(x,y-H/ky))/(2*H);var s=Math.atan(Math.hypot(gx,gy))*180/Math.PI;if(isFinite(s)&&s>=15)r="경사 15°↑"}
-          if(!r&&bld.length){var cnt=0;for(var q=0;q<bld.length&&cnt<5;q++){if(Math.abs(bld[q][0]-x)*kx<200&&Math.abs(bld[q][1]-y)*ky<200&&Math.hypot((bld[q][0]-x)*kx,(bld[q][1]-y)*ky)<200)cnt++}if(cnt>=5)r="건물 200m 안 5동↑"}
+          if(!r&&bld.length&&near5(x,y))r="건물 200m 안 5동↑"
           if(r)why[r]=(why[r]||0)+1;else if(yl){cn++;yw[yl]=(yw[yl]||0)+1;okP.push([x,y,1])}else{ok++;okP.push([x,y,0])}}
         c.n=n;c.okP=okP;c.whyN=why;c.yw=Object.keys(yw).sort(function(a,b){return yw[b]-yw[a]});c.frac=n?ok/n:0;c.cfrac=n?cn/n:0;
         // 실제 도로(폭 3m↑) 15m 안
@@ -143,8 +147,21 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
         [c.addr.replace(/^\S+\s\S+\s/,""),c.jm,Math.round(c.A).toLocaleString()+"㎡",c.okA.toLocaleString()+"㎡ ("+Math.round(c.frac*100)+"%)",c.cA?c.cA.toLocaleString()+"㎡ ("+Math.round(c.cfrac*100)+"%, "+c.yw.join("·")+")":"-",c.why.join(", ")||"-",c.road?"O":"X"].forEach(function(x,j){tr.appendChild(el("td",j===2||j===3||j===4?"n":null,String(x)))});
         var td=el("td"),a=el("a","go","정밀 검토 →");a.href="screen.html?addr="+encodeURIComponent(c.addr);a.target="_blank";a.addEventListener("click",function(e){e.stopPropagation()});td.appendChild(a);tr.appendChild(td);
         tr.addEventListener("click",function(){M.fitBounds(c.pg.getBounds(),{maxZoom:18});c.pg.openPopup();$("fmap").scrollIntoView({behavior:"smooth",block:"center"})});T.appendChild(tr)});
+      // 붙어 있는 후보 필지(초록·노랑)를 묶음으로: 경계 꼭짓점이 1.5m 안이면 이웃
+      var G=C.filter(function(c){return c.cls!=="r"}),VB={};G.forEach(function(c,i){c.gi=i;c.r.forEach(function(p){var k=Math.floor(p[0]*kx/5)+"_"+Math.floor(p[1]*ky/5);(VB[k]=VB[k]||[]).push([i,p])})});
+      var par=G.map(function(_,i){return i});function fd(i){while(par[i]!==i)i=par[i]=par[par[i]];return i}
+      Object.keys(VB).forEach(function(k){var a=k.split("_").map(Number);var L1=[];for(var u=-1;u<=1;u++)for(var v=-1;v<=1;v++){var q=VB[(a[0]+u)+"_"+(a[1]+v)];if(q)L1=L1.concat(q)}
+        VB[k].forEach(function(e1){L1.forEach(function(e2){if(e1[0]!==e2[0]&&Math.hypot((e1[1][0]-e2[1][0])*kx,(e1[1][1]-e2[1][1])*ky)<1.5)par[fd(e1[0])]=fd(e2[0])})})});
+      var CL={};G.forEach(function(c,i){var g=fd(i);(CL[g]=CL[g]||[]).push(c)});
+      var clus=Object.keys(CL).map(function(k){return CL[k]}).filter(function(L0){return L0.length>=2}).map(function(L0){var o={P:L0,A:0,ok:0,ck:0};L0.forEach(function(c){o.A+=c.A;o.ok+=c.okA;o.ck+=c.cA});return o}).sort(function(a,b){return (b.ok+b.ck)-(a.ok+a.ck)});
+      var CT=$("ctbl");CT.innerHTML="";var ch=el("tr");["순위","필지 수","지번","합친 면적","설치 가능","확인 필요","도로",""].forEach(function(x){ch.appendChild(el("th",null,x))});CT.appendChild(ch);
+      clus.slice(0,15).forEach(function(o,i){var tr=el("tr","row"),L0=o.P.slice().sort(function(a,b){return b.A-a.A}),lab=L0.slice(0,5).map(function(c){return c.addr.replace(/^.*[리동가]\s/,"")}).join(", ")+(L0.length>5?" 외 "+(L0.length-5):"");
+        [i+1,L0.length+"필지",(L0[0].addr.match(/\S+[리동가]\s/)||[""])[0]+lab,Math.round(o.A).toLocaleString()+"㎡",o.ok.toLocaleString()+"㎡",o.ck?o.ck.toLocaleString()+"㎡":"-",L0.some(function(c){return c.road})?"O":"X"].forEach(function(x,j){tr.appendChild(el("td",j===3||j===4||j===5?"n":null,String(x)))});
+        var td=el("td"),a=el("a","go","묶어서 정밀 검토 →");a.href="screen.html?addr="+encodeURIComponent(L0.slice(0,30).map(function(c){return c.addr}).join("\n"));a.target="_blank";a.addEventListener("click",function(e){e.stopPropagation()});td.appendChild(a);tr.appendChild(td);
+        tr.addEventListener("click",function(){var bnd=null;L0.forEach(function(c){var b2=c.pg.getBounds();bnd=bnd?bnd.extend(b2):b2});LY.eachLayer(function(l){l.setStyle&&l.setStyle({weight:2})});L0.forEach(function(c){c.pg.setStyle({weight:4})});M.fitBounds(bnd,{maxZoom:18});$("fmap").scrollIntoView({behavior:"smooth",block:"center"})});CT.appendChild(tr)});
+      $("cwrap").hidden=!clus.length;
       var good=C.filter(function(c){return c.cls==="g"}).length,mid=C.filter(function(c){return c.cls==="y"}).length;
-      $("sum").textContent="조건에 맞는 "+C.length+"필지 중 초록(설치 가능 60%↑) "+good+"곳, 노랑(일부 가능 또는 생태·KEI 2등급이라 확인 필요) "+mid+"곳, 나머지는 빨강(대부분 불가) ("+(village?"햇빛소득마을":"일반 태양광")+", 최소 "+minA.toLocaleString()+"㎡)"+(eco.err?" · 생태자연도 조회 실패(이번 결과엔 미반영)":"")+(demErr?" · 표고 조회 실패(경사 미반영)":"")+(fgErr?" · 산림청 격자 조회 실패: "+fgErr:" · 상위 "+top.length+"곳은 산림청 10m 경사·산사태위험까지 반영")+".";
+      $("sum").textContent="조건에 맞는 "+C.length+"필지"+(cut?"(넓은 순 1,500필지만 계산, "+cut+"필지 생략 — 지도를 더 확대하면 전부 계산)":"")+" 중 초록(설치 가능 60%↑) "+good+"곳, 노랑(일부 가능 또는 생태·KEI 2등급이라 확인 필요) "+mid+"곳, 나머지는 빨강(대부분 불가) ("+(village?"햇빛소득마을":"일반 태양광")+(minA?", 최소 "+minA.toLocaleString()+"㎡":", 면적 제한 없음")+")"+(eco.err?" · 생태자연도 조회 실패(이번 결과엔 미반영)":"")+(demErr?" · 표고 조회 실패(경사 미반영)":"")+(fgErr?" · 산림청 격자 조회 실패: "+fgErr:" · 상위 "+top.length+"곳은 산림청 10m 경사·산사태위험까지 반영")+".";
       $("res").hidden=false;prog(100,"끝났습니다. 초록·노랑 땅을 누르거나 아래 목록에서 고르세요.");setTimeout(function(){$("pg").hidden=true},800)
     }catch(e){$("msg").textContent="찾지 못했습니다: "+e.message}
     $("go").disabled=false});
