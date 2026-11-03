@@ -448,9 +448,25 @@
       hzK.length ? hzK.map(function (k) { return k + " — " + ned[k].map(function (y) { return P[y.i].jibun + " " + (CD[y.c] || y.c); }).join(", "); }).join(" / ") + ". 시군 재난안전 부서와 협의가 필요합니다(재해 저감대책·배수계획 요구 가능). 사업부지 전부가 자연재해위험개선지구 안이면 면적과 관계없이 재해영향평가등 협의 대상(자연재해대책법 시행령 별표1 비고)" : "재해 관련 지구 없음" + nedNote, "자연재해대책법 제12조·시행령 별표1", luSrc);
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     var nH = legalHits("n"), nL = R.legal.filter(function (L) { return L.item === "n"; });
-    V(G3, "s8", "태양광이 법으로 막힌 지역(농업진흥구역·공익용산지)", nH.length ? "회피" : "해당없음", nH.length ? sum(function (c) { return nH.some(function (x) { return x.list.some(function (y) { return y.i === c.p && y.c !== "3"; }); }); }) : null,
-      nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") + ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인" : "농업진흥구역·공익용산지 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조", luSrc);
-    V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
+    V(G3, "s8", "태양광 설치가 막히는 지역(농업진흥구역·공익용산지·사방지·휴양림·국가유산구역 등)", nH.length ? "회피" : "해당없음", nH.length ? sum(function (c) { return nH.some(function (x) { return x.list.some(function (y) { return y.i === c.p && y.c !== "3"; }); }); }) : null,
+      nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") + ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인" : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
+    // 토지이용계획 이름 전부 분류 — 어느 기준에도 안 걸린 이름은 '분류 안 됨'으로 보여 줌(조용히 버리지 않음)
+    var GRP = {}, unk = [], refL = [];
+    function jl(k) { return uniq(ned[k].map(function (y) { return P[y.i].jibun + (y.c === "3" ? "(경계에 닿음)" : y.c === "2" ? "(일부 걸침)" : ""); })).join(", "); }
+    Object.keys(ned).forEach(function (k) {
+      if (R.legal.some(function (L) { return L.re.test(k); })) return;
+      if (R.hazardZone && R.hazardZone.test(k)) return;
+      if (R.zoneName && R.zoneName.test(k)) return;
+      var g = (R.groups || []).filter(function (g) { return g.re.test(k); })[0];
+      if (!g) { unk.push(k + "(" + jl(k) + ")"); return; }
+      if (g.k === "ref") { refL.push(k + "(" + jl(k) + ")"); return; }
+      (GRP[g.k] = GRP[g.k] || { g: g, l: [] }).l.push(k + "(" + jl(k) + ")");
+    });
+    D.zoneGroups = GRP; D.zoneUnk = unk;
+    (R.groups || []).forEach(function (g) { if (g.k === "ref") return; var x = GRP[g.k];
+      V(G3, "z_" + g.k, g.label, x ? "주의(확인 필요)" : "해당없음", null, x ? x.l.join(" · ") + " — " + g.act : "해당 없음" + nedNote, "토지이용계획(지역·지구 이름 기준)", luSrc); });
+    V(G3, "z_unk", "분류 안 된 지역·지구(도구 기준표에 없는 이름)", unk.length ? "주의(확인 필요)" : "해당없음", null, unk.length ? unk.join(" · ") + " — 도구가 아직 판단 기준을 갖고 있지 않은 이름입니다. 태양광 제한 여부를 시군에 확인하세요" : "없음 — 토지이용계획의 모든 이름을 분류했습니다" + nedNote, "토지이용계획", luSrc);
+    V(G3, "s5", "그 밖의 지역·지구(참고)", refL.length ? "참고" : "해당없음", null, refL.length ? refL.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
     // 필지별 표
     var per = P.map(function (p, i) { var C = D.cells.filter(function (c) { return c.p === i; }), A = p.cellA;
@@ -499,6 +515,8 @@
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
     if (hzK.length) cond.push("재해 관련 지구(" + hzK.join("·") + ") — 시군 재난안전 부서 협의 필요");
+    (R.groups || []).forEach(function (g) { var x = (D.zoneGroups || {})[g.k]; if (x && g.k !== "ref") cond.push(g.label + ": " + x.l.join("·") + " — " + g.act); });
+    if ((D.zoneUnk || []).length) cond.push("분류 안 된 지역·지구: " + D.zoneUnk.join("·") + " — 태양광 제한 여부 시군 확인");
     cond.push("매장유산(문화재) 조사 필요 여부: 2025.2.13부터 지표조사 대상 규정이 「국가유산영향진단법」으로 옮겨짐 — 시군 문화유산 담당에 확인");
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");

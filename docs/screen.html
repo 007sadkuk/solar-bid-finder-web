@@ -105,8 +105,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261103q"></script>
-<script src="screen.js?v=20261103q"></script>
+<script src="screen-rules.js?v=20261103r"></script>
+<script src="screen.js?v=20261103r"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -197,7 +197,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
-    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)});vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(hz9&&!tiny&&S.verdict!=="불가"?" · 재해지구 협의 필요":"");vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"||tiny?"r":"y");
+    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
     $("vgrid").textContent=S.grid;var vl=$("vlay");if(vl)vl.textContent=layTxt();
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
