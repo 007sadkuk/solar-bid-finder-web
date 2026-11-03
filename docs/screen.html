@@ -36,7 +36,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .rep h2{font-size:20px;margin:0 0 4px}.rep h3{margin:22px 0 8px;font-size:17px;padding:4px 12px;border-radius:999px;display:inline-block;background:var(--pine);color:#fff}
 .rep table{border-collapse:collapse;width:100%;font-size:14.5px;margin-top:4px}.rep th,.rep td{border:1px solid var(--rule);padding:8px 10px;vertical-align:middle}.rep th{background:var(--field);color:var(--ink);font-weight:700}
 .rep td.ox{text-align:center;font-weight:900;font-size:17px;width:64px}.rep td.ox.o{color:var(--no)}.rep td.ox.x{color:var(--sub)}.rep td.ox.t{color:var(--warn)}.rep tr.hit td{background:rgba(179,38,30,.07)}
-.rep .bi{width:30%}.rep .kv{display:grid;grid-template-columns:9em 1fr;gap:4px 12px;font-size:15px}.rep .kv b{color:var(--sub);font-weight:600}
+.rep .bi{width:30%}.sumt ul{margin:0;padding-left:1.1em}.sumt th{text-align:left;width:30%}.rep .kv{display:grid;grid-template-columns:9em 1fr;gap:4px 12px;font-size:15px}.rep .kv b{color:var(--sub);font-weight:600}
 .rep .concl{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin:14px 0 0;background:rgba(91,140,200,.08)}.rep .concl b{color:var(--no)}
 @media (max-width:720px){.rep .kv{grid-template-columns:1fr}.rep .bi{width:auto}.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
 @media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
@@ -56,26 +56,29 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   </form>
 
   <div id="res" hidden>
-    <section class="card verdict" id="vcard">
+    <section class="card verdict rep" id="vcard">
+      <h2>태양광 발전사업 입지검토 요약</h2>
       <p class="sub" id="ttl"></p>
-      <div class="seg" id="biz" style="margin:4px 0 8px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
+      <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
-      <p id="vgrid" style="margin:10px 0 0;font-weight:700"></p>
-      <div class="vcols">
-        <div><h3>설치 못 하는 부분</h3><ul id="vwhy"></ul></div>
-        <div><h3>허가 전에 챙길 것</h3><ul id="vcond"></ul></div>
-      </div>
+      <table class="sumt" style="margin-top:14px">
+        <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
+        <tr><th>소규모 환경영향평가</th><td id="vseia"></td></tr>
+        <tr><th>재해영향평가 협의<br><span class="sub">(사전재해영향성검토)</span></th><td id="vdis"></td></tr>
+        <tr><th>한전 계통</th><td id="vgrid"></td></tr>
+        <tr><th>허가 전에 챙길 것</th><td><ul id="vcond"></ul></td></tr>
+      </table>
       <p class="sub" id="vfield"></p>
       <p class="sub">공공 데이터로 본 사전 검토 결과입니다(허가·협의 확정 아님). <span id="meta"></span></p>
     </section>
-    <section class="card rep" id="rep2"></section>
     <section class="card">
       <h2>지도</h2>
       <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
       <div id="map"></div><div class="lg" id="lg"></div>
       <p class="sub" id="shiftNote"></p>
     </section>
+    <section class="card rep" id="rep2"></section>
 
     <details class="card more"><summary>자세히 보기 — 항목별 근거, 필지별 면적, 식생등급 바꾸기</summary>
     <h2>식생보전등급</h2><p class="sub" id="vegNote"></p>
@@ -92,8 +95,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261103d"></script>
+<script src="screen-rules.js?v=20261103e"></script>
+<script src="screen.js?v=20261103e"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -108,7 +111,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function open(){$("gate").hidden=true;$("app").hidden=false;var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
   var EMB=new URLSearchParams(location.search).get("embed")==="1";
   if(EMB){document.querySelector("header").hidden=true;$("f").hidden=true;document.body.style.background="transparent";
-    var st=document.createElement("style");st.textContent="#ttl,#vcard .vline,#vcard .bar,#vgrid,#vcard .vcols,#vcard>p.sub:last-child{display:none!important}#vcard{padding:12px 18px}";document.head.appendChild(st);
+    var st=document.createElement("style");st.textContent="#vcard>p.sub:last-child{display:none!important}";document.head.appendChild(st);
     (function(){var mp=$("map").closest("section"),dt=document.querySelector("details.more"),sm=dt.querySelector("summary");sm.textContent="지도 · 항목별 근거 · 필지별 면적 보기";
       mp.classList.remove("card");mp.style.margin="0 0 16px";dt.insertBefore(mp,sm.nextSibling);
       $("rep2").after($("vfield"));$("vfield").style.margin="0 4px 14px";
@@ -179,7 +182,10 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
-    $("vgrid").textContent="⚡ "+S.grid;
+    $("vgrid").textContent=S.grid;
+    var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
+    $("vseia").textContent=s1?(/^대상$/.test(s1.v)?"대상 — 협의기관: "+ag+" (시군이 협의 요청). "+s1.d:/^대상 아님/.test(s1.v)?"대상 아님 — "+s1.d:"도시지역 — 시군 확인 ("+s1.d+")"):"-";
+    var dz=R.disaster||{area:5000};$("vdis").textContent=S.total>=dz.area?"대상일 가능성 높음 — 사업 면적 "+n(S.total)+"이 기준 "+n(dz.area)+" 이상. 담당: 시·군 재난안전 부서(허가 전 협의)":"대상 아님 — 사업 면적 "+n(S.total)+" (기준 "+n(dz.area)+" 미만)";
     var W=$("vwhy");W.innerHTML="";if(!S.why.length)W.appendChild(el("li",null,"없음"));S.why.forEach(function(x){W.appendChild(el("li",null,x[0]+" — "+n(x[1])))});
     var C=$("vcond");C.innerHTML="";if(!S.cond.length)C.appendChild(el("li",null,"특별한 것 없음"));S.cond.forEach(function(x){C.appendChild(el("li",null,x))});
     $("vfield").textContent="현장에서 한 번 볼 것: "+S.field.join(" · ")+(S.est?" · 식생등급 일부는 군락명·이용상황으로 자동 판단":"")}

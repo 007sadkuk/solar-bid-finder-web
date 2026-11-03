@@ -224,9 +224,12 @@
     houses.sort(function (a, b) { return a.d - b.d; });
     // 건축물대장 주용도(Apps Script 중계, 건축HUB) — 실패해도 계속
     var bldUse = null;
-    if (CFG.endpoint && houses.length) { try { var pl = uniqA(houses.map(function (h) { return h.pnu; })).slice(0, 40);
-      var bj = await fetch(CFG.endpoint + "?action=bld&pnu=" + pl.join(",")).then(function (r) { return r.json(); });
-      if (bj && bj.b) { bldUse = bj.b; houses.forEach(function (h) { h.use = bldUse[h.pnu] || null; }); } else bldUse = { _err: (bj && bj.error) || "응답 없음" }; } catch (e) { bldUse = { _err: e.message }; } }
+    if (CFG.endpoint && houses.length) { try { var pl = uniqA(houses.map(function (h) { return h.pnu; })), bb = {}, be = {}, any = false, lastErr = "";
+      for (var bi = 0; bi < pl.length; bi += 40) { var part = pl.slice(bi, bi + 40);
+        var bj = await fetch(CFG.endpoint + "?action=bld&pnu=" + part.join(",")).then(function (r) { return r.json(); }).catch(function (e) { return { error: e.message }; });
+        if (bj && bj.b) { any = true; Object.keys(bj.b).forEach(function (k) { bb[k] = bj.b[k]; }); Object.keys(bj.e || {}).forEach(function (k) { be[k] = bj.e[k]; }); }
+        else { lastErr = (bj && bj.error) || "응답 없음"; part.forEach(function (k) { be[k] = lastErr; }); } }
+      if (any) { bldUse = bb; bldUse._fail = be; houses.forEach(function (h) { h.use = bb[h.pnu] || null; h.fail = !!be[h.pnu]; }); } else bldUse = { _err: lastErr }; } catch (e) { bldUse = { _err: e.message }; } }
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
@@ -380,11 +383,11 @@
     var lcRoad = P.filter(function (p) { return p.lc && p.lc.road && !/맹지/.test(p.lc.road); });
     V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
     var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length, BU = D.bldUse && !D.bldUse._err;
-    function isHome(h) { return (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
+    function isHome(h) { return h.fail || (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
     function byLot(arr) { var m = {}; arr.forEach(function (h) { var k = h.pnu || h.name; if (!m[k] || h.d < m[k].d) m[k] = h; }); return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return a.d - b.d; }); }
-    var hh2 = BU ? byLot(D.houses.filter(isHome)) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.use || !h.use.length; }).length : 0;
+    var hh2 = BU ? byLot(D.houses.filter(isHome)) : [], hhN = hh2.filter(function (h) { return h.d <= R.houses.near; }).length, unk = BU ? D.houses.filter(function (h) { return !h.fail && (!h.use || !h.use.length); }).length : 0, fN = BU ? D.houses.filter(function (h) { return h.fail; }).length : 0;
     V(G3, "s3", "주변 주택(이격) — " + R.houses.near + "m / " + R.houses.far + "m 안", "참고", null,
-      BU ? "건축물대장 주용도 기준 주택(지번 단위) " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동)" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
+      BU ? "건축물대장 주용도 기준 주택(지번 단위) " + R.houses.near + "m 안 " + hhN + "동, " + R.houses.far + "m 안 " + hh2.length + "동 (전체 건물 " + hf + "동, 대장 없음 " + unk + "동" + (fN ? ", 대장 조회 실패 " + fN + "동은 주택으로 간주" : "") + ")" + (hh2.length >= R.houses.n ? " — " + R.houses.n + "호 이상: 조례·체크리스트 이격 기준과 대조" : "") + (hh2.length ? ". 가까운 주택: " + hh2.slice(0, 5).map(function (h) { return h.name.trim() + " " + h.d + "m"; }).join(", ") : "")
         : R.houses.near + "m 안 " + hn + "동, " + R.houses.far + "m 안 " + hf + "동(도로명주소가 붙은 건물, 사업지 안 제외). 주택 여부 미구분" + (D.bldUse && D.bldUse._err ? " — 건축물대장 조회 실패: " + String(D.bldUse._err).slice(0, 80) + " (공공데이터포털에서 '국토교통부_건축HUB_건축물대장정보 서비스' 활용신청 필요할 수 있음)" : " — Apps Script를 새 코드로 배포하면 건축물대장 주용도로 주택만 셈"),
       R.houses.src, BU ? "건축물대장 표제부(건축HUB) + 도로명주소 건물" : "브이월드 도로명주소 건물");
     var SB = R.setback, rule = SB.sgg[D.sgg] || null, Dist = rule ? rule.house : SB.cap, NN = rule ? rule.n : SB.n;

@@ -44,15 +44,24 @@ function kepco_(p) {  // 한전 분산전원 연계정보(여유용량): 지번 
     return { level: tries[i][0], rows: d.slice(0, 30).map(function (x) { return { sub: x.substNm, mtr: x.mtrNo, dl: x.dlNm, v1: +x.vol1, v2: +x.vol2, v3: +x.vol3, subPwr: +x.substPwr, mtrPwr: +x.mtrPwr, dlPwr: +x.dlPwr }; }) }; }
   return { level: null, rows: [] };
 }
-function bld_(list) {  // 건축물대장 표제부(주용도): pnu 여러 개(쉼표) → {pnu: ["단독주택", ...]}
-  var ps = String(list || "").split(",").filter(function (x) { return /^\d{19}$/.test(x); }).slice(0, 40), key = encodeURIComponent(decodeURIComponent(DATA_KEY.trim()));
+function bld_(list) {  // 건축물대장 표제부(주용도): pnu 여러 개(쉼표) → {b:{pnu:["단독주택",...]}, e:{pnu:"오류코드"}}. 성공한 결과는 6시간 캐시(같은 지번이면 같은 결과)
+  var ps = String(list || "").split(",").filter(function (x) { return /^\d{19}$/.test(x); }).slice(0, 60), key = encodeURIComponent(decodeURIComponent(DATA_KEY.trim()));
   if (!ps.length) return { error: "pnu" };
-  var reqs = ps.map(function (p) { return { url: "https://apis.data.go.kr/1613000/BldRgstHubService/getBrTitleInfo?serviceKey=" + key + "&sigunguCd=" + p.slice(0, 5) + "&bjdongCd=" + p.slice(5, 10) + "&platGbCd=" + (p.charAt(10) === "2" ? "1" : "0") + "&bun=" + p.slice(11, 15) + "&ji=" + p.slice(15, 19) + "&numOfRows=30&pageNo=1&_type=json", muteHttpExceptions: true }; });
-  var rs = UrlFetchApp.fetchAll(reqs), out = {}, err = "";
-  rs.forEach(function (r, i) { var t = r.getContentText(), j = null; try { j = JSON.parse(t); } catch (x) { err = err || ("응답 " + r.getResponseCode() + " " + t.slice(0, 200)); return; }
-    var it = (((j.response || {}).body || {}).items || {}).item; if (!it) { out[ps[i]] = []; return; } if (!Array.isArray(it)) it = [it];
-    out[ps[i]] = it.map(function (x) { return x.mainPurpsCdNm || x.etcPurps || "?"; }); });
-  return { b: out, error: Object.keys(out).length ? "" : err };
+  var c = CacheService.getScriptCache(), out = {}, bad = {}, todo = [];
+  ps.forEach(function (p) { var v = c.get("bld" + p); if (v !== null) out[p] = JSON.parse(v); else todo.push(p); });
+  function url(p) { return { url: "https://apis.data.go.kr/1613000/BldRgstHubService/getBrTitleInfo?serviceKey=" + key + "&sigunguCd=" + p.slice(0, 5) + "&bjdongCd=" + p.slice(5, 10) + "&platGbCd=" + (p.charAt(10) === "2" ? "1" : "0") + "&bun=" + p.slice(11, 15) + "&ji=" + p.slice(15, 19) + "&numOfRows=30&pageNo=1&_type=json", muteHttpExceptions: true }; }
+  function one(p, r) { var t = r.getContentText(), j = null; try { j = JSON.parse(t); } catch (x) { return "응답 " + r.getResponseCode() + " " + t.replace(/\s+/g, " ").slice(0, 120); }
+    var h = (j.response || {}).header || {}, code = String(h.resultCode == null ? "" : h.resultCode);
+    if (code && code !== "00" && code !== "0") return code + " " + (h.resultMsg || "");
+    var it = (((j.response || {}).body || {}).items || {}).item; it = !it ? [] : Array.isArray(it) ? it : [it];
+    out[p] = it.map(function (x) { return x.mainPurpsCdNm || x.etcPurps || "?"; }); c.put("bld" + p, JSON.stringify(out[p]), 21600); return ""; }
+  for (var k = 0; k < 2 && todo.length; k++) {  // 실패한 것만 한 번 더(천천히)
+    if (k) Utilities.sleep(800);
+    var rs = UrlFetchApp.fetchAll(todo.map(url)), left = [];
+    rs.forEach(function (r, i) { var e = one(todo[i], r); if (e) { bad[todo[i]] = e; left.push(todo[i]); } else delete bad[todo[i]]; });
+    todo = left; }
+  var en = Object.keys(bad);
+  return { b: out, e: bad, error: Object.keys(out).length ? "" : (en.length ? bad[en[0]] : "") };
 }
 function admin_(pw) {  // 관리자 화면: 비밀번호 확인(10회 틀리면 1시간 잠금) 후 기록 반환
   var c = CacheService.getScriptCache(), n = +(c.get("fail") || 0);
