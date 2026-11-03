@@ -44,7 +44,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .acl{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1000;margin:0;padding:6px;list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:320px;overflow:auto}
 .acl li{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.35;color:var(--ink)}.acl li small{display:block;color:var(--sub);font-size:12.5px}
 .acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
-#pmap.full{position:fixed!important;inset:0;height:100vh!important;width:100vw;z-index:3000;border-radius:0!important}.pfull{background:#fff;color:#16241e;border:0;border-radius:8px;padding:7px 11px;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+#pmap.full{height:calc(100vh - 300px)!important;min-height:480px}.pfull{background:#fff;color:#16241e;border:0;border-radius:8px;padding:7px 11px;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.35)}
 </style>
 </head><body>
 <header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1><a href="screen.html" title="처음 화면으로" style="color:inherit;text-decoration:none">태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</a></h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용</p></div></header>
@@ -58,7 +58,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
     <div id="pickWrap" style="margin:4px 0 14px"><button class="btn s" type="button" id="ptog">🗺 지도에서 고르기</button> <button class="btn s" type="button" id="pclear">지번 초기화</button>
       <div id="pbox" hidden style="margin-top:10px"><p class="sub" style="margin:0 0 6px">땅을 누르면 위 칸에 지번이 들어갑니다. 여러 필지는 계속 누르고, 다시 누르면 빠집니다. <span id="pmsg"></span></p>
-      <div id="pmap" style="height:560px;border-radius:12px"></div></div></div>
+      <div id="pmap" style="height:440px;border-radius:12px"></div></div></div>
     <button class="btn" id="go">검토하기</button> <span class="msg" id="m"></span>
     <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
   </form>
@@ -330,7 +330,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     CR=L.canvas({padding:0.3});cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("많이 확대하면 필지 경계가 보입니다. 땅을 누르세요.");
     PM.on("moveend",function(){loadCad()});drawSel();
     var FC=L.Control.extend({options:{position:"bottomright"},onAdd:function(){var b=L.DomUtil.create("button","pfull");b.type="button";b.textContent="⤢ 크게 보기";L.DomEvent.disableClickPropagation(b);
-      b.onclick=function(){var m=document.getElementById("pmap"),on=!m.classList.contains("full");m.classList.toggle("full",on);b.textContent=on?"✕ 작게 보기":"⤢ 크게 보기";document.body.style.overflow=on?"hidden":"";setTimeout(function(){PM.invalidateSize()},50)};return b}});
+      b.onclick=function(){var m=document.getElementById("pmap"),on=!m.classList.contains("full");m.classList.toggle("full",on);b.textContent=on?"✕ 작게 보기":"⤢ 크게 보기";setTimeout(function(){PM.invalidateSize();if(on)document.getElementById("f").scrollIntoView({behavior:"smooth",block:"start"})},50)};return b}});
     PM.addControl(new FC());document.addEventListener("keydown",function(e){var m=document.getElementById("pmap");if(e.key==="Escape"&&m.classList.contains("full")){var b=m.querySelector(".pfull");b&&b.click()}});
     PM.on("click",async function(e){if(PM.getZoom()<17){PM.setView(e.latlng,18);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
       try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;if(!x){msg("그 자리에 필지가 없습니다.");return}
