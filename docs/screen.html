@@ -292,7 +292,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function line(){var v=I.value,p=I.selectionStart==null?v.length:I.selectionStart,a=v.lastIndexOf("\n",p-1)+1,b=v.indexOf("\n",p);if(b<0)b=v.length;return {a:a,b:b,t:v.slice(a,b)}}
   function close(){Lst.hidden=true;sel=-1}
   function mark(){Array.from(Lst.children).forEach(function(li,i){li.setAttribute("aria-selected",String(i===sel))})}
-  function pick(i){var x=items[i];if(!x)return;var L=line(),v=I.value;I.value=v.slice(0,L.a)+x.addr+v.slice(L.b);var c=L.a+x.addr.length;I.setSelectionRange(c,c);close();I.focus()}
+  function pick(i){var x=items[i];if(!x)return;var L=line(),v=I.value;I.value=v.slice(0,L.a)+x.addr+v.slice(L.b);var c=L.a+x.addr.length;I.setSelectionRange(c,c);close();I.focus();if(window.PICK_ADD&&x.pt)PICK_ADD(x.pt)}
   function show(list,msg){Lst.innerHTML="";items=list||[];sel=-1;if(msg)Lst.appendChild(el("li","m",msg));
     items.forEach(function(x,i){var li=el("li"),a=x.addr.split(" ");li.appendChild(document.createTextNode(a.slice(-2).join(" ")));li.appendChild(el("small",null,a.slice(0,-2).join(" ")));
       li.addEventListener("mousedown",function(e){e.preventDefault();pick(i)});Lst.appendChild(li)});Lst.hidden=!Lst.children.length}
@@ -329,6 +329,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
         x.addr=x.addr.trim();syncText();drawSel()}catch(err){msg("필지를 불러오지 못했습니다.")}});
     // 지번 칸을 직접 고치면 지도 선택도 맞춤(칸에서 지운 지번은 지도에서도 빼기)
     I.addEventListener("change",function(){var t=I.value;Object.keys(sel).forEach(function(k){if(t.indexOf(sel[k].addr)<0)delete sel[k]});drawSel()});
+    window.PICK_ADD=async function(pt){if(!PM||!pt)return;PM.setView([pt[1],pt[0]],18);try{var x=await BFGeo.parcelAt(pt[0],pt[1]);if(x&&!sel[x.pnu]){x.addr=x.addr.trim();sel[x.pnu]=x;drawSel();msg("추가: "+x.addr)}}catch(_){}};
     setTimeout(function(){PM.invalidateSize()},100)};
   if(!document.getElementById("app").hidden)PICK_INIT();
 })();
