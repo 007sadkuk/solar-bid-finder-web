@@ -224,11 +224,24 @@
     houses.sort(function (a, b) { return a.d - b.d; });
     // 건축물대장 주용도(Apps Script 중계, 건축HUB) — 실패해도 계속
     var bldUse = null;
-    if (CFG.endpoint && houses.length) { try { var pl = uniqA(houses.map(function (h) { return h.pnu; })), bb = {}, be = {}, any = false, lastErr = "";
-      for (var bi = 0; bi < pl.length; bi += 40) { var part = pl.slice(bi, bi + 40);
+    if (CFG.endpoint && houses.length) { try {
+      // 건축물대장 조회: 20개씩, 빠진 것·빈 결과는 한 번 더. 받은 주용도는 이 브라우저에 저장해 같은 지번이면 같은 결과
+      var pl = uniqA(houses.map(function (h) { return h.pnu; })), bb = {}, be = {}, any = false, lastErr = "";
+      function lsGet(k) { try { var v = localStorage.getItem("bld:" + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+      function lsPut(k, v) { try { localStorage.setItem("bld:" + k, JSON.stringify(v)); } catch (e) {} }
+      async function ask(list) { for (var bi = 0; bi < list.length; bi += 20) { var part = list.slice(bi, bi + 20);
         var bj = await fetch(CFG.endpoint + "?action=bld&pnu=" + part.join(",")).then(function (r) { return r.json(); }).catch(function (e) { return { error: e.message }; });
-        if (bj && bj.b) { any = true; Object.keys(bj.b).forEach(function (k) { bb[k] = bj.b[k]; }); Object.keys(bj.e || {}).forEach(function (k) { be[k] = bj.e[k]; }); }
-        else { lastErr = (bj && bj.error) || "응답 없음"; part.forEach(function (k) { be[k] = lastErr; }); } }
+        if (bj && bj.b) { any = true; part.forEach(function (k) { var v = bj.b[k], er = (bj.e || {})[k];
+            if (er || !Array.isArray(v)) { if (!bb[k] || !bb[k].length) be[k] = er || "응답 없음"; return; }
+            if (v.length || !bb[k]) bb[k] = v; if (v.length) { delete be[k]; lsPut(k, v); } }); }
+        else { lastErr = (bj && bj.error) || "응답 없음"; part.forEach(function (k) { if (!bb[k]) be[k] = lastErr; }); } } }
+      var need = pl.filter(function (k) { var c = lsGet(k); if (c && c.length) { bb[k] = c; return false; } return true; });
+      if (need.length) { await ask(need); var again = need.filter(function (k) { return be[k] || !bb[k] || !bb[k].length; });
+        if (again.length) { await new Promise(function (r) { setTimeout(r, 1200); }); await ask(again); } }
+      // 전부 빈 결과면 조회 자체가 막힌 것으로 보고 모두 '조회 실패'(주택으로 간주) 처리
+      var nonEmpty = pl.filter(function (k) { return bb[k] && bb[k].length; }).length;
+      if (pl.length >= 5 && !nonEmpty) pl.forEach(function (k) { be[k] = be[k] || "모두 빈 응답(조회 제한 가능성)"; });
+      Object.keys(be).forEach(function (k) { if (bb[k] && bb[k].length) delete be[k]; });
       if (any) { bldUse = bb; bldUse._fail = be; houses.forEach(function (h) { h.use = bb[h.pnu] || null; h.fail = !!be[h.pnu]; }); } else bldUse = { _err: lastErr }; } catch (e) { bldUse = { _err: e.message }; } }
 
     prog("판정하고 있습니다", 95);
