@@ -239,7 +239,8 @@
         ls.forEach(function (l) { l.forEach(function (v) { realRings.forEach(function (r) { var dd = pip(v, r) ? 0 : ringDist(v, r, kx, ky); if (dd < d) d = dd; }); });
           realRings.forEach(function (r) { r.forEach(function (v) { for (var i = 0; i < l.length - 1; i++) { var dd = segDist(v, l[i], l[i + 1], kx, ky); if (dd < d) d = dd; } }); }); });
         if (d <= 10) acc.list.push({ d: Math.round(d * 10) / 10, w: +pr.rvwd || 0, k: pr.rddv || "", pv: pr.pvqt || "", nm: pr.rdnm || pr.name || "" }); });
-      acc.list.sort(function (a, b) { return b.w - a.w; }); acc.ok = true; } catch (e) { acc.err = e.message; }
+      var seen = {}; acc.list.forEach(function (a) { a.e = Math.max(0, Math.round((a.d - a.w / 2) * 10) / 10); var k = a.k + "|" + a.w + "|" + a.nm; if (!seen[k] || a.e < seen[k].e) seen[k] = a; });
+      acc.list = Object.keys(seen).map(function (k) { return seen[k]; }); acc.list.sort(function (a, b) { return b.w - a.w; }); acc.ok = true; } catch (e) { acc.err = e.message; }
     // 건축물대장 주용도(Apps Script 중계, 건축HUB) — 실패해도 계속
     var bldUse = null;
     if (CFG.endpoint && houses.length) { try {
@@ -413,7 +414,7 @@
     var lcBlind = P.some(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); }), lcAll = P.every(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); });
     var lcRoad = P.filter(function (p) { return p.lc && p.lc.road && !/맹지/.test(p.lc.road); });
     var AC = D.acc && D.acc.ok ? D.acc.list : null, KN = { RDD001: "고속도로", RDD002: "국도", RDD003: "지방도", RDD009: "소로" };
-    function acTxt(a) { return (a.nm || KN[a.k] || "도로") + " 폭 " + a.w + "m" + (a.pv === "RDQ005" ? "(비포장 추정)" : "") + (a.d > 0 ? ", 경계에서 " + a.d + "m" : ", 경계에 붙음"); }
+    function acTxt(a) { return (a.nm || KN[a.k] || "도로") + " 폭 " + a.w + "m" + (a.pv === "RDQ005" ? "(비포장 추정)" : "") + (a.e > 0 ? ", 도로 가장자리까지 약 " + a.e + "m" : ", 경계에 붙음"); }
     var acW = AC && AC.length ? AC[0].w : 0;
     var s2v = AC === null ? (rd ? "확인됨(지적도)" : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심")
       : acW >= 3 ? "확인됨(현황도로 폭 " + acW + "m)" : AC.length ? "주의(좁은 길 폭 " + acW + "m)" : rd ? "주의(지적도에만 도로)" : "맹지 의심";
