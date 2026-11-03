@@ -339,7 +339,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   var box=document.getElementById("pbox"),tog=document.getElementById("ptog");
   window.PICK_ADD=async function(pt){if(!pt)return;if(PM&&!box.hidden)PM.setView([pt[1],pt[0]],18);try{var x=await BFGeo.parcelAt(pt[0],pt[1]);if(x&&!sel[x.pnu]){x.addr=x.addr.trim();sel[x.pnu]=x;drawSel();msg("추가: "+x.addr)}}catch(_){}};
   document.getElementById("pclear").addEventListener("click",function(){sel={};syncText.rm={};I.value="";drawSel();msg("지번을 모두 지웠습니다.");I.focus()});
-  tog.addEventListener("click",function(){box.hidden=!box.hidden;tog.textContent=box.hidden?"🗺 지도에서 고르기":"🗺 지도 닫기";if(!box.hidden){PICK_INIT();setTimeout(function(){PM.invalidateSize();fitSel()},60)}});
+  tog.addEventListener("click",function(){box.hidden=!box.hidden;tog.textContent=box.hidden?"🗺 지도에서 고르기":"🗺 지도 닫기";if(!box.hidden){PICK_INIT();[60,300,700].forEach(function(t){setTimeout(function(){PM.invalidateSize();if(t===300)fitSel()},t)})}});
 })();
 </script>
 </body></html>
