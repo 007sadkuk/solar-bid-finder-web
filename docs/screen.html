@@ -40,6 +40,10 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .rep .concl{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin:14px 0 0;background:rgba(91,140,200,.08)}.rep .concl b{color:var(--no)}
 @media (max-width:720px){.rep .kv{grid-template-columns:1fr}.rep .bi{width:auto}.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
 @media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
+.acw{position:relative}
+.acl{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1000;margin:0;padding:6px;list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:320px;overflow:auto}
+.acl li{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.35;color:var(--ink)}.acl li small{display:block;color:var(--sub);font-size:12.5px}
+.acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
 </style>
 </head><body>
 <header><div class="w"><h1>태양광 입지 사전 스크리닝</h1><p>지번을 넣으면 육상태양광 협의지침·개발행위허가 기준으로 항목별 회피 / 신중검토 / 해당없음 / 수동확인필요를 면적과 함께 보여줍니다.</p></div></header>
@@ -49,7 +53,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   <section id="app" hidden>
   <form class="card noprint" id="f">
     <h2>지번</h2>
-    <textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea>
+    <div class="acw"><textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea><ul class="acl" id="acl" role="listbox" hidden></ul></div>
     <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
     <button class="btn" id="go">스크리닝</button> <span class="msg" id="m"></span>
     <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
@@ -278,6 +282,26 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     L.push([]);L.push(["지번","지목","면적㎡","생태1등급","2등급","3등급","별도관리","경사15°이상","회피","신중검토","확인필요"]);J.per.forEach(function(r){L.push([r.jibun,r.jimok,r.area,r.e1,r.e2,r.e3,r.e0,r.s15,r.av,r.cau,r.unk])});
     var csv=L.map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
     var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="태양광_스크리닝_"+D.P[0].jibun+".csv";a.click()});
+})();
+
+/* 지번 자동완성(땅의 가치와 같은 방식): 지금 줄을 일부만 적어도 후보를 보여주고, 고르면 그 줄을 바꿈. 쉼표로 여러 번지를 잇는 중이면 띄우지 않음 */
+(function(){var I=document.getElementById("addr"),Lst=document.getElementById("acl");if(!I||!Lst||!window.BFGeo||!BFGeo.searchAddr)return;var tm=null,seq=0,items=[],sel=-1;
+  function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
+  function line(){var v=I.value,p=I.selectionStart==null?v.length:I.selectionStart,a=v.lastIndexOf("\n",p-1)+1,b=v.indexOf("\n",p);if(b<0)b=v.length;return {a:a,b:b,t:v.slice(a,b)}}
+  function close(){Lst.hidden=true;sel=-1}
+  function mark(){Array.from(Lst.children).forEach(function(li,i){li.setAttribute("aria-selected",String(i===sel))})}
+  function pick(i){var x=items[i];if(!x)return;var L=line(),v=I.value;I.value=v.slice(0,L.a)+x.addr+v.slice(L.b);var c=L.a+x.addr.length;I.setSelectionRange(c,c);close();I.focus()}
+  function show(list,msg){Lst.innerHTML="";items=list||[];sel=-1;if(msg)Lst.appendChild(el("li","m",msg));
+    items.forEach(function(x,i){var li=el("li"),a=x.addr.split(" ");li.appendChild(document.createTextNode(a.slice(-2).join(" ")));li.appendChild(el("small",null,a.slice(0,-2).join(" ")));
+      li.addEventListener("mousedown",function(e){e.preventDefault();pick(i)});Lst.appendChild(li)});Lst.hidden=!Lst.children.length}
+  function jb(a){var t=a.split(" ").pop(),m=t.match(/^(산)?(\d+)(?:-(\d+))?/);return m?[m[1]?1:0,+m[2],+(m[3]||0)]:[2,0,0]}
+  function cmp(a,b){var ha=a.addr.replace(/\s\S+$/,""),hb=b.addr.replace(/\s\S+$/,"");if(ha!==hb)return ha<hb?-1:1;var x=jb(a.addr),y=jb(b.addr);return x[0]-y[0]||x[1]-y[1]||x[2]-y[2]}
+  I.addEventListener("input",function(){clearTimeout(tm);var q=line().t.trim();if(q.length<2||!/[가-힣]/.test(q)||/[,，]/.test(q)){close();return}
+    tm=setTimeout(function(){var my=++seq;show([],"찾는 중…");BFGeo.searchAddr(q,/\d/.test(q)?10:100).then(function(L){if(my!==seq)return;L.sort(cmp);show(L,L.length?"":"후보가 없습니다. 리·동 이름과 번지를 함께 적어 보세요")}).catch(function(){if(my===seq)show([],"후보를 불러오지 못했습니다")})},300)});
+  I.addEventListener("keydown",function(e){if(Lst.hidden||!items.length)return;
+    if(e.key==="ArrowDown"){e.preventDefault();sel=(sel+1)%items.length;mark()}else if(e.key==="ArrowUp"){e.preventDefault();sel=(sel-1+items.length)%items.length;mark()}
+    else if(e.key==="Enter"&&sel>=0){e.preventDefault();pick(sel)}else if(e.key==="Escape")close()});
+  I.addEventListener("blur",function(){setTimeout(close,150)});
 })();
 </script>
 </body></html>
