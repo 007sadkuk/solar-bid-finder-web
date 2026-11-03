@@ -171,6 +171,16 @@
       var FG = await forestGrid(p5181, prog); fsN = FG.n;
       cells.forEach(function (c, i) { c.sd = c.s; var sv = FG.Slope[i]; if (sv !== null && sv !== undefined) { c.s = sv; c.sf = 1; } c.hz = FG.hazard2025[i]; });
     } catch (e) { fsErr = e.message; }
+    // KEI 국토환경성평가 등급(2025, 10m 격자 PNG 타일 docs/kei/{tx}_{ty}.png, 값 1~5)
+    var kei = { ok: false, n: 0 };
+    try { var KT = {}, kp = cells.map(function (c) { return tm5186(B[0] + (c.ix + 0.5) * dlon + dx, B[1] + (c.iy + 0.5) * dlat + dy); });
+      kp.forEach(function (t) { KT[Math.floor(t[0] / 5000) + "_" + Math.floor(t[1] / 5000)] = 1; });
+      await Promise.all(Object.keys(KT).map(function (k) { return fetch("kei/" + k + ".png").then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(createImageBitmap).then(function (bm) {
+        var cv = document.createElement("canvas"); cv.width = bm.width; cv.height = bm.height; var g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(bm, 0, 0); KT[k] = g.getImageData(0, 0, bm.width, bm.height).data; }).catch(function () { KT[k] = null; }); }));
+      cells.forEach(function (c, i) { var t = kp[i], tx = Math.floor(t[0] / 5000), ty = Math.floor(t[1] / 5000), d = KT[tx + "_" + ty]; if (!d) return;
+        var col = Math.floor((t[0] - tx * 5000) / 10), row = Math.floor(((ty + 1) * 5000 - t[1]) / 10); if (col < 0 || row < 0 || col > 499 || row > 499) return;
+        var v = d[(row * 500 + col) * 4]; if (v >= 1 && v <= 5) { c.kg = v; kei.n++; } });
+      kei.ok = kei.n > 0; } catch (e) { kei.err = e.message; }
 
     // 진입로(지적상 도로 접함), 이웃 산림
     var mine = {}; P.forEach(function (p) { mine[p.pnu] = 1; });
@@ -246,7 +256,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, kei: kei, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -468,6 +478,8 @@
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
     var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
+    rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
     return { rows: rows, per: per, tot: tot, sum: sum, rep: rep };
   }

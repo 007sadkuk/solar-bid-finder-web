@@ -35,7 +35,7 @@ tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.more[open]>summary{margin-bottom:12px}
 .rep h2{font-size:20px;margin:0 0 4px}.rep h3{margin:22px 0 8px;font-size:17px;padding:4px 12px;border-radius:999px;display:inline-block;background:var(--pine);color:#fff}
 .rep table{border-collapse:collapse;width:100%;font-size:14.5px;margin-top:4px}.rep th,.rep td{border:1px solid var(--rule);padding:8px 10px;vertical-align:middle}.rep th{background:var(--field);color:var(--ink);font-weight:700}
-.rep td.ox{text-align:center;font-weight:900;font-size:17px;width:64px}.rep td.ox.o{color:var(--no)}.rep td.ox.x{color:var(--sub)}.rep td.ox.t{color:var(--warn)}.rep tr.hit td{background:rgba(179,38,30,.07)}
+.rep td.ox{text-align:center;font-weight:900;font-size:17px;width:64px}.rep td.ox.o{color:var(--no)}.rep td.ox.x{color:var(--sub)}.rep td.ox.t{color:var(--warn)}.rep td.hit{color:var(--no);font-weight:800}.rep tr.hit td{background:rgba(179,38,30,.07)}
 .rep .bi{width:30%}.sumt ul{margin:0;padding-left:1.1em}.sumt th{text-align:left;width:30%}.rep .kv{display:grid;grid-template-columns:9em 1fr;gap:4px 12px;font-size:15px}.rep .kv b{color:var(--sub);font-weight:600}
 .rep .concl{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin:14px 0 0;background:rgba(91,140,200,.08)}.rep .concl b{color:var(--no)}
 @media (max-width:720px){.rep .kv{grid-template-columns:1fr}.rep .bi{width:auto}.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
@@ -64,6 +64,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div class="bar"><i id="vbar"></i></div>
       <table class="sumt" style="margin-top:14px">
         <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
+        <tr><th>국토환경성평가 (KEI)</th><td id="vkei"></td></tr>
         <tr><th>소규모 환경영향평가</th><td id="vseia"></td></tr>
         <tr><th>재해영향평가 협의<br><span class="sub">(사전재해영향성검토)</span></th><td id="vdis"></td></tr>
         <tr><th>한전 계통</th><td id="vgrid"></td></tr>
@@ -74,7 +75,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     </section>
     <section class="card">
       <h2>지도</h2>
-      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
+      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
       <div id="map"></div><div class="lg" id="lg"></div>
       <p class="sub" id="shiftNote"></p>
     </section>
@@ -96,7 +97,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261103e"></script>
-<script src="screen.js?v=20261103f"></script>
+<script src="screen.js?v=20261103g"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -168,6 +169,13 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     txt+=" 따라서 설치 가능 면적은 "+n(S.ok)+"("+(S.total?Math.round(S.ok/S.total*100):0)+"%)로, 태양광 발전시설 입지로는 "+(S.verdict==="가능"?"양호한 편":S.verdict==="불가"||S.ok<S.total*0.2?"양호하지 않은 것":"일부만 가능한 것")+"으로 검토됩니다.";
     cc.appendChild(document.createTextNode(txt));
     R2.appendChild(cc);
+    var KE=J.rep.kei;R2.appendChild(el("h3",null,"국토환경성평가 등급"));
+    if(KE){var TK=el("table"),hk=el("tr");["구분","1등급","2등급","3등급","4등급","5등급","합계"].forEach(function(x){hk.appendChild(el("th",null,x))});TK.appendChild(hk);
+      var ks=KE.a.reduce(function(x,y){return x+y},0),r1=el("tr"),r2=el("tr");r1.appendChild(el("td",null,"면적(㎡)"));r2.appendChild(el("td",null,"구성비(%)"));
+      KE.a.forEach(function(a,i){r1.appendChild(el("td",i<2&&a?"hit":null,a?Math.round(a).toLocaleString():"-"));r2.appendChild(el("td",null,a&&ks?(a/ks*100).toFixed(1):"-"))});
+      r1.appendChild(el("td",null,Math.round(ks).toLocaleString()));r2.appendChild(el("td",null,"100"));TK.appendChild(r1);TK.appendChild(r2);R2.appendChild(TK);
+      R2.appendChild(el("p","sub","자료: KEI 국토환경성평가지도 2025(기후에너지환경부, 5m 원자료를 10m로 변환). 1·2등급은 보전 위주 지역으로 개발이 어려운 편입니다."+(KE.none>50?" 등급 없음 "+n(KE.none)+".":"")))}
+    else R2.appendChild(el("p","sub","국토환경성평가 등급 자료를 불러오지 못했습니다."));
     R2.appendChild(el("h3",null,"2. 입지를 회피해야 할 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G}),["입지 회피 지역","해당 여부","비고"]));
     R2.appendChild(el("h3",null,"3. 신중 검토 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
     R2.appendChild(el("p","sub","동물 이동로·생태축, 수질, 경관 조망점 등 나머지 신중검토 항목은 공개 자료로 판정하지 않으며 현장 확인이 필요합니다."));
@@ -185,6 +193,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     $("vgrid").textContent=S.grid;
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
     $("vseia").textContent=s1?(/^대상$/.test(s1.v)?"대상 — 협의기관: "+ag+" (시군이 협의 요청). "+s1.d:/^대상 아님/.test(s1.v)?"대상 아님 — "+s1.d:"도시지역 — 시군 확인 ("+s1.d+")"):"-";
+    var KE=J.rep.kei;$("vkei").textContent=KE?KE.a.map(function(a,i){return a?(i+1)+"등급 "+n(a):null}).filter(Boolean).join(" · ")||"등급 없음":"자료 없음";
     var dz=R.disaster||{area:5000};$("vdis").textContent=S.total>=dz.area?"대상일 가능성 높음 — 사업 면적 "+n(S.total)+"이 기준 "+n(dz.area)+" 이상. 담당: 시·군 재난안전 부서(허가 전 협의)":"대상 아님 — 사업 면적 "+n(S.total)+" (기준 "+n(dz.area)+" 미만)";
     var W=$("vwhy");W.innerHTML="";if(!S.why.length)W.appendChild(el("li",null,"없음"));S.why.forEach(function(x){W.appendChild(el("li",null,x[0]+" — "+n(x[1])))});
     var C=$("vcond");C.innerHTML="";if(!S.cond.length)C.appendChild(el("li",null,"특별한 것 없음"));S.cond.forEach(function(x){C.appendChild(el("li",null,x))});
@@ -200,6 +209,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   var ZC=[[66,133,244],[219,68,55],[244,180,0],[15,157,88],[171,71,188],[0,172,193]];
   function cellColor(c){if(MODE==="st")return c.no?[179,38,30]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
     if(MODE==="s"){if(c.s===null)return null;var s=c.s;return s<5?[46,125,50]:s<10?[139,195,74]:s<15?[255,235,59]:s<20?[255,193,7]:s<25?[255,111,0]:s<30?[229,57,53]:[183,28,28]}
+    if(MODE==="k"){if(!c.kg)return null;return [[38,115,0],[152,230,0],[230,230,0],[230,152,0],[230,0,0]][c.kg-1]}
     if(MODE==="h"){if(c.hz==null)return null;return [[183,28,28],[229,57,53],[255,152,0],[255,235,59],[139,195,74]][c.hz-1]}
     if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
   function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
@@ -212,7 +222,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
-    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
+    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
