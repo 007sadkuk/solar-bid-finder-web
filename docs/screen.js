@@ -232,6 +232,14 @@
       var d = Infinity; r0.forEach(function (v) { realRings.forEach(function (r) { var dd = ringDist(v, r, kx, ky); if (dd < d) d = dd; }); });
       if (d <= R.houses.far) houses.push({ d: Math.round(d), name: (pr.rd_nm || "") + " " + (pr.buld_no || "") + (pr.buld_nm ? " " + pr.buld_nm : ""), pnu: sn, c: [cy, cx] }); });
     houses.sort(function (a, b) { return a.d - b.d; });
+    // 실제 도로(수치지형도 도로중심선): 사업지 경계 10m 안 도로의 폭·종류 — 지적상 도로와 별개로 '현황도로' 확인
+    var acc = { ok: false, list: [] };
+    try { var rdc = await allFeatures("LT_L_N3A0020000", pad(Breal, 30), 2);
+      rdc.forEach(function (f) { var G = f.geometry || {}, ls = G.type === "LineString" ? [G.coordinates] : G.type === "MultiLineString" ? G.coordinates : []; var pr = f.properties || {}, d = Infinity;
+        ls.forEach(function (l) { l.forEach(function (v) { realRings.forEach(function (r) { var dd = pip(v, r) ? 0 : ringDist(v, r, kx, ky); if (dd < d) d = dd; }); });
+          realRings.forEach(function (r) { r.forEach(function (v) { for (var i = 0; i < l.length - 1; i++) { var dd = segDist(v, l[i], l[i + 1], kx, ky); if (dd < d) d = dd; } }); }); });
+        if (d <= 10) acc.list.push({ d: Math.round(d * 10) / 10, w: +pr.rvwd || 0, k: pr.rddv || "", pv: pr.pvqt || "", nm: pr.rdnm || pr.name || "" }); });
+      acc.list.sort(function (a, b) { return b.w - a.w; }); acc.ok = true; } catch (e) { acc.err = e.message; }
     // 건축물대장 주용도(Apps Script 중계, 건축HUB) — 실패해도 계속
     var bldUse = null;
     if (CFG.endpoint && houses.length) { try {
@@ -256,7 +264,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, kei: kei, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, kei: kei, acc: acc, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -404,7 +412,15 @@
     var lcT = P.map(function (p) { return p.lc && p.lc.road ? p.jibun + " " + p.lc.road + (p.lc.year ? "(" + p.lc.year + "년 조사)" : "") : null; }).filter(Boolean);
     var lcBlind = P.some(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); }), lcAll = P.every(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); });
     var lcRoad = P.filter(function (p) { return p.lc && p.lc.road && !/맹지/.test(p.lc.road); });
-    V(G3, "s2", "진입로(지적상 도로 접함 / 토지특성 도로접면)", rd ? (lcAll ? "수동확인필요" : "확인됨") : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심", null, (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + (rd && lcAll ? " — 지적도에는 도로 필지가 붙어 있으나 공시지가 조사에서는 맹지로 봄(도로 미개설·통행 불가 등 현황 차이 가능)" : "") + ". " : "") + (rd ? "지적도상 맞닿은 도로: " + rdOK.map(function (r) { return r.jibun + "(" + r.touch.map(function (t) { return P[t.i].jibun + " 약 " + Math.round(t.L) + "m"; }).join("·") + ")"; }).join(", ") + " — 도로 소유(국공유·사유), 실제 통행 가능 여부·폭은 현장·토지대장으로 확인" : "사업지 필지에 맞닿은 지목 '도로' 필지가 없음" + (D.roads.length ? "(모서리만 닿는 도로: " + D.roads.map(function (r) { return r.jibun; }).join(", ") + ")" : "") + " — 현황도로·사용승낙으로 진입 가능한지 확인"), "개발행위허가 기준(진입로)", "연속지적도");
+    var AC = D.acc && D.acc.ok ? D.acc.list : null, KN = { RDD001: "고속도로", RDD002: "국도", RDD003: "지방도", RDD009: "소로" };
+    function acTxt(a) { return (a.nm || KN[a.k] || "도로") + " 폭 " + a.w + "m" + (a.pv === "RDQ005" ? "(비포장 추정)" : "") + (a.d > 0 ? ", 경계에서 " + a.d + "m" : ", 경계에 붙음"); }
+    var acW = AC && AC.length ? AC[0].w : 0;
+    var s2v = AC === null ? (rd ? "확인됨(지적도)" : lcRoad.length ? "확인됨(현황도로)" : "맹지 의심")
+      : acW >= 3 ? "확인됨(현황도로 폭 " + acW + "m)" : AC.length ? "주의(좁은 길 폭 " + acW + "m)" : rd ? "주의(지적도에만 도로)" : "맹지 의심";
+    V(G3, "s2", "진입로 — 실제 차가 다닐 길이 붙어 있는지(수치지형도 도로 + 지적도 + 토지특성)", s2v, null,
+      (AC === null ? "실제 도로선 조회 실패. " : AC.length ? "사업지 10m 안 실제 도로: " + AC.slice(0, 3).map(acTxt).join(" / ") + (acW >= 3 ? " → 차량 진입 가능 폭. " : " → 폭 3m 미만이라 공사차량·트럭 진입이 어려울 수 있음. ") : "사업지 10m 안에 수치지형도 도로가 없음 → 실제 진입로가 없을 가능성. ")
+      + (rd ? "지적도상 맞닿은 도로 필지: " + rdOK.map(function (r) { return r.jibun + "(약 " + Math.round(Math.max.apply(null, r.touch.map(function (t) { return t.L; }))) + "m 접함)"; }).join(", ") + ". " : "지적도상 맞닿은 도로 필지 없음. ")
+      + (lcT.length ? "토지특성 도로접면: " + lcT.join(", ") + ". " : "") + "허가에 필요한 도로 폭은 시군 조례 기준으로 확인(수치지형도는 갱신 시점에 따라 최근 개설 도로가 빠질 수 있음).", "개발행위허가 기준(진입로)", "국토지리정보원 수치지형도 도로중심선(브이월드) + 연속지적도 + 토지특성");
     var hn = D.houses.filter(function (h) { return h.d <= R.houses.near; }).length, hf = D.houses.length, BU = D.bldUse && !D.bldUse._err;
     function isHome(h) { return h.fail || (h.use || []).some(function (u) { return /주택|아파트|연립|다세대|다가구|기숙사/.test(u); }); }
     function byLot(arr) { var m = {}; arr.forEach(function (h) { var k = h.pnu || h.name; if (!m[k] || h.d < m[k].d) m[k] = h; }); return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return a.d - b.d; }); }
@@ -466,7 +482,7 @@
       d: (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = [];
-    if (/맹지/.test(rows.filter(function (r) { return r.id === "s2"; })[0].v) || (rd && lcAll)) cond.push("진입로: 지적도·현황상 도로 연결 확인 필요");
+    var s2r = rows.filter(function (r) { return r.id === "s2"; })[0].v; if (!/^확인됨/.test(s2r)) cond.push(/맹지/.test(s2r) ? "진입로: 실제 도로가 안 붙어 있음 — 진입로 확보(토지 사용승낙·도로 개설) 필요" : "진입로: 길이 좁거나 지적도에만 있음 — 현장에서 폭·통행 확인");
     if (ratio >= 1 && !urb) cond.push("소규모 환경영향평가 대상(환경청 협의 절차 필요)");
     if (gIdx !== null && gIdx >= 1.5) cond.push("토공량이 많을 수 있음(계단식 배치 필요)");
     var field = ["생태자연도에 없는 보호종·철새도래지", "기맥·지맥 능선(정맥만 자동 확인)"]; if (BU && unk) field.push("건축물대장 없는 건물 " + unk + "동이 주택인지");
