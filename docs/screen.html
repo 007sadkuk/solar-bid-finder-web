@@ -107,7 +107,6 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
   function open(){$("gate").hidden=true;$("app").hidden=false;var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
   var EMB=new URLSearchParams(location.search).get("embed")==="1";
-  if(!EMB){var qa=new URLSearchParams(location.search).get("addr");location.replace("land.html"+(qa?"?addr="+encodeURIComponent(qa)+"&use=solar":""));return}
   if(EMB){document.querySelector("header").hidden=true;$("f").hidden=true;document.body.style.background="transparent";
     var st=document.createElement("style");st.textContent="#ttl,#vcard .vline,#vcard .bar,#vgrid,#vcard .vcols,#vcard>p.sub:last-child{display:none!important}#vcard{padding:12px 18px}";document.head.appendChild(st);
     (function(){var mp=$("map").closest("section"),dt=document.querySelector("details.more"),sm=dt.querySelector("summary");sm.textContent="지도 · 항목별 근거 · 필지별 면적 보기";
