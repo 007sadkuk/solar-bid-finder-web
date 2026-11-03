@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
-<title>태양광 입지 사전 스크리닝</title>
+<title>태양광 입지검토 × 금호테크닉스</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -46,16 +46,16 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
 </style>
 </head><body>
-<header><div class="w"><h1>태양광 입지 사전 스크리닝</h1><p>지번을 넣으면 태양광 설치 가능 여부와 면적, 근거(협의지침·개발행위허가 기준)를 보여줍니다.</p></div></header>
+<header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1>태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용</p></div></header>
 <main class="w">
-  <form class="card noprint" id="gate" hidden><p class="sub">사내용 페이지입니다. 비밀번호를 입력하세요.</p><input id="gpw" type="password" inputmode="numeric" autocomplete="off"> <button class="btn">열기</button> <span class="msg" id="gmsg"></span></form>
+  <form class="card noprint" id="gate" hidden><p class="sub">금호테크닉스 사내 전용입니다. 비밀번호를 입력하세요.</p><input id="gpw" type="password" inputmode="numeric" autocomplete="off"> <button class="btn">열기</button> <span class="msg" id="gmsg"></span></form>
 
   <section id="app" hidden>
   <form class="card noprint" id="f">
     <h2>지번</h2>
     <div class="acw"><textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea><ul class="acl" id="acl" role="listbox" hidden></ul></div>
     <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
-    <button class="btn" id="go">스크리닝</button> <span class="msg" id="m"></span>
+    <button class="btn" id="go">검토하기</button> <span class="msg" id="m"></span>
     <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
   </form>
 
@@ -281,7 +281,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   $("csv").addEventListener("click",function(){if(!J)return;var L=[["구분","항목","판정","면적㎡","내용","근거","데이터"]].concat(J.rows.map(function(r){return [r.g,r.t,r.v,r.a==null?"":r.a,r.d,r.b,r.src]}));
     L.push([]);L.push(["지번","지목","면적㎡","생태1등급","2등급","3등급","별도관리","경사15°이상","회피","신중검토","확인필요"]);J.per.forEach(function(r){L.push([r.jibun,r.jimok,r.area,r.e1,r.e2,r.e3,r.e0,r.s15,r.av,r.cau,r.unk])});
     var csv=L.map(function(r){return r.map(function(c){c=String(c==null?"":c);return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(",")}).join("\r\n");
-    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="태양광_스크리닝_"+D.P[0].jibun+".csv";a.click()});
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv"}));a.download="태양광_입지검토_"+D.P[0].jibun+".csv";a.click()});
 })();
 
 /* 지번 자동완성(땅의 가치와 같은 방식): 지금 줄을 일부만 적어도 후보를 보여주고, 고르면 그 줄을 바꿈. 쉼표로 여러 번지를 잇는 중이면 띄우지 않음 */
