@@ -492,7 +492,7 @@
     var field = ["생태자연도에 없는 보호종·철새도래지", "기맥·지맥 능선(정맥만 자동 확인)"]; if (BU && unk) field.push("건축물대장 없는 건물 " + unk + "동이 주택인지");
     var est = D.cells.some(function (c) { return !c.no && c.vg && c.vg.est; });
     var miss = []; if (!ecoOK) miss.push("생태자연도"); if (!demOK) miss.push("경사"); if (nedErr.length) miss.push("토지이용계획(" + nedErr.join(", ") + ")"); if (!hzOK && san.length) miss.push("산사태위험지도");
-    var verdict = ok < 1000 ? "불가" : noA < total * 0.05 ? "가능" : "일부 가능";
+    var verdict = ok < 100 ? "불가" : ok < 1000 ? "소규모 가능" : noA < total * 0.05 ? "가능" : "일부 가능";
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
     cond.push("매장유산(문화재) 조사 필요 여부: 2025.2.13부터 지표조사 대상 규정이 「국가유산영향진단법」으로 옮겨짐 — 시군 문화유산 담당에 확인");
