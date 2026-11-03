@@ -98,7 +98,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261103j"></script>
-<script src="screen.js?v=20261103k"></script>
+<script src="screen.js?v=20261103l"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -137,7 +137,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
-  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});try{LAY={};LAY[7.8]=layout(7.8);LAY[6]=layout(6)}catch(e){LAY={}}head();report();rows();per();drawMap();srcs()}
+  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});try{LAY=layout()}catch(e){LAY=null}head();report();rows();per();drawMap();srcs()}
   /* 입지검토서 형식(협의지침 표) */
   function ox(v){return /^회피|^신중검토/.test(v)?["O","o"]:/^해당없음|^대상 아님|^확인됨/.test(v)?["X","x"]:/^주의|^맹지|^대상/.test(v)?["△","t"]:["-",""]}
   function ppTxt(pp){return pp.map(function(x){return x[0]+" "+(x[2]>=0.6?"대부분 ":x[2]<0.15?"일부 ":"")+x[1].toLocaleString()+"㎡"}).join(", ")}
@@ -213,23 +213,35 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     if(MODE==="k"){if(!c.kg)return null;return [[38,115,0],[152,230,0],[230,230,0],[230,152,0],[230,0,0]][c.kg-1]}
     if(MODE==="h"){if(c.hz==null)return null;return [[183,28,28],[229,57,53],[255,152,0],[255,235,59],[139,195,74]][c.hz-1]}
     if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
-  /* 모듈 배치(참고): 설치 가능 칸 위에 2단 세로·정남향·20° 고정형 배치. 필지 경계 3m, 제외 구역 경계 2m 띄움. 평지 가정 이론값 */
-  var PITCH=7.8,LAY={},MOD={w:1.134,l:2.278,kw:0.6,tilt:20,set:3,gap:2};
-  function layout(pitch){if(!D)return null;var nx=D.nx,ny=D.ny,st=D.step,G=new Int8Array(nx*ny).fill(-1);
-    D.cells.forEach(function(c){G[c.iy*nx+c.ix]=c.no?0:1});
-    function dist(isSrc){var d=new Float32Array(nx*ny);for(var i=0;i<nx*ny;i++)d[i]=isSrc(G[i])?0:1e9;
-      for(var y=0;y<ny;y++)for(var x=0;x<nx;x++){var i=y*nx+x;if(!d[i])continue;var v=Math.min(x+1,y+1,nx-x,ny-y);if(isSrc(-1)&&v<d[i])d[i]=v;
+  /* 모듈 배치(보수적): 설치 가능 칸(신중검토 구역도 제외)에만, 600W 2단 세로·20°·정남향 고정형.
+     피치 = 동지 오전 9시 태양 기준 무음영 거리(지형 경사 반영, 평지보다 좁히지 않음). 필지 경계 3m·제외구역 2m 이격,
+     관리통로: 8줄마다 1줄, 가로 20열마다 1칸 비움. 토목(절·성토)·전기실 자리는 반영 안 함 */
+  var LAY=null,MOD={w:1.134,l:2.278,kw:0.6,tilt:20,set:3,gap:2,rows:8,cols:20};
+  function sunPitch(lat,beta){var d2r=Math.PI/180,ph=lat*d2r,de=-23.44*d2r,h=45*d2r;
+    var sa=Math.sin(ph)*Math.sin(de)+Math.cos(ph)*Math.cos(de)*Math.cos(h),al=Math.asin(sa);
+    var ca=(Math.sin(de)-sa*Math.sin(ph))/(Math.cos(al)*Math.cos(ph)),Az=Math.PI-Math.acos(Math.max(-1,Math.min(1,ca)));
+    var H=2*MOD.l*Math.sin(MOD.tilt*d2r),dep=2*MOD.l*Math.cos(MOD.tilt*d2r),tp=Math.tan(al)/Math.cos(Az);
+    var xf=H/tp,xb=H/Math.max(0.05,tp+Math.tan(beta));return {dep:dep,flat:dep+xf,p:Math.ceil((dep+Math.max(xf,xb))*10)/10,alt:al/d2r}}
+  function layout(){if(!D)return null;var nx=D.nx,ny=D.ny,st=D.step,G=new Int8Array(nx*ny).fill(-1),EL=new Float32Array(nx*ny).fill(NaN);
+    D.cells.forEach(function(c){var i=c.iy*nx+c.ix;G[i]=(c.no||c.st===1)?0:1;if(c.el!==null&&c.el!==undefined)EL[i]=c.el});
+    // 남북 방향 지형 경사(북쪽으로 올라가면 +): 설치 칸에서 10m 기준
+    var k=Math.max(1,Math.round(10/st)),bs=[];for(var y=k;y<ny-k;y++)for(var x=0;x<nx;x++){var i=y*nx+x;if(G[i]!==1)continue;var a=EL[i+k*nx],b=EL[i-k*nx];if(isFinite(a)&&isFinite(b))bs.push(Math.atan((a-b)/(2*k*st)))}
+    bs.sort(function(p,q){return p-q});var beta=bs.length?bs[Math.floor(bs.length*0.1)]:0;
+    var lat=D.B[1]+ny*D.dlat/2,SP=sunPitch(lat,beta),pitch=SP.p;
+    function dist(isSrc,edge){var d=new Float32Array(nx*ny);for(var i=0;i<nx*ny;i++)d[i]=isSrc(G[i])?0:1e9;
+      for(var y=0;y<ny;y++)for(var x=0;x<nx;x++){var i=y*nx+x;if(!d[i])continue;if(edge){var v=Math.min(x+1,y+1,nx-x,ny-y);if(v<d[i])d[i]=v}
         if(x>0)d[i]=Math.min(d[i],d[i-1]+1);if(y>0)d[i]=Math.min(d[i],d[i-nx]+1);if(x>0&&y>0)d[i]=Math.min(d[i],d[i-nx-1]+1.414);if(x<nx-1&&y>0)d[i]=Math.min(d[i],d[i-nx+1]+1.414)}
       for(var y=ny-1;y>=0;y--)for(var x=nx-1;x>=0;x--){var i=y*nx+x;if(x<nx-1)d[i]=Math.min(d[i],d[i+1]+1);if(y<ny-1)d[i]=Math.min(d[i],d[i+nx]+1);if(x<nx-1&&y<ny-1)d[i]=Math.min(d[i],d[i+nx+1]+1.414);if(x>0&&y<ny-1)d[i]=Math.min(d[i],d[i+nx-1]+1.414)}return d}
-    var dOut=dist(function(g){return g===-1}),dEx=dist(function(g){return g===0});
+    var dOut=dist(function(g){return g===-1},true),dEx=dist(function(g){return g===0},false);
     function ok(x,y){var ix=Math.floor(x/st),iy=Math.floor(y/st);if(ix<0||iy<0||ix>=nx||iy>=ny)return false;var i=iy*nx+ix;return G[i]===1&&dOut[i]*st>=MOD.set&&dEx[i]*st>=MOD.gap}
-    var dep=2*MOD.l*Math.cos(MOD.tilt*Math.PI/180),W=nx*st,H=ny*st,best={n:-1};
-    for(var off=0;off<pitch;off+=0.5){var sl=[];for(var y0=off;y0+dep<=H;y0+=pitch){var ys=[y0,y0+dep/2,y0+dep];
-        for(var x=0;x+MOD.w<=W;x+=MOD.w){var good=true;for(var a=0;a<3&&good;a++)for(var b=0;b<3&&good;b++)if(!ok(x+MOD.w*b/2,ys[a]))good=false;if(good)sl.push([x,y0])}}
+    var dep=SP.dep,W=nx*st,Hh=ny*st,best={n:-1};
+    for(var off=0;off<pitch;off+=0.5){var sl=[],r=0;for(var y0=off;y0+dep<=Hh;y0+=pitch,r++){if((r+1)%(MOD.rows+1)===0)continue;var ys=[y0,y0+dep/2,y0+dep],run=0;
+        for(var x=0;x+MOD.w<=W;x+=MOD.w){var good=true;for(var a=0;a<3&&good;a++)for(var b=0;b<3&&good;b++)if(!ok(x+MOD.w*b/2,ys[a]))good=false;
+          if(!good){run=0;continue}if(run===MOD.cols){run=0;continue}sl.push([x,y0]);run++}}
       if(sl.length>best.n)best={n:sl.length,sl:sl}}
-    var m=best.n*2;return {pitch:pitch,mods:m,kwp:Math.round(m*MOD.kw*10)/10,sl:best.sl||[],dep:dep}}
-  function layTxt(){var a=LAY[7.8],b=LAY[6];if(!a)return "";function f(o){return o.mods.toLocaleString()+"장 · "+(o.kwp>=1000?(o.kwp/1000).toFixed(2)+"MW":Math.round(o.kwp)+"kWp")}
-    return "모듈 배치(참고): 피치 7.8m 무음영 "+f(a)+" / 피치 6.0m 압축 "+f(b)+" — "+MOD.kw*1000+"W·2단 세로·"+MOD.tilt+"°·정남향, 경계 "+MOD.set+"m·제외구역 "+MOD.gap+"m 이격, 평지 가정"}
+    var m=best.n*2;return {pitch:pitch,flat:Math.ceil(SP.flat*10)/10,beta:Math.round(beta*1800/Math.PI)/10,alt:Math.round(SP.alt*10)/10,mods:m,kwp:Math.round(m*MOD.kw*10)/10,sl:best.sl||[],dep:dep,okA:D.cells.filter(function(c){return !c.no&&c.st!==1}).length}}
+  function layTxt(){var o=LAY;if(!o)return "";var cap=o.kwp>=1000?(o.kwp/1000).toFixed(2)+"MW":Math.round(o.kwp)+"kWp";
+    return "모듈 배치(보수적): "+o.mods.toLocaleString()+"장 · "+cap+" — 피치 "+o.pitch+"m(동지 오전 9시 무음영"+(o.pitch>o.flat?", 북향 경사 "+(-o.beta)+"° 반영":"")+"), "+MOD.kw*1000+"W 2단 세로 20° 정남향, 경계 "+MOD.set+"m·제외구역 "+MOD.gap+"m, 통로 "+MOD.rows+"줄·"+MOD.cols+"열마다, 신중검토 구역 제외. 토목·전기실 자리는 반영 안 함"}
   function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
     if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
     map.invalidateSize();if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
@@ -239,14 +251,13 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
-    if(MODE==="md"&&LAY[PITCH]){var L0=LAY[PITCH];var strips=[];L0.sl.forEach(function(q){var t=strips[strips.length-1];if(t&&t.y===q[1]&&Math.abs(t.x1-q[0])<1e-6)t.x1=q[0]+MOD.w;else strips.push({y:q[1],x0:q[0],x1:q[0]+MOD.w})});
+    if(MODE==="md"&&LAY){var L0=LAY;var strips=[];L0.sl.forEach(function(q){var t=strips[strips.length-1];if(t&&t.y===q[1]&&Math.abs(t.x1-q[0])<1e-6)t.x1=q[0]+MOD.w;else strips.push({y:q[1],x0:q[0],x1:q[0]+MOD.w})});
       strips.forEach(function(t){var lo0=b[0]+sh.dx+t.x0/D.kx,lo1=b[0]+sh.dx+t.x1/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+L0.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:"#1f4fa8",weight:1,fillColor:"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
     var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능",[245,222,150]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
-    if(MODE==="md"){var pb=el("span");[7.8,6].forEach(function(p){var bt=el("button",null,"피치 "+p.toFixed(1)+"m");bt.type="button";bt.style.cssText="font:inherit;font-size:13px;margin-right:6px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;cursor:pointer;background:"+(PITCH===p?"var(--pine);color:#fff":"transparent;color:var(--ink)");bt.onclick=function(){PITCH=p;drawMap()};pb.appendChild(bt)});lg.insertBefore(pb,lg.firstChild);
-      var lt=el("span",null,LAY[PITCH]?" → "+LAY[PITCH].mods.toLocaleString()+"장 · "+LAY[PITCH].kwp.toLocaleString()+"kWp":"");lt.style.fontWeight="800";lg.insertBefore(lt,pb.nextSibling)}
+    if(MODE==="md"&&LAY){var lt=el("span",null,"피치 "+LAY.pitch+"m → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp");lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
