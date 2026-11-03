@@ -55,8 +55,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     <h2>지번</h2>
     <div class="acw"><textarea id="addr" placeholder="예) 충남 서산시 성연면 명천리 214, 214-3, 215-1, 215-2, 216-2, 216-3, 산140"></textarea><ul class="acl" id="acl" role="listbox" hidden></ul></div>
     <p class="sub">첫 지번은 시·군부터 적고, 같은 리의 나머지는 쉼표로 번지만 이어 적으면 됩니다. 다른 리는 줄을 바꿔 전체 주소로 적습니다.</p>
-    <div id="pickWrap" style="margin:4px 0 14px"><p class="sub" style="margin:0 0 6px"><b style="color:var(--ink)">지도에서 고르기</b> — 땅을 누르면 위 칸에 지번이 들어갑니다. 여러 필지는 계속 누르고, 다시 누르면 빠집니다. <span id="pmsg"></span></p>
-      <div id="pmap" style="height:560px;border-radius:12px"></div><p style="margin:8px 0 0"><button class="btn s" type="button" id="pclear">지번 초기화</button></p></div>
+    <div id="pickWrap" style="margin:4px 0 14px"><button class="btn s" type="button" id="ptog">🗺 지도에서 고르기</button> <button class="btn s" type="button" id="pclear">지번 초기화</button>
+      <div id="pbox" hidden style="margin-top:10px"><p class="sub" style="margin:0 0 6px">땅을 누르면 위 칸에 지번이 들어갑니다. 여러 필지는 계속 누르고, 다시 누르면 빠집니다. <span id="pmsg"></span></p>
+      <div id="pmap" style="height:560px;border-radius:12px"></div></div></div>
     <button class="btn" id="go">검토하기</button> <span class="msg" id="m"></span>
     <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
   </form>
@@ -116,7 +117,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   // 가벼운 잠금(사내용 표시 목적). 데이터는 모두 공개 자료
   var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
   function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
-  function open(){$("gate").hidden=true;$("app").hidden=false;setTimeout(function(){window.PICK_INIT&&PICK_INIT()},50);var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
+  function open(){$("gate").hidden=true;$("app").hidden=false;var q=new URLSearchParams(location.search).get("addr");if(q){$("addr").value=q;go()}}
   var EMB=new URLSearchParams(location.search).get("embed")==="1";
   if(EMB){document.querySelector("header").hidden=true;$("f").hidden=true;document.body.style.background="transparent";
     var st=document.createElement("style");st.textContent="#vcard>p.sub:last-child{display:none!important}";document.head.appendChild(st);
@@ -133,7 +134,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%"}
   function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
     if(!EMB)try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
-    Screen.run(t,prog).then(function(d){D=d;veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
+    Screen.run(t,prog).then(function(d){D=d;try{window.PICK_SET&&PICK_SET(d.P)}catch(_){}veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
       if(!EMB)setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
     .catch(function(e){$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
 
@@ -315,8 +316,10 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   syncText.rm={};
   var CUR={dx:0,dy:0};
   function ringNow(x){var o=x.shift||{dx:0,dy:0};return x.ring.map(function(p){return [p[0]-o.dy+CUR.dy,p[1]-o.dx+CUR.dx]})}
-  function drawSel(){selL.clearLayers();Object.keys(sel).forEach(function(k){L.polygon(ringNow(sel[k]),{color:"#f3c623",weight:3,fillColor:"#f3c623",fillOpacity:.25,interactive:false}).bindTooltip(sel[k].addr.split(" ").slice(-2).join(" ")).addTo(selL)})}
-  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<15){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
+  function fitSel(){if(!PM)return;var b=null;Object.keys(sel).forEach(function(k){var lb=L.latLngBounds(ringNow(sel[k]));b=b?b.extend(lb):lb});if(b)PM.fitBounds(b,{padding:[30,30],maxZoom:18})}
+  window.PICK_SET=function(P){sel={};syncText.rm={};P.forEach(function(p){var r=p.rings&&p.rings[0]&&p.rings[0].r;if(!r)return;sel[p.pnu]={pnu:p.pnu,addr:String(p.addr||"").trim(),ring:r.map(function(v){return [v[1],v[0]]}),shift:{dx:0,dy:0}}});if(PM){drawSel();fitSel()}};
+  function drawSel(){if(!selL)return;selL.clearLayers();Object.keys(sel).forEach(function(k){L.polygon(ringNow(sel[k]),{color:"#f3c623",weight:3,fillColor:"#f3c623",fillOpacity:.25,interactive:false}).bindTooltip(sel[k].addr.split(" ").slice(-2).join(" ")).addTo(selL)})}
+  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<16){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
     var feats=[];for(var pg=1;pg<=4;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(",")+")",size:"1000",page:String(pg)}).catch(function(){return {features:[]}});if(my!==seq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}var q={features:feats};
     var c=PM.getCenter(),SH=null;try{SH=await BFGeo.shiftAt(c.lng,c.lat)}catch(_){}if(my!==seq)return;var dX=SH?SH.dx:0,dY=SH?SH.dy:0;CUR={dx:dX,dy:dY};cad.clearLayers();drawSel();
     (q.features||[]).forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];P.forEach(function(pl){L.polygon(pl[0].map(function(v){return [v[1]+dY,v[0]+dX]}),{renderer:CR,color:"#ffe066",weight:1,opacity:.75,fill:false,interactive:false}).addTo(cad)})})}
@@ -324,17 +327,19 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(PM);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(PM)}
     else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(PM);
     CR=L.canvas({padding:0.3});cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("확대하면 필지 경계가 보입니다. 땅을 누르세요.");
-    PM.on("moveend",function(){loadCad()});
-    PM.on("click",async function(e){if(PM.getZoom()<15){PM.setView(e.latlng,16);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
+    PM.on("moveend",function(){loadCad()});drawSel();
+    PM.on("click",async function(e){if(PM.getZoom()<16){PM.setView(e.latlng,17);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
       try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;if(!x){msg("그 자리에 필지가 없습니다.");return}
         if(sel[x.pnu]){syncText.rm[sel[x.pnu].addr]=1;delete sel[x.pnu];msg("빼기: "+x.addr)}else{sel[x.pnu]=x;msg("추가: "+x.addr+" (지목 "+x.jibun.replace(/^[산\d\-\s]+/,"")+")")}
         x.addr=x.addr.trim();syncText();drawSel()}catch(err){msg("필지를 불러오지 못했습니다.")}});
     // 지번 칸을 직접 고치면 지도 선택도 맞춤(칸에서 지운 지번은 지도에서도 빼기)
     I.addEventListener("change",function(){var t=I.value;Object.keys(sel).forEach(function(k){if(t.indexOf(sel[k].addr)<0)delete sel[k]});drawSel()});
-    document.getElementById("pclear").addEventListener("click",function(){sel={};syncText.rm={};I.value="";drawSel();msg("지번을 모두 지웠습니다.");I.focus()});
-    window.PICK_ADD=async function(pt){if(!PM||!pt)return;PM.setView([pt[1],pt[0]],18);try{var x=await BFGeo.parcelAt(pt[0],pt[1]);if(x&&!sel[x.pnu]){x.addr=x.addr.trim();sel[x.pnu]=x;drawSel();msg("추가: "+x.addr)}}catch(_){}};
+    
     setTimeout(function(){PM.invalidateSize()},100)};
-  if(!document.getElementById("app").hidden)PICK_INIT();
+  var box=document.getElementById("pbox"),tog=document.getElementById("ptog");
+  window.PICK_ADD=async function(pt){if(!pt)return;if(PM&&!box.hidden)PM.setView([pt[1],pt[0]],18);try{var x=await BFGeo.parcelAt(pt[0],pt[1]);if(x&&!sel[x.pnu]){x.addr=x.addr.trim();sel[x.pnu]=x;drawSel();msg("추가: "+x.addr)}}catch(_){}};
+  document.getElementById("pclear").addEventListener("click",function(){sel={};syncText.rm={};I.value="";drawSel();msg("지번을 모두 지웠습니다.");I.focus()});
+  tog.addEventListener("click",function(){box.hidden=!box.hidden;tog.textContent=box.hidden?"🗺 지도에서 고르기":"🗺 지도 닫기";if(!box.hidden){PICK_INIT();setTimeout(function(){PM.invalidateSize();fitSel()},60)}});
 })();
 </script>
 </body></html>
