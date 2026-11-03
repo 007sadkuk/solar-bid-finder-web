@@ -44,6 +44,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .acl{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1000;margin:0;padding:6px;list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:320px;overflow:auto}
 .acl li{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.35;color:var(--ink)}.acl li small{display:block;color:var(--sub);font-size:12.5px}
 .acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
+#pmap.full{position:fixed!important;inset:0;height:100vh!important;width:100vw;z-index:3000;border-radius:0!important}.pfull{background:#fff;color:#16241e;border:0;border-radius:8px;padding:7px 11px;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.35)}
 </style>
 </head><body>
 <header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1><a href="screen.html" title="처음 화면으로" style="color:inherit;text-decoration:none">태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</a></h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용</p></div></header>
@@ -319,16 +320,19 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function fitSel(){if(!PM)return;var b=null;Object.keys(sel).forEach(function(k){var lb=L.latLngBounds(ringNow(sel[k]));b=b?b.extend(lb):lb});if(b)PM.fitBounds(b,{padding:[30,30],maxZoom:18})}
   window.PICK_SET=function(P){sel={};syncText.rm={};P.forEach(function(p){var r=p.rings&&p.rings[0]&&p.rings[0].r;if(!r)return;sel[p.pnu]={pnu:p.pnu,addr:String(p.addr||"").trim(),ring:r.map(function(v){return [v[1],v[0]]}),shift:{dx:0,dy:0}}});if(PM){drawSel();fitSel()}};
   function drawSel(){if(!selL)return;selL.clearLayers();Object.keys(sel).forEach(function(k){L.polygon(ringNow(sel[k]),{color:"#f3c623",weight:3,fillColor:"#f3c623",fillOpacity:.25,interactive:false}).bindTooltip(sel[k].addr.split(" ").slice(-2).join(" ")).addTo(selL)})}
-  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<16){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
+  async function loadCad(){if(!PM)return;var z=PM.getZoom();if(z<17){cad.clearLayers();cadKey="";return}var b=PM.getBounds(),key=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(function(v){return v.toFixed(4)}).join(",");if(key===cadKey)return;cadKey=key;var my=++seq;
     var feats=[];for(var pg=1;pg<=4;pg++){var q=await BFGeo.vwData("LP_PA_CBND_BUBUN",{geomFilter:"BOX("+[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].join(",")+")",size:"1000",page:String(pg)}).catch(function(){return {features:[]}});if(my!==seq)return;feats=feats.concat(q.features||[]);if(!q.features||q.features.length<1000)break}var q={features:feats};
     var c=PM.getCenter(),SH=null;try{SH=await BFGeo.shiftAt(c.lng,c.lat)}catch(_){}if(my!==seq)return;var dX=SH?SH.dx:0,dY=SH?SH.dy:0;CUR={dx:dX,dy:dY};cad.clearLayers();drawSel();
     (q.features||[]).forEach(function(f){var g=f.geometry||{},P=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];P.forEach(function(pl){L.polygon(pl[0].map(function(v){return [v[1]+dY,v[0]+dX]}),{renderer:CR,color:"#ffe066",weight:1,opacity:.75,fill:false,interactive:false}).addTo(cad)})})}
   window.PICK_INIT=function(){if(PM||typeof L==="undefined")return;var k=BFGeo.getKey();PM=L.map("pmap").setView([36.3,128.2],8);
     if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(PM);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(PM)}
     else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(PM);
-    CR=L.canvas({padding:0.3});cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("확대하면 필지 경계가 보입니다. 땅을 누르세요.");
+    CR=L.canvas({padding:0.3});cad=L.layerGroup().addTo(PM);selL=L.layerGroup().addTo(PM);msg("많이 확대하면 필지 경계가 보입니다. 땅을 누르세요.");
     PM.on("moveend",function(){loadCad()});drawSel();
-    PM.on("click",async function(e){if(PM.getZoom()<16){PM.setView(e.latlng,17);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
+    var FC=L.Control.extend({options:{position:"bottomright"},onAdd:function(){var b=L.DomUtil.create("button","pfull");b.type="button";b.textContent="⤢ 크게 보기";L.DomEvent.disableClickPropagation(b);
+      b.onclick=function(){var m=document.getElementById("pmap"),on=!m.classList.contains("full");m.classList.toggle("full",on);b.textContent=on?"✕ 작게 보기":"⤢ 크게 보기";document.body.style.overflow=on?"hidden":"";setTimeout(function(){PM.invalidateSize()},50)};return b}});
+    PM.addControl(new FC());document.addEventListener("keydown",function(e){var m=document.getElementById("pmap");if(e.key==="Escape"&&m.classList.contains("full")){var b=m.querySelector(".pfull");b&&b.click()}});
+    PM.on("click",async function(e){if(PM.getZoom()<17){PM.setView(e.latlng,18);msg("확대했습니다. 이제 땅을 누르세요.");return}var my=++busy;msg("찾는 중…");
       try{var x=await BFGeo.parcelAt(+e.latlng.lng.toFixed(7),+e.latlng.lat.toFixed(7));if(my!==busy)return;if(!x){msg("그 자리에 필지가 없습니다.");return}
         if(sel[x.pnu]){syncText.rm[sel[x.pnu].addr]=1;delete sel[x.pnu];msg("빼기: "+x.addr)}else{sel[x.pnu]=x;msg("추가: "+x.addr+" (지목 "+x.jibun.replace(/^[산\d\-\s]+/,"")+")")}
         x.addr=x.addr.trim();syncText();drawSel()}catch(err){msg("필지를 불러오지 못했습니다.")}});
