@@ -444,6 +444,9 @@
         : "조회 못 함" + (GR && GR.err ? "(" + GR.err + ")" : "") + " — Apps Script에 한전키를 넣으면 자동 조회",
       "한전 분산전원 연계정보(여유 = 기준용량 − 접속용량, 단위 kW)", "한전 전력데이터 개방포털");
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
+    var nH = legalHits("n"), nL = R.legal.filter(function (L) { return L.item === "n"; });
+    V(G3, "s8", "태양광이 법으로 막힌 지역(농업진흥구역·공익용산지)", nH.length ? "회피" : "해당없음", nH.length ? sum(function (c) { return nH.some(function (x) { return x.list.some(function (y) { return y.i === c.p && y.c !== "3"; }); }); }) : null,
+      nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") + ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인" : "농업진흥구역·공익용산지 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조", luSrc);
     V(G3, "s5", "그 밖의 지역·지구(보전산지·농업진흥구역·가축사육제한구역 등)", info.length ? "참고" : "해당없음", null, info.length ? info.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
     // 필지별 표
@@ -455,7 +458,7 @@
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
     rows.forEach(function (r) { if (r.v === "수동확인필요") r.v = "주의"; });
     // ── 한눈 결론: 칸마다 설치 불가 사유(먼저 걸린 것 하나) ──
-    var legalI = {}; ["a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") legalI[y.i] = x.name; }); }); });
+    var legalI = {}; ["n", "a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") legalI[y.i] = x.name; }); }); });
     var homesIn = (!village && d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
     var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
     D.cells.forEach(function (c) { var r = null;
@@ -492,6 +495,7 @@
     var verdict = ok < 1000 ? "불가" : noA < total * 0.05 ? "가능" : "일부 가능";
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
+    cond.push("매장유산(문화재) 조사 필요 여부: 2025.2.13부터 지표조사 대상 규정이 「국가유산영향진단법」으로 옮겨짐 — 시군 문화유산 담당에 확인");
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
     var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
