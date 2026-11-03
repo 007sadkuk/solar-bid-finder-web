@@ -93,7 +93,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261102c"></script>
-<script src="screen.js?v=20261103c"></script>
+<script src="screen.js?v=20261103d"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -110,6 +110,10 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   if(!EMB){var qa=new URLSearchParams(location.search).get("addr");location.replace("land.html"+(qa?"?addr="+encodeURIComponent(qa)+"&use=solar":""));return}
   if(EMB){document.querySelector("header").hidden=true;$("f").hidden=true;document.body.style.background="transparent";
     var st=document.createElement("style");st.textContent="#ttl,#vcard .vline,#vcard .bar,#vgrid,#vcard .vcols,#vcard>p.sub:last-child{display:none!important}#vcard{padding:12px 18px}";document.head.appendChild(st);
+    (function(){var mp=$("map").closest("section"),dt=document.querySelector("details.more"),sm=dt.querySelector("summary");sm.textContent="지도 · 항목별 근거 · 필지별 면적 보기";
+      mp.classList.remove("card");mp.style.margin="0 0 16px";dt.insertBefore(mp,sm.nextSibling);
+      $("rep2").after($("vfield"));$("vfield").style.margin="0 4px 14px";
+      dt.addEventListener("toggle",function(){if(dt.open&&map){map._fit=0;setTimeout(drawMap,30)}})})();
     setInterval(function(){try{parent.postMessage({scrH:document.documentElement.scrollHeight},location.origin)}catch(e){}},700)}
   var ok=false;try{ok=localStorage.getItem("scr_ok")===H}catch(e){}
   if(ok)open();else $("gate").hidden=false;
