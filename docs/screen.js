@@ -443,6 +443,9 @@
       gbest ? "한전 공개자료(분산전원 연계정보) 기준: " + gbest.r.sub + " 변전소 · 변압기 " + gbest.r.mtr + " · " + gbest.r.dl + " 선로 — 여유 변전소 " + Math.round(gbest.r.v1).toLocaleString() + "kW / 변압기 " + Math.round(gbest.r.v2).toLocaleString() + "kW / 선로 " + Math.round(gbest.r.v3).toLocaleString() + "kW → 이 중 가장 작은 " + Math.round(gbest.f).toLocaleString() + "kW까지 접속 여유. " + (GR.level !== "지번" ? "[주의] 지번 단위 자료가 없어 '" + GR.level + "' 단위 대표 선로 값 — 실제 연결 선로는 한전 확인 필요. " : "") + "조회 " + GR.ts + (GR.src === "saved" ? "(저장된 값)" : "") + ". 공개값에는 이미 접수돼 대기 중인 물량이 빠져 있을 수 있어 [추정] 실제 여유와 다를 수 있음 — 실제 접속 가능 여부는 한전 문의 결과가 우선"
         : "조회 못 함" + (GR && GR.err ? "(" + GR.err + ")" : "") + " — Apps Script에 한전키를 넣으면 자동 조회",
       "한전 분산전원 연계정보(여유 = 기준용량 − 접속용량, 단위 kW)", "한전 전력데이터 개방포털");
+    var hzK = Object.keys(ned).filter(function (k) { return R.hazardZone && R.hazardZone.test(k); }), CD = { "1": "포함", "2": "일부 걸침(저촉)", "3": "경계에 닿음(접합)" };
+    V(G3, "s9", "자연재해위험개선지구 등 재해 관련 지구", hzK.length ? "주의(협의 필요)" : "해당없음", null,
+      hzK.length ? hzK.map(function (k) { return k + " — " + ned[k].map(function (y) { return P[y.i].jibun + " " + (CD[y.c] || y.c); }).join(", "); }).join(" / ") + ". 시군 재난안전 부서와 협의가 필요합니다(재해 저감대책·배수계획 요구 가능). 사업부지 전부가 자연재해위험개선지구 안이면 면적과 관계없이 재해영향평가등 협의 대상(자연재해대책법 시행령 별표1 비고)" : "재해 관련 지구 없음" + nedNote, "자연재해대책법 제12조·시행령 별표1", luSrc);
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     var nH = legalHits("n"), nL = R.legal.filter(function (L) { return L.item === "n"; });
     V(G3, "s8", "태양광이 법으로 막힌 지역(농업진흥구역·공익용산지)", nH.length ? "회피" : "해당없음", nH.length ? sum(function (c) { return nH.some(function (x) { return x.list.some(function (y) { return y.i === c.p && y.c !== "3"; }); }); }) : null,
@@ -495,6 +498,7 @@
     var verdict = ok < 100 ? "불가" : ok < 1000 ? "소규모 가능" : noA < total * 0.05 ? "가능" : "일부 가능";
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
+    if (hzK.length) cond.push("재해 관련 지구(" + hzK.join("·") + ") — 시군 재난안전 부서 협의 필요");
     cond.push("매장유산(문화재) 조사 필요 여부: 2025.2.13부터 지표조사 대상 규정이 「국가유산영향진단법」으로 옮겨짐 — 시군 문화유산 담당에 확인");
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
