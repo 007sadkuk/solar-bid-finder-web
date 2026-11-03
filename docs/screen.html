@@ -62,6 +62,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
+      <p id="vlay" class="sub" style="margin:8px 0 0;font-weight:700;color:var(--ink)"></p>
       <table class="sumt" style="margin-top:14px">
         <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
         <tr><th>국토환경성평가 (KEI)</th><td id="vkei"></td></tr>
@@ -75,7 +76,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     </section>
     <section class="card">
       <h2>지도</h2>
-      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
+      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="md" aria-pressed="false">모듈 배치</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
       <div id="map"></div><div class="lg" id="lg"></div>
       <p class="sub" id="shiftNote"></p>
     </section>
@@ -97,7 +98,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
 <script src="screen-rules.js?v=20261103j"></script>
-<script src="screen.js?v=20261103j"></script>
+<script src="screen.js?v=20261103k"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -136,7 +137,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
-  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});head();report();rows();per();drawMap();srcs()}
+  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ});try{LAY={};LAY[7.8]=layout(7.8);LAY[6]=layout(6)}catch(e){LAY={}}head();report();rows();per();drawMap();srcs()}
   /* 입지검토서 형식(협의지침 표) */
   function ox(v){return /^회피|^신중검토/.test(v)?["O","o"]:/^해당없음|^대상 아님|^확인됨/.test(v)?["X","x"]:/^주의|^맹지|^대상/.test(v)?["△","t"]:["-",""]}
   function ppTxt(pp){return pp.map(function(x){return x[0]+" "+(x[2]>=0.6?"대부분 ":x[2]<0.15?"일부 ":"")+x[1].toLocaleString()+"㎡"}).join(", ")}
@@ -190,7 +191,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var vb=$("vbig");vb.textContent="태양광 "+S.verdict;vb.className="vbig "+(S.verdict==="가능"?"g":S.verdict==="불가"?"r":"y");
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
-    $("vgrid").textContent=S.grid;
+    $("vgrid").textContent=S.grid;var vl=$("vlay");if(vl)vl.textContent=layTxt();
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
     $("vseia").textContent=s1?(/^대상$/.test(s1.v)?"대상 — 협의기관: "+ag+" (시군이 협의 요청). "+s1.d:/^대상 아님/.test(s1.v)?"대상 아님 — "+s1.d:"도시지역 — 시군 확인 ("+s1.d+")"):"-";
     var KE=J.rep.kei;$("vkei").textContent=KE?KE.a.map(function(a,i){return a?(i+1)+"등급 "+n(a):null}).filter(Boolean).join(" · ")||"등급 없음":"자료 없음";
@@ -207,11 +208,28 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 
   var COL={st:{2:[179,38,30],1:[224,140,0],3:[110,110,200],0:null},e:{"1":[0,90,40],"2":[60,170,80],"3":[200,220,120],"9":[150,90,200]},z:{}};
   var ZC=[[66,133,244],[219,68,55],[244,180,0],[15,157,88],[171,71,188],[0,172,193]];
-  function cellColor(c){if(MODE==="st")return c.no?[179,38,30]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
+  function cellColor(c){if(MODE==="md")return c.no?[179,38,30]:[245,222,150];if(MODE==="st")return c.no?[179,38,30]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
     if(MODE==="s"){if(c.s===null)return null;var s=c.s;return s<5?[46,125,50]:s<10?[139,195,74]:s<15?[255,235,59]:s<20?[255,193,7]:s<25?[255,111,0]:s<30?[229,57,53]:[183,28,28]}
     if(MODE==="k"){if(!c.kg)return null;return [[38,115,0],[152,230,0],[230,230,0],[230,152,0],[230,0,0]][c.kg-1]}
     if(MODE==="h"){if(c.hz==null)return null;return [[183,28,28],[229,57,53],[255,152,0],[255,235,59],[139,195,74]][c.hz-1]}
     if(MODE==="z"){var k=c.z||"없음";if(!COL.z[k])COL.z[k]=ZC[Object.keys(COL.z).length%ZC.length];return COL.z[k]}}
+  /* 모듈 배치(참고): 설치 가능 칸 위에 2단 세로·정남향·20° 고정형 배치. 필지 경계 3m, 제외 구역 경계 2m 띄움. 평지 가정 이론값 */
+  var PITCH=7.8,LAY={},MOD={w:1.134,l:2.278,kw:0.6,tilt:20,set:3,gap:2};
+  function layout(pitch){if(!D)return null;var nx=D.nx,ny=D.ny,st=D.step,G=new Int8Array(nx*ny).fill(-1);
+    D.cells.forEach(function(c){G[c.iy*nx+c.ix]=c.no?0:1});
+    function dist(isSrc){var d=new Float32Array(nx*ny);for(var i=0;i<nx*ny;i++)d[i]=isSrc(G[i])?0:1e9;
+      for(var y=0;y<ny;y++)for(var x=0;x<nx;x++){var i=y*nx+x;if(!d[i])continue;var v=Math.min(x+1,y+1,nx-x,ny-y);if(isSrc(-1)&&v<d[i])d[i]=v;
+        if(x>0)d[i]=Math.min(d[i],d[i-1]+1);if(y>0)d[i]=Math.min(d[i],d[i-nx]+1);if(x>0&&y>0)d[i]=Math.min(d[i],d[i-nx-1]+1.414);if(x<nx-1&&y>0)d[i]=Math.min(d[i],d[i-nx+1]+1.414)}
+      for(var y=ny-1;y>=0;y--)for(var x=nx-1;x>=0;x--){var i=y*nx+x;if(x<nx-1)d[i]=Math.min(d[i],d[i+1]+1);if(y<ny-1)d[i]=Math.min(d[i],d[i+nx]+1);if(x<nx-1&&y<ny-1)d[i]=Math.min(d[i],d[i+nx+1]+1.414);if(x>0&&y<ny-1)d[i]=Math.min(d[i],d[i+nx-1]+1.414)}return d}
+    var dOut=dist(function(g){return g===-1}),dEx=dist(function(g){return g===0});
+    function ok(x,y){var ix=Math.floor(x/st),iy=Math.floor(y/st);if(ix<0||iy<0||ix>=nx||iy>=ny)return false;var i=iy*nx+ix;return G[i]===1&&dOut[i]*st>=MOD.set&&dEx[i]*st>=MOD.gap}
+    var dep=2*MOD.l*Math.cos(MOD.tilt*Math.PI/180),W=nx*st,H=ny*st,best={n:-1};
+    for(var off=0;off<pitch;off+=0.5){var sl=[];for(var y0=off;y0+dep<=H;y0+=pitch){var ys=[y0,y0+dep/2,y0+dep];
+        for(var x=0;x+MOD.w<=W;x+=MOD.w){var good=true;for(var a=0;a<3&&good;a++)for(var b=0;b<3&&good;b++)if(!ok(x+MOD.w*b/2,ys[a]))good=false;if(good)sl.push([x,y0])}}
+      if(sl.length>best.n)best={n:sl.length,sl:sl}}
+    var m=best.n*2;return {pitch:pitch,mods:m,kwp:Math.round(m*MOD.kw*10)/10,sl:best.sl||[],dep:dep}}
+  function layTxt(){var a=LAY[7.8],b=LAY[6];if(!a)return "";function f(o){return o.mods.toLocaleString()+"장 · "+(o.kwp>=1000?(o.kwp/1000).toFixed(2)+"MW":Math.round(o.kwp)+"kWp")}
+    return "모듈 배치(참고): 피치 7.8m 무음영 "+f(a)+" / 피치 6.0m 압축 "+f(b)+" — "+MOD.kw*1000+"W·2단 세로·"+MOD.tilt+"°·정남향, 경계 "+MOD.set+"m·제외구역 "+MOD.gap+"m 이격, 평지 가정"}
   function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
     if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
     map.invalidateSize();if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
@@ -221,10 +239,14 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
+    if(MODE==="md"&&LAY[PITCH]){var L0=LAY[PITCH];var strips=[];L0.sl.forEach(function(q){var t=strips[strips.length-1];if(t&&t.y===q[1]&&Math.abs(t.x1-q[0])<1e-6)t.x1=q[0]+MOD.w;else strips.push({y:q[1],x0:q[0],x1:q[0]+MOD.w})});
+      strips.forEach(function(t){var lo0=b[0]+sh.dx+t.x0/D.kx,lo1=b[0]+sh.dx+t.x1/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+L0.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:"#1f4fa8",weight:1,fillColor:"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
-    var lg=$("lg");lg.innerHTML="";var items=MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
+    var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능",[245,222,150]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
+    if(MODE==="md"){var pb=el("span");[7.8,6].forEach(function(p){var bt=el("button",null,"피치 "+p.toFixed(1)+"m");bt.type="button";bt.style.cssText="font:inherit;font-size:13px;margin-right:6px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;cursor:pointer;background:"+(PITCH===p?"var(--pine);color:#fff":"transparent;color:var(--ink)");bt.onclick=function(){PITCH=p;drawMap()};pb.appendChild(bt)});lg.insertBefore(pb,lg.firstChild);
+      var lt=el("span",null,LAY[PITCH]?" → "+LAY[PITCH].mods.toLocaleString()+"장 · "+LAY[PITCH].kwp.toLocaleString()+"kWp":"");lt.style.fontWeight="800";lg.insertBefore(lt,pb.nextSibling)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
