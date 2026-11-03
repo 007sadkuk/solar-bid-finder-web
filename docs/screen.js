@@ -508,5 +508,5 @@
   function area(P) { return P.reduce(function (s, p) { return s + p.area; }, 0); }
   function uniq(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }
 
-  window.Screen = { run: run, judge: judge, parseInput: parseInput, tm5186: tm5186, ecoFetch: ecoFetch, demPrep: demPrep, elev: elev };
+  window.Screen = { run: run, judge: judge, parseInput: parseInput, tm5186: tm5186, ecoFetch: ecoFetch, demPrep: demPrep, elev: elev, forestGrid: forestGrid };
 })();
