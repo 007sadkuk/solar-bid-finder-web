@@ -68,7 +68,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
-      <p id="vlay" class="sub" style="margin:8px 0 0;font-weight:700;color:var(--ink)"></p><p class="sub" style="margin:2px 0 0">배치 기준: 600W 2단×10열 테이블, 20° 정남향, 경계 3m·제외구역 2m·신중검토 구역 제외, 8줄마다 통로, 60kW 미만 자투리 버림, 25테이블마다 1자리 전기설비용. 토목량·실제 설계는 별도</p>
+      <p id="vlay" class="sub" style="margin:8px 0 0;font-weight:700;color:var(--ink)"></p><p class="sub" style="margin:2px 0 0">배치 기준: 600W 2단×10열 테이블, 20° 정남향, 경계 3m·제외구역 2m·신중검토 구역 제외, 8줄마다 통로, 작은 구역(테이블 5개 미만)은 연보라로 표시, 25테이블마다 1자리 전기설비용. 토목량·실제 설계는 별도</p>
       <table class="sumt" style="margin-top:14px">
         <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
         <tr><th>국토환경성평가 (KEI)</th><td id="vkei"></td></tr>
@@ -223,7 +223,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
      줄 간격 = 그 줄 위치의 남북 경사를 반영한 동지 오전 9시 무음영 거리(평지보다 좁히지 않음). 테이블 사이 0.5m, 8줄마다 관리통로 1줄,
      필지 경계 3m·제외구역 2m 이격. 테이블 5개(60kW) 미만으로 떨어진 작은 덩어리는 버림. 25테이블마다 1개 자리는 전기설비·통로로 비움.
      토목(절·성토)량은 계산 안 함 */
-  var LAY=null,MOD={w:1.134,l:2.278,kw:0.6,tilt:20,set:3,gap:2,rows:8,tcol:10,tgap:0.5,minT:5,elec:25};
+  var LAY=null,MOD={w:1.134,l:2.278,kw:0.6,tilt:20,set:3,gap:2,rows:8,tcol:10,tgap:0.5,minT:1,small:5,elec:25};
   function sunPitch(lat,beta){var d2r=Math.PI/180,ph=lat*d2r,de=-23.44*d2r,h=45*d2r;
     var sa=Math.sin(ph)*Math.sin(de)+Math.cos(ph)*Math.cos(de)*Math.cos(h),al=Math.asin(sa);
     var ca=(Math.sin(de)-sa*Math.sin(ph))/(Math.cos(al)*Math.cos(ph)),Az=Math.PI-Math.acos(Math.max(-1,Math.min(1,ca)));
@@ -250,13 +250,13 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       for(var i=0;i<T.length;i++)for(var j=i+1;j<T.length;j++){var A=T[i],B=T[j];if(Math.abs(A.r-B.r)>1)continue;
         if(A.r===B.r?Math.abs(A.x-B.x)<=TW+MOD.tgap+0.01:(A.x<B.x+TW&&B.x<A.x+TW))par[f(i)]=f(j)}
       var grp={};T.forEach(function(t,i){var g=f(i);(grp[g]=grp[g]||[]).push(t)});var keep=[],nb=0;
-      Object.keys(grp).forEach(function(g){var L=grp[g];if(L.length<MOD.minT)return;nb++;L.forEach(function(t,ii){if((ii+1)%MOD.elec===0)return;keep.push(t)})});
-      if(keep.length>best.n)best={n:keep.length,T:keep,nb:nb,ps:ps}}
+      var ns=0,nsT=0;Object.keys(grp).forEach(function(g){var L=grp[g];if(L.length<MOD.minT)return;nb++;if(L.length<MOD.small){ns++;nsT+=L.length}L.forEach(function(t,ii){if((ii+1)%MOD.elec===0)return;t.small=L.length<MOD.small;keep.push(t)})});
+      if(keep.length>best.n)best={n:keep.length,T:keep,nb:nb,ns:ns,nsT:nsT,ps:ps}}
     var ps=(best.ps||[]).slice().sort(function(a,b){return a-b}),m=best.n*MOD.tcol*2;
-    return {pmin:ps[0]||SP0.p,pmax:ps[ps.length-1]||SP0.p,flat:Math.ceil(SP0.flat*10)/10,mods:m,tables:best.n,blocks:best.nb||0,kwp:Math.round(m*MOD.kw*10)/10,T:best.T||[],dep:dep,TW:TW}}
+    return {pmin:ps[0]||SP0.p,pmax:ps[ps.length-1]||SP0.p,flat:Math.ceil(SP0.flat*10)/10,mods:m,tables:best.n,blocks:best.nb||0,small:best.ns||0,smallT:best.nsT||0,kwp:Math.round(m*MOD.kw*10)/10,T:best.T||[],dep:dep,TW:TW}}
   function layTxt(){var o=LAY;if(!o)return "";var cap=o.kwp>=1000?(o.kwp/1000).toFixed(2)+"MW":Math.round(o.kwp)+"kWp";
-    if(!o.tables)return "모듈 배치(현실 배치): 놓을 자리 없음 — 남는 땅이 작게 흩어져 있어 테이블 "+MOD.minT+"개(60kW) 이상 덩어리가 안 나옴";
-    return "모듈 배치(현실 배치): 테이블 "+o.tables+"개 · "+o.mods.toLocaleString()+"장 · "+cap+" ("+o.blocks+"개 구역) — 줄 간격 "+(o.pmin===o.pmax?o.pmin:o.pmin+"~"+o.pmax)+"m(동지 오전 9시 무음영, 위치별 경사 반영)"}
+    if(!o.tables)return "모듈 배치(현실 배치): 테이블(2단×10열, 약 11×4m)이 하나도 안 들어감 — 남는 땅이 경계·제외구역 이격을 빼면 너무 좁음";
+    return "모듈 배치(현실 배치): 테이블 "+o.tables+"개 · "+o.mods.toLocaleString()+"장 · "+cap+" ("+o.blocks+"개 구역"+(o.small?", 그중 테이블 "+MOD.small+"개 미만 작은 구역 "+o.small+"곳 · "+Math.round(o.smallT*MOD.tcol*2*MOD.kw)+"kWp 포함 — 따로 떨어져 공사·관리비가 더 듦":"")+") — 줄 간격 "+(o.pmin===o.pmax?o.pmin:o.pmin+"~"+o.pmax)+"m(동지 오전 9시 무음영, 위치별 경사 반영)"}
   function drawMap(){if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
     if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
     map.invalidateSize();if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
@@ -266,7 +266,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
-    if(MODE==="md"&&LAY){LAY.T.forEach(function(t){var lo0=b[0]+sh.dx+t.x/D.kx,lo1=b[0]+sh.dx+(t.x+LAY.TW)/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+LAY.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:"#1f4fa8",weight:1,fillColor:"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
+    if(MODE==="md"&&LAY){LAY.T.forEach(function(t){var lo0=b[0]+sh.dx+t.x/D.kx,lo1=b[0]+sh.dx+(t.x+LAY.TW)/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+LAY.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:t.small?"#7f5fd0":"#1f4fa8",weight:1,fillColor:t.small?"#a68cf0":"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
     var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능",[245,222,150]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
