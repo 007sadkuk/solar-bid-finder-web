@@ -75,10 +75,10 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   async function all(layer,b,max){var out=[];for(var pg=1;pg<=(max||3);pg++){var q=await BFGeo.vwData(layer,{geomFilter:"BOX("+b.join(",")+")",size:"1000",page:String(pg)}).catch(function(){return {features:[]}});out=out.concat(q.features||[]);if(!q.features||q.features.length<1000)break}return out}
   function prog(p,t){$("pg").hidden=false;$("pg").firstChild.style.width=p+"%";if(t)$("msg").textContent=t}
 
-  var M=null,LY=null,ROWS=[];
+  var M=null,LY=null,ROWS=[],CRV=null;
   function init(){if(M)return;var k=BFGeo.getKey();M=L.map("fmap").setView([36.3,128.2],8);
     if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(M);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(M)}
-    else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(M);LY=L.layerGroup().addTo(M);
+    else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(M);LY=L.layerGroup().addTo(M);CRV=L.canvas({padding:0.3});
     try{var v=JSON.parse(localStorage.getItem("find_view")||"null");if(v)M.setView([v[0],v[1]],v[2])}catch(_){}
     M.on("moveend",function(){try{var c=M.getCenter();localStorage.setItem("find_view",JSON.stringify([c.lat,c.lng,M.getZoom()]))}catch(_){}})}
 
@@ -141,9 +141,9 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
       C.forEach(function(c){c.okA=Math.round(c.A*c.frac);c.cA=Math.round(c.A*c.cfrac);c.pot=pot(c);c.cls=c.frac>=0.6?"g":c.pot>=0.3?"y":"r";
         c.why=Object.keys(c.whyN).sort(function(a,b){return c.whyN[b]-c.whyN[a]}).slice(0,2).map(function(k){return k+" "+Math.round(c.whyN[k]/c.n*100)+"%"})});
       C.sort(function(a,b){return (b.okA+b.cA)-(a.okA+a.cA)});ROWS=C;
-      SK.forEach(function(x){var f=x[0],pr=f.properties||{};polys(f.geometry).forEach(function(r){L.polygon(r.map(function(p){return [p[1]+dy,p[0]+dx]}),{color:"#ffffff",weight:1,opacity:.55,fill:true,fillOpacity:0.01,dashArray:"3 3"}).bindPopup("<b>"+String(pr.addr||"").trim()+"</b><br>"+x[1]).addTo(LY)})});
+      SK.forEach(function(x){var f=x[0],pr=f.properties||{};polys(f.geometry).forEach(function(r){L.polygon(r.map(function(p){return [p[1]+dy,p[0]+dx]}),{renderer:CRV,color:"#ffffff",weight:1,opacity:.55,fill:true,fillOpacity:0.01,dashArray:"3 3"}).bindPopup("<b>"+String(pr.addr||"").trim()+"</b><br>"+x[1]).addTo(LY)})});
       var COL={g:"#2ea05a",y:"#f3c623",r:"#d9483b"};
-      C.forEach(function(c){var col=COL[c.cls];var pg=L.polygon(c.r.map(function(p){return [p[1],p[0]]}),{color:col,weight:2,fillColor:col,fillOpacity:c.cls==="r"?.18:.35}).addTo(LY);
+      C.forEach(function(c){var col=COL[c.cls];var pg=L.polygon(c.r.map(function(p){return [p[1],p[0]]}),{renderer:CRV,color:col,weight:2,fillColor:col,fillOpacity:c.cls==="r"?.18:.35}).addTo(LY);
         pg.bindPopup("<b>"+c.addr+"</b> ("+c.jm+")<br>면적 "+Math.round(c.A).toLocaleString()+"㎡<br>설치 가능 약 "+c.okA.toLocaleString()+"㎡ ("+Math.round(c.frac*100)+"%)"+(c.cA?"<br>확인 필요("+c.yw.join("·")+") "+c.cA.toLocaleString()+"㎡ ("+Math.round(c.cfrac*100)+"%)":"")+"<br>"+(c.why.length?"불가 이유: "+c.why.join(", ")+"<br>":"")+(c.road?"폭 3m↑ 도로 접함":"도로 안 보임(맹지 가능)")+"<br><a target='_blank' href='screen.html?addr="+encodeURIComponent(c.addr)+"'>태양광 입지검토로 정밀 검토 →</a>");c.pg=pg});
       var T=$("tbl");T.innerHTML="";var h=el("tr");["순위","","지번","지목","면적","설치 가능","확인 필요(생태·KEI 2등급)","불가 이유","도로",""].forEach(function(x){h.appendChild(el("th",null,x))});T.appendChild(h);
       C.filter(function(c){return c.cls!=="r"}).slice(0,30).forEach(function(c,i){var tr=el("tr","row");tr.appendChild(el("td",null,String(i+1)));var td0=el("td"),dt=el("i","dot");dt.style.background=COL[c.cls];td0.appendChild(dt);tr.appendChild(td0);
