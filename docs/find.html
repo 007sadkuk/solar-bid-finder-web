@@ -65,8 +65,6 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
   function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
   function open(){$("gate").hidden=true;$("app").hidden=false;init()}
-  var okk=false;try{okk=localStorage.getItem("scr_ok")===H}catch(e){}if(okk)open();else $("gate").hidden=false;
-  $("gate").addEventListener("submit",function(e){e.preventDefault();sha($("gpw").value.trim()).then(function(h){if(h===H){try{localStorage.setItem("scr_ok",H)}catch(_){}open()}else $("gmsg").textContent="비밀번호가 맞지 않습니다"})});
 
   function pip(x,y,r){var c=false;for(var i=0,j=r.length-1;i<r.length;j=i++){var a=r[i],b=r[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
   function polys(g){if(!g)return[];if(g.type==="Polygon")return [g.coordinates[0]];if(g.type==="MultiPolygon")return g.coordinates.map(function(p){return p[0]});return[]}
@@ -136,6 +134,8 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
       $("res").hidden=false;prog(100,"끝났습니다. 초록·노랑 땅을 누르거나 아래 목록에서 고르세요.");setTimeout(function(){$("pg").hidden=true},800)
     }catch(e){$("msg").textContent="찾지 못했습니다: "+e.message}
     $("go").disabled=false});
+  var okk=false;try{okk=localStorage.getItem("scr_ok")===H}catch(e){}if(okk)open();else $("gate").hidden=false;
+  $("gate").addEventListener("submit",function(e){e.preventDefault();sha($("gpw").value.trim()).then(function(h){if(h===H){try{localStorage.setItem("scr_ok",H)}catch(_){}open()}else $("gmsg").textContent="비밀번호가 맞지 않습니다"})});
 })();
 </script>
 </body></html>
