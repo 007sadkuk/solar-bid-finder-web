@@ -130,6 +130,7 @@
     var ecoP = ecoFetch(Breal), vtnP = Promise.resolve({ err: "식생평가 API에는 식생보전등급(Ⅰ~Ⅴ)이 없음" });
     var demP = demPrep(pad(Breal, 40)).then(function () { return null; }).catch(function (e) { return e.message; });
     var nbP = allFeatures("LP_PA_CBND_BUBUN", pad(B, 25), 2);
+    var agP = allFeatures("LT_C_AGRIXUE101", B, 2).then(function (f) { return { f: f }; }).catch(function (e) { return { err: e.message }; });
     var bldP = allFeatures("LT_C_SPBD", pad(Breal, R.houses.far + 20), 3);
     var zr = await zoneP, ned = await nedP, eco = await ecoP, demErr = await demP, nb = await nbP, bld = await bldP, vtn = await vtnP;
 
@@ -145,6 +146,7 @@
       } } catch (e) { vlab.err = e.message; }
 
     var zones = []; zr.forEach(function (fs) { fs.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { zones.push({ n: pr.uname || "?", y: pr.dyear || "", r: r, b: bbox(r) }); }); }); });
+    var agR = await agP, agri = []; if (agR.f) agR.f.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { agri.push({ n: pr.uname || "?", r: r, b: bbox(r) }); }); });
     var lc = await lcP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; });
 
     prog("필지 안을 격자로 나눠 계산하고 있습니다", 70);
@@ -156,12 +158,13 @@
       for (var k = 0; k < P.length && pi < 0; k++) if (P[k].rings.some(function (o) { return inB(q, o.b) && pip(q, o.r); })) pi = k;
       if (pi < 0) continue;
       var zn = null; for (var z = 0; z < zones.length; z++) if (inB(q, zones[z].b) && pip(q, zones[z].r)) { zn = zones[z].n; break; }
+      var ag = null; for (var z2 = 0; z2 < agri.length; z2++) if (inB(q, agri[z2].b) && pip(q, agri[z2].r)) { ag = agri[z2].n; break; }
       var rl = [q[0] + dx, q[1] + dy], eg = null, ev = null, epn = "", ex = null, evl = null;
       if (eco.f) { var t = tm5186(rl[0], rl[1]); for (var e = 0; e < eco.f.length && !eg; e++) if (eco.f[e].rs.some(function (o) { return inB(t, o.b) && pip(t, o.r); })) { eg = eco.f[e].g; ev = eco.f[e].v || null; epn = eco.f[e].pn; ex = eco.f[e].x; evl = eco.f[e].vl; } }
       var vt = null; if (vtn.f) { var t2 = tm5186(rl[0], rl[1]); for (var e2 = 0; e2 < vtn.f.length; e2++) if (vtn.f[e2].g !== null && vtn.f[e2].rs.some(function (o) { return inB(t2, o.b) && pip(t2, o.r); })) { vt = vtn.f[e2].g; break; } }
       var sl = null, el = null;
       if (!demErr) { el = elev(rl[0], rl[1]); if (!isFinite(el)) el = null; var gx = (elev(rl[0] + H / kx, rl[1]) - elev(rl[0] - H / kx, rl[1])) / (2 * H), gy = (elev(rl[0], rl[1] + H / ky) - elev(rl[0], rl[1] - H / ky)) / (2 * H); if (isFinite(gx) && isFinite(gy)) sl = Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-      cells.push({ ix: ix, iy: iy, p: pi, z: zn, e: eg, v: ev, pn: epn, x: ex, s: sl, vt: vt, vl: evl, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
+      cells.push({ ix: ix, iy: iy, p: pi, z: zn, ag: ag, e: eg, v: ev, pn: epn, x: ex, s: sl, vt: vt, vl: evl, el: el, mx: (q[0] - B[0]) * kx, my: (q[1] - B[1]) * ky });
     }
     // 칸 면적: 필지마다 실제 면적에 맞춤
     P.forEach(function (p, i) { var n = cells.filter(function (c) { return c.p === i; }).length; p.cellA = n ? p.area / n : 0; p.n = n; });
@@ -265,7 +268,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, kei: kei, acc: acc, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, agriOK: !agR.err, kei: kei, acc: acc, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -448,8 +451,11 @@
       hzK.length ? hzK.map(function (k) { return k + " — " + ned[k].map(function (y) { return P[y.i].jibun + " " + (CD[y.c] || y.c); }).join(", "); }).join(" / ") + ". 시군 재난안전 부서와 협의가 필요합니다(재해 저감대책·배수계획 요구 가능). 사업부지 전부가 자연재해위험개선지구 안이면 면적과 관계없이 재해영향평가등 협의 대상(자연재해대책법 시행령 별표1 비고)" : "재해 관련 지구 없음" + nedNote, "자연재해대책법 제12조·시행령 별표1", luSrc);
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     var nH = legalHits("n"), nL = R.legal.filter(function (L) { return L.item === "n"; });
-    V(G3, "s8", "태양광 설치가 막히는 지역(농업진흥구역·공익용산지·사방지·휴양림·국가유산구역 등)", nH.length ? "회피" : "해당없음", nH.length ? sum(function (c) { return nH.some(function (x) { return x.list.some(function (y) { return y.i === c.p && y.c !== "3"; }); }); }) : null,
-      nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") + ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인" : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
+    function nCell(c) { return nH.some(function (x) { return x.list.some(function (y) { if (y.i !== c.p || y.c === "3") return false; if (x.name === "농업진흥구역" && y.c === "2" && D.agriOK) return c.ag === "농업진흥구역"; return true; }); }); }
+    var nA = nH.length ? sum(nCell) : 0, agPart = nH.some(function (x) { return x.name === "농업진흥구역" && x.list.some(function (y) { return y.c === "2"; }); }) && D.agriOK;
+    V(G3, "s8", "태양광 설치가 막히는 지역(농업진흥구역·공익용산지·사방지·휴양림·국가유산구역 등)", nH.length && nA > 0 ? "회피" : nH.length ? "해당없음(경계만 닿음)" : "해당없음", nH.length ? nA : null,
+      nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") +
+        (agPart ? ". 농업진흥구역에 '일부 걸침'인 필지는 브이월드 농업진흥구역 도면과 겹치는 부분만 뺐습니다(겹친 면적 " + nA.toLocaleString() + "㎡" + (nA === 0 ? " — 도면상 경계선만 닿아 실제로 걸친 땅이 없음" : "") + "). 도면 경계와 지적 경계 차이가 있을 수 있어 토지이음 확인도면으로 재확인" : ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인") : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
     // 토지이용계획 이름 전부 분류 — 어느 기준에도 안 걸린 이름은 '분류 안 됨'으로 보여 줌(조용히 버리지 않음)
     var GRP = {}, unk = [], refL = [];
     function jl(k) { return uniq(ned[k].map(function (y) { return P[y.i].jibun + (y.c === "3" ? "(경계에 닿음)" : y.c === "2" ? "(일부 걸침)" : ""); })).join(", "); }
@@ -477,11 +483,15 @@
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
     rows.forEach(function (r) { if (r.v === "수동확인필요") r.v = "주의"; });
     // ── 한눈 결론: 칸마다 설치 불가 사유(먼저 걸린 것 하나) ──
-    var legalI = {}; ["n", "a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) { if (y.c !== "3") legalI[y.i] = x.name; }); }); });
+    var legalI = {}, agCell = {}; ["n", "a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) {
+      if (y.c === "3") return;
+      if (x.name === "농업진흥구역" && y.c === "2" && D.agriOK) { agCell[y.i] = 1; return; } // 일부 걸침: 농업진흥구역 도면 범위 칸만 제외
+      legalI[y.i] = x.name; }); }); });
     var homesIn = (!village && d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
     var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
     D.cells.forEach(function (c) { var r = null;
       if (legalI[c.p]) r = legalI[c.p];
+      else if (agCell[c.p] && c.ag === "농업진흥구역") r = "농업진흥구역";
       else if (c.e === "1") r = "생태자연도 1등급";
       else if (c.st === 2 && c.e === "2" && c.vg.ge3) r = "생태자연도 2등급 + 식생 양호";
       else if (c.st === 2 && c.s !== null && c.s >= S.avoid) r = "경사 15° 이상 산림";
