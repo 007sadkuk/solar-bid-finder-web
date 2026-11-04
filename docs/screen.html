@@ -107,8 +107,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261104b"></script>
-<script src="screen.js?v=20261104b"></script>
+<script src="screen-rules.js?v=20261104c"></script>
+<script src="screen.js?v=20261104c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -197,7 +197,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       var s15=sl.bins.slice(3).reduce(function(x,y){return x+y},0);R2.appendChild(el("p","sub","경사도 15도 이상 합계 "+n(s15)+" ("+(s15/sl.total*100).toFixed(1)+"%). 자료: "+sl.src+"."))}
     R2.appendChild(el("h3",null,"5. 인허가 사전 확인"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G3}),["항목","결과","비고"]));
     R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
-  /* 대표님께 한마디: 판정 이유를 쉬운 말로 */
+  /* 쉬운 말 이유 요약 */
   function boss(tiny){var S=J.sum,T=S.total||1,py=function(a){return Math.round(a/3.3058).toLocaleString()+"평"},pc=function(a){return Math.round(a/T*100)+"%"};
     var b=S.slope&&S.slope.bins||[],st=b.slice(3).reduce(function(a,x){return a+x},0),stP=S.slope&&S.slope.total?st/S.slope.total:0;
     var M=[[/^생태자연도 1등급/,"환경부가 가장 보전 가치가 높은 자연으로 지정한 땅입니다(생태자연도 1등급). 원칙적으로 개발이 안 됩니다."],
@@ -219,7 +219,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다.")+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
     var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
     var el=$("vboss");el.className="boss "+cls;
-    el.innerHTML="<b class='h'>대표님께 한마디 — "+h+"</b>"+(L.length?(cls==="g"?"빼야 하는 부분:":"이유:")+"<ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
+    el.innerHTML=(L.length?"<b class='h'>"+(cls==="g"?"빼야 하는 부분":"태양광이 어려운 이유")+"</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}
