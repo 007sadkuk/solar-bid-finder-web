@@ -5,6 +5,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
+body.lite #pickWrap,body.lite #biz,body.lite #mode,body.lite #rep2,body.lite details.more,body.lite .hdrlink,body.lite #vfield,body.lite #shiftNote,body.lite #vcard table.sumt,body.lite #vlay+p.sub{display:none!important}
+body.lite .boss .c{display:none}#steps{margin:8px 0 0;font-size:14px}#steps .hd{font-weight:700;margin-bottom:4px}#steps li{list-style:none;margin:3px 0}#steps li b{display:inline-block;width:1.4em}#steps li.on{color:var(--ink);font-weight:700}#steps li.ok b{color:var(--go)}#steps li.wait{color:#9aa}#vlite{display:none}body.lite #vlite{display:block;margin-top:12px}#vlite table{width:100%;border-collapse:collapse;font-size:14px}#vlite th,#vlite td{border-bottom:1px solid #e3e6ea;padding:7px 6px;text-align:left;vertical-align:top}#vlite th{background:#f4f6f8}#vlite td.a{white-space:nowrap;text-align:right}#vlite h3{font-size:15px;margin:14px 0 6px}
 :root{--pine:#1d3a2f;--ink:#16241e;--sub:#56685f;--field:#e9efe6;--sheet:#fbfcf9;--rule:#cfd9cc;--rule2:#e1e8de;--mark:#f3c623;--go:#226b46;--no:#b3261e;--warn:#b86e00;--q:#5b5f97}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#e6eee8;--sub:#a4b6ab;--field:#0b1712;--sheet:#13241c;--rule:#2b4136;--rule2:#203329;--go:#7fd1a3;--no:#f0a29a;--warn:#f3c26b;--q:#b7b9f0}}
 *{box-sizing:border-box}[hidden]{display:none!important}
@@ -48,7 +50,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 #pmap.full{height:calc(100vh - 330px)!important;min-height:420px}.pfull{background:#fff;color:#16241e;border:0;border-radius:8px;padding:7px 11px;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.35)}
 </style>
 </head><body>
-<header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1><a href="screen.html" title="처음 화면으로" style="color:inherit;text-decoration:none">태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</a></h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용 · <a href="find.html" style="color:#f3c623;font-weight:700">🔍 주변 후보지 찾기(실험)</a></p></div></header>
+<header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1><a href="screen.html" title="처음 화면으로" style="color:inherit;text-decoration:none">태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</a></h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용<span class="hdrlink"> · <a href="find.html" style="color:#f3c623;font-weight:700">🔍 주변 후보지 찾기(실험)</a></span></p></div></header>
 <main class="w">
   <form class="card noprint" id="gate" hidden><p class="sub">금호테크닉스 사내 전용입니다. 비밀번호를 입력하세요.</p><input id="gpw" type="password" inputmode="numeric" autocomplete="off"> <button class="btn">열기</button> <span class="msg" id="gmsg"></span></form>
 
@@ -61,7 +63,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div id="pbox" hidden style="margin-top:10px"><p class="sub" style="margin:0 0 6px">땅을 누르면 위 칸에 지번이 들어갑니다. 여러 필지는 계속 누르고, 다시 누르면 빠집니다. <span id="pmsg"></span></p>
       <div id="pmap" style="height:440px;border-radius:12px"></div></div></div>
     <button class="btn" id="go">검토하기</button> <span class="msg" id="m"></span>
-    <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p>
+    <div class="prog" id="pg" hidden><i></i></div><p class="sub" id="pt"></p><div id="steps" hidden></div>
   </form>
 
   <div id="res" hidden>
@@ -71,7 +73,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
-      <div id="vboss" class="boss"></div>
+      <div id="vboss" class="boss"></div><div id="vlite"></div>
       <p id="vlay" class="sub" style="margin:8px 0 0;font-weight:700;color:var(--ink)"></p><p class="sub" style="margin:2px 0 0">배치 기준: 600W 2단×10열 테이블, 20° 정남향, 경계 3m·제외구역 2m·신중검토 구역 제외, 8줄마다 통로, 작은 구역(테이블 5개 미만)은 연보라로 표시, 25테이블마다 1자리 전기설비용. 토목량·실제 설계는 별도</p>
       <table class="sumt" style="margin-top:14px">
         <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
@@ -107,16 +109,19 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261104f"></script>
-<script src="screen.js?v=20261104f"></script>
+<script src="screen-rules.js?v=20261105c"></script>
+<script src="screen.js?v=20261105c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
+  var LITE=/[?&]lite=1\b/.test(location.search);
   var BIZ="general";try{BIZ=localStorage.getItem("scr_biz")||"general"}catch(e){}
+  if(LITE){BIZ="village";document.body.classList.add("lite");try{var hl=document.querySelector("header h1 a");if(hl)hl.href="screen.html?lite=1"}catch(e){}}
   var R=window.SCREEN_RULES,D=null,J=null,veg2="",vegP=[],MODE="st",map=null,ov=null,lines=null;
   function $(i){return document.getElementById(i)}
   function el(t,c,x){var e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e}
   function n(a){return a==null?"-":Math.round(a).toLocaleString()+"㎡"}
+  function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
   // 가벼운 잠금(사내용 표시 목적). 데이터는 모두 공개 자료
   var H="6a2dbdf30a1306f82541c097b4b7b7691c91b9a895e89a621937a2b34a64abc6";
   function sha(t){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(t)).then(function(b){return Array.from(new Uint8Array(b)).map(function(x){return ("0"+x.toString(16)).slice(-2)}).join("")})}
@@ -134,12 +139,16 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   $("gate").addEventListener("submit",function(e){e.preventDefault();sha($("gpw").value.trim()).then(function(h){if(h===H){try{localStorage.setItem("scr_ok",H)}catch(e){}open()}else $("gmsg").textContent="비밀번호가 맞지 않습니다"})});
 
   $("f").addEventListener("submit",function(e){e.preventDefault();go()});
-  function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%"}
+  var STEPS=[["주소 해석·필지 경계",15],["지적 위치 보정",25],["용도지역·지역지구(토지이용계획) 확인",70],["생태자연도·식생 고시도면·국토환경성평가",70],["경사·표고·산사태위험",70],["주변 건물(주택 이격)·진입도로",70],["필지 안 면적 계산",95],["판정·모듈 배치",100]],T0=0,TT=null,PP=0;
+  function stepsDraw(){var el=$("steps");el.hidden=false;var sec=Math.round((Date.now()-T0)/1000);
+    el.innerHTML="<div class='hd'>입지 가능성을 분석하고 있습니다</div><div class='sub'>공공데이터 여러 곳을 확인합니다 · 일부 단계는 동시에 진행됩니다</div><ul style='padding:0;margin:6px 0'>"+STEPS.map(function(x,i){var prev=i?STEPS[i-1][1]:0,st=PP>=x[1]?"ok":PP>=prev?"on":"wait";if(x[1]===70&&PP>=25&&PP<70)st="on";return "<li class='"+st+"'><b>"+(st==="ok"?"✓":st==="on"?"…":"·")+"</b>"+x[0]+"</li>"}).join("")+"</ul><div class='sub'>경과 "+sec+"초 · 보통 20초~1분</div>"}
+  function prog(t,p){$("pt").textContent=t;$("pg").hidden=false;$("pg").firstChild.style.width=p+"%";if(!T0||p<=5){T0=Date.now();clearInterval(TT);TT=setInterval(stepsDraw,1000)}PP=p;stepsDraw()}
+  function stepsDone(){clearInterval(TT);T0=0;$("steps").hidden=true}
   function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
     if(!EMB)try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
-    Screen.run(t,prog).then(function(d){D=d;try{window.PICK_SET&&PICK_SET(d.P)}catch(_){}veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
+    Screen.run(t,prog).then(function(d){stepsDone();D=d;try{window.PICK_SET&&PICK_SET(d.P)}catch(_){}veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
       if(!EMB)setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
-    .catch(function(e){$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
+    .catch(function(e){stepsDone();$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
 
   function vegUI(){var V=$("veg");V.innerHTML="";var has2=D.cells.some(function(c){return c.e==="2"&&c.v!=="1"&&c.v!=="3"});
     function sel(lbl,opts,val,on){var l=el("label");l.appendChild(el("span",null,lbl));var s=el("select");opts.forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];s.appendChild(op)});s.value=val;s.addEventListener("change",function(){on(s.value);redo()});l.appendChild(s);V.appendChild(l)}
@@ -197,6 +206,11 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       var s15=sl.bins.slice(3).reduce(function(x,y){return x+y},0);R2.appendChild(el("p","sub","경사도 15도 이상 합계 "+n(s15)+" ("+(s15/sl.total*100).toFixed(1)+"%). 자료: "+sl.src+"."))}
     R2.appendChild(el("h3",null,"5. 인허가 사전 확인"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G3}),["항목","결과","비고"]));
     R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
+  /* 간단히 보기: 걸린 항목만 */
+  function liteT(){var el=$("vlite"),R=J.rows.filter(function(r){return /^회피|^주의|^대상$/.test(r.v)});
+    function one(d){d=String(d||"").replace(/\[[^\]]*\]\s*/g,"");var i=d.search(/[.。]\s|\s—\s|\s\/\s/);d=i>0?d.slice(0,i):d;return d.length>90?d.slice(0,88)+"…":d}
+    var h=R.length?"<h3>걸린 항목</h3><table><tr><th>항목</th><th>면적</th><th>내용</th></tr>"+R.map(function(r){return "<tr><td>"+esc(r.t)+"</td><td class='a'>"+(r.a?n(r.a):"—")+"</td><td>"+esc(one(r.d))+"</td></tr>"}).join("")+"</table>":"<h3>걸린 항목</h3><p class='sub'>걸린 항목이 없습니다.</p>";
+    var c=(J.sum.cond||[]).slice(0,3);if(c.length)h+="<h3>확인할 것</h3><ul>"+c.map(function(x){return "<li>"+esc(one(x))+"</li>"}).join("")+"</ul>";el.innerHTML=h}
   /* 쉬운 말 이유 요약 */
   function boss(tiny){var S=J.sum,T=S.total||1,py=function(a){return Math.round(a/3.3058).toLocaleString()+"평"},pc=function(a){return Math.round(a/T*100)+"%"};
     var b=S.slope&&S.slope.bins||[],st=b.slice(3).reduce(function(a,x){return a+x},0),stP=S.slope&&S.slope.total?st/S.slope.total:0;
@@ -222,7 +236,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     el.innerHTML=(L.length?"<b class='h'>이유</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
-    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}
+    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}try{if(LITE)liteT()}catch(e){$("vlite").textContent=""}
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
     $("vgrid").textContent=S.grid;var vl=$("vlay");if(vl)vl.textContent=layTxt();
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
@@ -302,7 +316,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     if(MODE==="md"&&LAY){var lt=el("span",null,"테이블 "+LAY.tables+"개 → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp");lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
-  $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
+  $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
   function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
     [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],
