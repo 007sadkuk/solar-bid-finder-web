@@ -29,6 +29,7 @@ textarea{width:100%;min-height:76px}
 tr.grp td{background:var(--field);font-weight:800;color:var(--ink)}
 .veg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px 16px;margin:8px 0}.veg label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14.5px}
 .prog{height:6px;background:var(--rule2);border-radius:9px;overflow:hidden;margin-top:10px}.prog i{display:block;height:100%;width:0;background:var(--mark);transition:width .3s}
+.boss{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--bg2,#f4f6f8);border-left:5px solid var(--warn);line-height:1.6}.boss.g{border-left-color:var(--go)}.boss.r{border-left-color:#d9483b}.boss b.h{display:block;font-size:16px;margin-bottom:4px}.boss ol{margin:4px 0 4px 20px;padding:0}.boss .c{font-size:13px;color:#555;margin-top:6px}
 .verdict .vline{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:4px 0 10px}.vbig{font-size:34px;font-weight:900}.vbig.g{color:var(--go)}.vbig.y{color:var(--warn)}.vbig.r{color:var(--no)}.vok{font-size:18px;font-weight:700}
 .bar{height:12px;border-radius:9px;background:rgba(179,38,30,.25);overflow:hidden}.bar i{display:block;height:100%;background:var(--go)}
 .vcols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}.vcols ul{margin:0;padding-left:1.1em}.vcols li{margin:3px 0}
@@ -70,6 +71,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
+      <div id="vboss" class="boss"></div>
       <p id="vlay" class="sub" style="margin:8px 0 0;font-weight:700;color:var(--ink)"></p><p class="sub" style="margin:2px 0 0">배치 기준: 600W 2단×10열 테이블, 20° 정남향, 경계 3m·제외구역 2m·신중검토 구역 제외, 8줄마다 통로, 작은 구역(테이블 5개 미만)은 연보라로 표시, 25테이블마다 1자리 전기설비용. 토목량·실제 설계는 별도</p>
       <table class="sumt" style="margin-top:14px">
         <tr><th class="bi">설치 못 하는 부분</th><td><ul id="vwhy"></ul></td></tr>
@@ -105,8 +107,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261103s"></script>
-<script src="screen.js?v=20261103s"></script>
+<script src="screen-rules.js?v=20261104a"></script>
+<script src="screen.js?v=20261104a"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -195,9 +197,32 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       var s15=sl.bins.slice(3).reduce(function(x,y){return x+y},0);R2.appendChild(el("p","sub","경사도 15도 이상 합계 "+n(s15)+" ("+(s15/sl.total*100).toFixed(1)+"%). 자료: "+sl.src+"."))}
     R2.appendChild(el("h3",null,"5. 인허가 사전 확인"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G3}),["항목","결과","비고"]));
     R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
+  /* 대표님께 한마디: 판정 이유를 쉬운 말로 */
+  function boss(tiny){var S=J.sum,T=S.total||1,py=function(a){return Math.round(a/3.3058).toLocaleString()+"평"},pc=function(a){return Math.round(a/T*100)+"%"};
+    var b=S.slope&&S.slope.bins||[],st=b.slice(3).reduce(function(a,x){return a+x},0),stP=S.slope&&S.slope.total?st/S.slope.total:0;
+    var M=[[/^생태자연도 1등급/,"환경부가 가장 보전 가치가 높은 자연으로 지정한 땅입니다(생태자연도 1등급). 원칙적으로 개발이 안 됩니다."],
+      [/^생태자연도 2등급/,"숲 상태가 좋은 산입니다. 자연적으로 자란 숲이라 환경부 기준상 보전할 숲으로 분류돼 있어, 환경청이 태양광을 허가하지 않습니다."],
+      [/^경사 15/,"가파른 산입니다. 경사 15도가 넘는 숲은 환경청 기준상 피해야 하는 땅이고, 깎고 메우는 공사비도 큽니다."],
+      [/^산지 평균경사도/,"산 전체 평균 경사가 15도를 넘어 산지 허가 기준(산지관리법)을 맞출 수 없습니다."],
+      [/^산사태/,"산림청이 산사태 위험이 높다고 본 곳(1·2등급)입니다."],
+      [/^멸종위기/,"멸종위기종이 사는 곳으로 조사된 땅입니다."],
+      [/^정맥/,"주요 산줄기(정맥) 가까이라 보호 대상입니다."],
+      [/^주택/,"주변에 집이 모여 있어 이격거리 때문에 쓸 수 없습니다."],
+      [/^식생등급 자료 없음/,"숲 상태 자료가 없어 안전하게 뺀 부분입니다(현장 확인이 필요)."],
+      [/농업진흥구역/,"우량 농지(농업진흥구역)라 법으로 땅 위 태양광이 막혀 있습니다(건물 지붕형만 가능)."],
+      [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
+    var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
+    why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";if(/^경사 15|^산지 평균/.test(w[0])&&stP>=0.3)t=t.replace("가파른 산입니다.","가파른 산입니다(땅의 "+Math.round(stP*100)+"%가 경사 15도 이상).");if(seen[t])return;seen[t]=1;L.push(t+" — "+py(w[1])+"("+pc(w[1])+")")});
+    if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("또 땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다. 위 이유가 없더라도 환경청 기준상 피해야 하는 땅입니다.");
+    var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
+    if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
+    var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 약 "+py(ok)+"입니다."+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
+    var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
+    var el=$("vboss");el.className="boss "+cls;
+    el.innerHTML="<b class='h'>대표님께 한마디 — "+h+"</b>"+(L.length?(cls==="g"?"빼야 하는 부분:":"이유:")+"<ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
   function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
-    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");
+    var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return /^z_/.test(r.id)&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
     $("vgrid").textContent=S.grid;var vl=$("vlay");if(vl)vl.textContent=layTxt();
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
