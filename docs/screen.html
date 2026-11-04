@@ -107,8 +107,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261104d"></script>
-<script src="screen.js?v=20261104d"></script>
+<script src="screen-rules.js?v=20261104e"></script>
+<script src="screen.js?v=20261104e"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -202,8 +202,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var b=S.slope&&S.slope.bins||[],st=b.slice(3).reduce(function(a,x){return a+x},0),stP=S.slope&&S.slope.total?st/S.slope.total:0;
     var M=[[/^생태자연도 1등급/,"환경부가 가장 보전 가치가 높은 자연으로 지정한 땅입니다(생태자연도 1등급). 원칙적으로 개발이 안 됩니다."],
       [/^생태자연도 2등급/,"숲 상태가 좋은 산입니다. 자연적으로 자란 숲이라 환경부 기준상 보전할 숲으로 분류돼 있어, 환경청이 태양광을 허가하지 않습니다."],
-      [/^경사 15/,"가파른 산입니다. 경사 15도가 넘는 숲은 환경청 기준상 피해야 하는 땅이고, 깎고 메우는 공사비도 큽니다."],
-      [/^산지 평균경사도/,"산 전체 평균 경사가 15도를 넘어 산지 허가 기준(산지관리법)을 맞출 수 없습니다."],
+      [/^경사 15/,"가파른 산입니다. 경사 15도가 넘는 숲은 환경청 기준상 태양광을 피해야 하는 땅입니다. 깎아서 평평하게 만들어도 허가는 원래 땅의 경사로 판단합니다."],
+      [/^산지 평균경사도/,"산 전체 평균 경사가 15도를 넘어 산지 허가 기준(산지관리법)에 맞지 않습니다. 깎아서 평평하게 만들어도 허가는 원래 땅의 경사로 판단합니다."],
       [/^산사태/,"산림청이 산사태 위험이 높다고 본 곳(1·2등급)입니다."],
       [/^멸종위기/,"멸종위기종이 사는 곳으로 조사된 땅입니다."],
       [/^정맥/,"주요 산줄기(정맥) 가까이라 보호 대상입니다."],
@@ -213,7 +213,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
     why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15|^산지 평균/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
-    if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("또 땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다. 위 이유가 없더라도 환경청 기준상 피해야 하는 땅입니다.");
+    if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("또 땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다. 환경청 기준상 태양광을 피해야 하는 땅입니다.");
     var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
     if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
     var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다.")+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
