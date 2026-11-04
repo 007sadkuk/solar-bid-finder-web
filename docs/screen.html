@@ -109,8 +109,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261105c"></script>
-<script src="screen.js?v=20261105c"></script>
+<script src="screen-rules.js?v=20261105d"></script>
+<script src="screen.js?v=20261105d"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -208,7 +208,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     R2.appendChild(el("p","sub","공공 데이터로 본 사전 검토입니다. 허가·환경청 협의의 확정 판정이 아니며, 한전 여유용량은 한전 문의 결과가 우선합니다."))}
   /* 간단히 보기: 걸린 항목만 */
   function liteT(){var el=$("vlite"),R=J.rows.filter(function(r){return /^회피|^주의|^대상$/.test(r.v)});
-    function one(d){d=String(d||"").replace(/\[[^\]]*\]\s*/g,"");var i=d.search(/[.。]\s|\s—\s|\s\/\s/);d=i>0?d.slice(0,i):d;return d.length>90?d.slice(0,88)+"…":d}
+    function one(d){d=String(d||"").replace(/^\[[^\]]*\][^.]*\.\s*/,"").replace(/\[[^\]]*\]\s*/g,"");var i=d.search(/[.。]\s|\s\/\s/);d=i>0?d.slice(0,i):d;return d.length>90?d.slice(0,88)+"…":d}
     var h=R.length?"<h3>걸린 항목</h3><table><tr><th>항목</th><th>면적</th><th>내용</th></tr>"+R.map(function(r){return "<tr><td>"+esc(r.t)+"</td><td class='a'>"+(r.a?n(r.a):"—")+"</td><td>"+esc(one(r.d))+"</td></tr>"}).join("")+"</table>":"<h3>걸린 항목</h3><p class='sub'>걸린 항목이 없습니다.</p>";
     var c=(J.sum.cond||[]).slice(0,3);if(c.length)h+="<h3>확인할 것</h3><ul>"+c.map(function(x){return "<li>"+esc(one(x))+"</li>"}).join("")+"</ul>";el.innerHTML=h}
   /* 쉬운 말 이유 요약 */
