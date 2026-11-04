@@ -107,8 +107,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261104a"></script>
-<script src="screen.js?v=20261104a"></script>
+<script src="screen-rules.js?v=20261104b"></script>
+<script src="screen.js?v=20261104b"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -212,11 +212,11 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       [/농업진흥구역/,"우량 농지(농업진흥구역)라 법으로 땅 위 태양광이 막혀 있습니다(건물 지붕형만 가능)."],
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
-    why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";if(/^경사 15|^산지 평균/.test(w[0])&&stP>=0.3)t=t.replace("가파른 산입니다.","가파른 산입니다(땅의 "+Math.round(stP*100)+"%가 경사 15도 이상).");if(seen[t])return;seen[t]=1;L.push(t+" — "+py(w[1])+"("+pc(w[1])+")")});
+    why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15|^산지 평균/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
     if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("또 땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다. 위 이유가 없더라도 환경청 기준상 피해야 하는 땅입니다.");
     var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
     if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
-    var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 약 "+py(ok)+"입니다."+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
+    var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다.")+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
     var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
     var el=$("vboss");el.className="boss "+cls;
     el.innerHTML="<b class='h'>대표님께 한마디 — "+h+"</b>"+(L.length?(cls==="g"?"빼야 하는 부분:":"이유:")+"<ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
