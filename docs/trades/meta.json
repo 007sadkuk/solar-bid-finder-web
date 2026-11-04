@@ -1,9 +1,7 @@
 {
  "source": "https://apis.data.go.kr/1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade",
- "run_at": "2026-11-04 05:01",
- "errors": [
-  "27200 202609: <urlopen error _ssl.c:993: The handshake operation timed out>"
- ],
+ "run_at": "2026-11-05 05:07",
+ "errors": [],
  "calls": 96,
  "keys": [
   "cdealDay",
