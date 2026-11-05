@@ -319,6 +319,7 @@
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
     D.cells.forEach(function (c) { var v = vegOf(c), st = 0, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
+      else if (R.kei && c.kg === R.kei.avoid) st = 2; // 국토환경성평가 1등급(동진 검토·환경청 협의 실무 기준)
       else if (c.e === "2" && v.ge3 === true) st = 2;
       else if (steep && v.ge4 === true) st = 2;
       else if (c.e === "2" && v.ge3 === null) st = 3;
@@ -414,6 +415,13 @@
     var san = P.map(function (p, i) { return i; }).filter(function (i) { return P[i].jcode === "임"; }), hzOK = D.cells.some(function (c) { return c.hz !== undefined; });
     var h12 = hzOK ? A(function (c) { return san.indexOf(c.p) >= 0 && c.hz !== null && c.hz <= 2; }) : null, h12all = hzOK ? A(function (c) { return c.hz !== null && c.hz <= 2; }) : null;
     var hzB = {}; if (hzOK) D.cells.forEach(function (c) { if (san.indexOf(c.p) >= 0 && c.hz) hzB[c.hz] = (hzB[c.hz] || 0) + P[c.p].cellA; });
+    // 국토환경성평가(KEI) 등급 판정: 1등급 회피, 2등급 신중(동진 검토 기준)
+    var kA1 = 0, kA2 = 0, kAll = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kAll += a; if (c.kg === 1) kA1 += a; if (c.kg === 2) kA2 += a; });
+    var keiOK = D.kei && D.kei.ok;
+    V(G, "kei1", "국토환경성평가 1등급 지역", !keiOK ? "확인 불가" : kA1 ? "회피" : "해당없음", keiOK ? Math.round(kA1) : null,
+      keiOK ? "1등급 " + Math.round(kA1).toLocaleString() + "㎡" + (kA2 ? ", 2등급 " + Math.round(kA2).toLocaleString() + "㎡" : "") + " (전체 등급 확인 면적 " + Math.round(kAll).toLocaleString() + "㎡). 1등급은 환경적으로 가장 보전 가치가 높은 등급이라 설치 불가로 뺐습니다. " + (R.kei ? R.kei.why : "") : "KEI 등급 자료 조회 실패 — 국토환경성평가지도(ecvam.neins.go.kr)에서 확인", R.kei ? R.kei.law : "", "국토환경성평가지도 2025(한국환경연구원, 10m 격자)");
+    V(G2, "kei2", "국토환경성평가 2등급 지역", !keiOK ? "확인 불가" : kA2 ? "신중검토" : "해당없음", keiOK ? Math.round(kA2) : null,
+      keiOK ? (kA2 ? "2등급 " + Math.round(kA2).toLocaleString() + "㎡ — 설치는 가능하나 환경청 협의에서 보전 대책(녹지 존치·배치 조정)을 요구받을 수 있음" : "2등급 없음") : "KEI 등급 자료 조회 실패", R.kei ? R.kei.law : "", "국토환경성평가지도 2025");
     V(G, "i", "산사태위험 1·2등급지 (사업지구가 산지인 경우)", !san.length ? "해당없음" : !hzOK ? "수동확인필요" : h12 ? "회피" : "해당없음", san.length ? (hzOK ? h12 : null) : null,
       !san.length ? "지목 임야 필지 없음(지목 기준)" + (h12all ? " — 다만 위험지도 1·2등급 " + h12all.toLocaleString() + "㎡ 있음(산지 아닌 필지)" : "")
         : hzOK ? "산지(지목 임야 " + san.map(function (i) { return P[i].jibun; }).join(", ") + ") 위험등급 면적: " + [1, 2, 3, 4, 5].filter(function (g) { return hzB[g]; }).map(function (g) { return g + "등급 " + Math.round(hzB[g]).toLocaleString() + "㎡"; }).join(", ") + (Object.keys(hzB).length ? "" : "위험지도 값 없음") + ". 10m 격자 값이라 경계부는 ±10m 오차"
@@ -522,6 +530,7 @@
       else if (agCell[c.p] && c.ag === "농업진흥구역") r = "농업진흥구역";
       else if (sjCell[c.p] && c.sj === 1) r = "공익용산지";
       else if (c.e === "1") r = "생태자연도 1등급";
+      else if (R.kei && c.kg === R.kei.avoid) r = "국토환경성평가 1등급";
       else if (c.st === 2 && c.e === "2" && c.vg.ge3) r = "생태자연도 2등급 + 식생 양호";
       else if (c.st === 2 && c.s !== null && c.s >= S.avoid) r = "경사 15° 이상 산림";
       else if (c.st === 3) r = "식생등급 자료 없음(안전하게 제외)";
