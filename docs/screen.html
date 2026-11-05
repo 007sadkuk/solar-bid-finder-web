@@ -69,7 +69,7 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   <div id="res" hidden>
     <section class="card verdict rep" id="vcard">
       <h2>태양광 발전사업 입지검토 요약</h2>
-      <p class="sub" id="ttl"></p>
+      <p class="sub" id="ttl"></p><p class="sub noprint" id="elinks" style="margin:2px 0 6px"></p>
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
@@ -109,8 +109,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261105e"></script>
-<script src="screen.js?v=20261105e"></script>
+<script src="screen-rules.js?v=20261105f"></script>
+<script src="screen.js?v=20261105f"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -234,7 +234,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
     var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9"||r.id==="s8")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s8"?"일부가 공익용산지 등 법으로 막힌 구역(걸친 범위 확인)":r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
     var el=$("vboss");el.className="boss "+cls;
     el.innerHTML=(L.length?"<b class='h'>이유</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
-  function head(){var P=D.P,S=J.sum;$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
+  function eumLinks(){var P=D.P,part=J.rows.some(function(r){return r.id==="s8"&&/^주의/.test(r.v)});
+    $("elinks").innerHTML=(part?"<b style='color:var(--warn)'>공익용산지 등이 일부 걸쳐 있습니다 — 아래 토지이음에서 '이음지도로 보기'를 눌러 걸친 범위를 확인하세요.</b><br>":"")+"토지이음에서 직접 보기: "+P.map(function(p){return "<a target='_blank' rel='noopener' href='https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+p.pnu+"&mode=search&isNoScr=script&selGbn=umd'>"+esc(p.jibun)+" ↗</a>"}).join(" · ")}
+  function head(){var P=D.P,S=J.sum;try{eumLinks()}catch(e){}$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s8")&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";vb.textContent=(tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}try{if(LITE)liteT()}catch(e){$("vlite").textContent=""}
     $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
