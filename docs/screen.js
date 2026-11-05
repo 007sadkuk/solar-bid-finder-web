@@ -562,7 +562,21 @@
     cond.push("매장유산(문화재) 조사 필요 여부: 2025.2.13부터 지표조사 대상 규정이 「국가유산영향진단법」으로 옮겨짐 — 시군 문화유산 담당에 확인");
     cond.push("한전 계통 접속 가능 여부 문의(공개자료와 실제가 다를 수 있음)");
     if (village) cond.push(rule ? (rule.house <= 100 && !rule.road ? "햇빛소득마을 공고 요건(시군 이격 기준 주거 100m·도로 0m 이하) 충족 — " + rule.name + " 주거 " + rule.house + "m" : "햇빛소득마을 공고 요건 미충족 가능 — " + rule.name + " 조례 주거 " + rule.house + "m") : "햇빛소득마을 공고 요건: 이 시군 조례 이격이 주거 100m·도로 0m 이하인지(또는 기준 없음) 확인");
-    var sum = { grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    // 신뢰도: 설치 불가로 뺀 면적 중 공식 자료로 확정된 것 / 추정이 섞인 것, 그리고 직접 확인할 것
+    var cf = { fix: 0, est: 0, items: [] }, ce = { veg: 0, slope: 0, gx: 0 };
+    D.cells.forEach(function (c) { if (!c.no) return; var a = P[c.p].cellA, e = false;
+      if (/생태자연도 2등급|경사 15/.test(c.no) && c.vg && (c.vg.est || c.vg.src === "use")) { e = true; ce.veg += a; }
+      if (/경사 15/.test(c.no) && !c.sf) { e = true; ce.slope += a; }
+      if (e) cf.est += a; else cf.fix += a; });
+    cf.fix = Math.round(cf.fix); cf.est = Math.round(cf.est);
+    if (ce.veg) cf.items.push({ t: "숲 상태(식생보전등급) 추정 " + Math.round(ce.veg).toLocaleString() + "㎡", how: "고시도면이 없어 군락명·토지 이용상황으로 Ⅲ/Ⅳ등급을 추정 → 에코뱅크 식생도 확인 또는 동진 현장 식생조사로 확정. Ⅳ등급으로 나오면 설치 가능 면적이 늘 수 있음" });
+    if (ce.slope) cf.items.push({ t: "경사 추정 " + Math.round(ce.slope).toLocaleString() + "㎡", how: "산림청 경사 격자가 없어 공개 표고(약 30m)로 계산 → 측량·평균경사도 조사서로 확인" });
+    if (BU && unk) cf.items.push({ t: "건축물대장 없는 건물 " + unk + "동", how: "주택인지 현장·항공사진으로 확인(주택이면 이격거리에 들어감)" });
+    rows.forEach(function (r) { if (r.id === "s8" && /^주의/.test(r.v)) cf.items.push({ t: "법으로 막힌 구역 일부 걸침", how: "토지이음 '이음지도로 보기'로 걸친 범위 확인" }); });
+    if (!ecoOK) cf.items.push({ t: "생태자연도 조회 실패", how: "다시 검토하거나 에코뱅크에서 직접 확인" });
+    cf.items.push({ t: "보호종 서식지·철새도래지", how: "공개 자료로는 확인 불가 → 소규모환평 현지조사(동진)로 확인" });
+    cf.items.push({ t: "기맥·지맥 능선", how: "정맥만 자동 확인 → 산림청 산줄기 지도로 확인" });
+    var sum = { conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
