@@ -483,21 +483,21 @@
       nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") +
         (sjPart ? ". 공익용산지에 '일부 걸침'인 필지는 국토교통부 산지 구분 도면(" + (D.sanji.date || "") + ")에서 공익용산지인 칸만 뺐습니다(겹친 면적 " + sum(function (c) { return c.sj === 1 && nH.some(function (x) { return x.name === "공익용산지" && x.list.some(function (y) { return y.i === c.p && y.c === "2"; }); }); }).toLocaleString() + "㎡, 10m 격자라 경계부 ±10m 오차)" : "") + (agPart ? ". 농업진흥구역에 '일부 걸침'인 필지는 브이월드 농업진흥구역 도면과 겹치는 부분만 뺐습니다(겹친 면적 " + nA.toLocaleString() + "㎡" + (nA === 0 ? " — 도면상 경계선만 닿아 실제로 걸친 땅이 없음" : "") + "). 도면 경계와 지적 경계 차이가 있을 수 있어 토지이음 확인도면으로 재확인" : "") + (nPart.length ? ". " + nPart.join("·") + "은(는) 필지 일부에만 걸쳐(저촉) 있고 공개 경계 도면이 없어 걸친 면적을 계산하지 못했습니다 — 그 부분은 설치 불가이니 토지이음 확인도면·시군 담당 부서로 범위 확인(필지 전체를 빼지는 않음)" : "") : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
     // 토지이용계획 이름 전부 분류 — 어느 기준에도 안 걸린 이름은 '분류 안 됨'으로 보여 줌(조용히 버리지 않음)
-    var GRP = {}, unk = [], refL = [];
+    var GRP = {}, zunk = [], refL = [];
     function jl(k) { return uniq(ned[k].map(function (y) { return P[y.i].jibun + (y.c === "3" ? "(경계에 닿음)" : y.c === "2" ? "(일부 걸침)" : ""); })).join(", "); }
     Object.keys(ned).forEach(function (k) {
       if (R.legal.some(function (L) { return L.re.test(k); })) return;
       if (R.hazardZone && R.hazardZone.test(k)) return;
       if (R.zoneName && R.zoneName.test(k)) return;
       var g = (R.groups || []).filter(function (g) { return g.re.test(k); })[0];
-      if (!g) { unk.push(k + "(" + jl(k) + ")"); return; }
+      if (!g) { zunk.push(k + "(" + jl(k) + ")"); return; }
       if (g.k === "ref") { refL.push(k + "(" + jl(k) + ")"); return; }
       (GRP[g.k] = GRP[g.k] || { g: g, l: [] }).l.push(k + "(" + jl(k) + ")");
     });
-    D.zoneGroups = GRP; D.zoneUnk = unk;
+    D.zoneGroups = GRP; D.zoneUnk = zunk;
     (R.groups || []).forEach(function (g) { if (g.k === "ref") return; var x = GRP[g.k];
       V(G3, "z_" + g.k, g.label, x ? "주의(확인 필요)" : "해당없음", null, x ? x.l.join(" · ") + " — " + g.act : "해당 없음" + nedNote, "토지이용계획(지역·지구 이름 기준)", luSrc); });
-    V(G3, "z_unk", "분류 안 된 지역·지구(도구 기준표에 없는 이름)", unk.length ? "주의(확인 필요)" : "해당없음", null, unk.length ? unk.join(" · ") + " — 도구가 아직 판단 기준을 갖고 있지 않은 이름입니다. 태양광 제한 여부를 시군에 확인하세요" : "없음 — 토지이용계획의 모든 이름을 분류했습니다" + nedNote, "토지이용계획", luSrc);
+    V(G3, "z_unk", "분류 안 된 지역·지구(도구 기준표에 없는 이름)", zunk.length ? "주의(확인 필요)" : "해당없음", null, zunk.length ? zunk.join(" · ") + " — 도구가 아직 판단 기준을 갖고 있지 않은 이름입니다. 태양광 제한 여부를 시군에 확인하세요" : "없음 — 토지이용계획의 모든 이름을 분류했습니다" + nedNote, "토지이용계획", luSrc);
     V(G3, "s5", "그 밖의 지역·지구(참고)", refL.length ? "참고" : "해당없음", null, refL.length ? refL.join(" · ") : "해당 지역·지구 없음" + nedNote, "토지이용계획", luSrc);
 
     // 필지별 표
