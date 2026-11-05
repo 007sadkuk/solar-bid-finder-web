@@ -461,11 +461,12 @@
       hzK.length ? hzK.map(function (k) { return k + " — " + ned[k].map(function (y) { return P[y.i].jibun + " " + (CD[y.c] || y.c); }).join(", "); }).join(" / ") + ". 시군 재난안전 부서와 협의가 필요합니다(재해 저감대책·배수계획 요구 가능). 사업부지 전부가 자연재해위험개선지구 안이면 면적과 관계없이 재해영향평가등 협의 대상(자연재해대책법 시행령 별표1 비고)" : "재해 관련 지구 없음" + nedNote, "자연재해대책법 제12조·시행령 별표1", luSrc);
     var info = []; Object.keys(ned).forEach(function (k) { if (R.info.test(k)) info.push(k + "(" + uniq(ned[k].map(function (y) { return P[y.i].jibun; })).join(", ") + ")"); });
     var nH = legalHits("n"), nL = R.legal.filter(function (L) { return L.item === "n"; });
-    function nCell(c) { return nH.some(function (x) { return x.list.some(function (y) { if (y.i !== c.p || y.c === "3") return false; if (x.name === "농업진흥구역" && y.c === "2" && D.agriOK) return c.ag === "농업진흥구역"; return true; }); }); }
+    function nCell(c) { return nH.some(function (x) { return x.list.some(function (y) { if (y.i !== c.p || y.c === "3") return false; if (x.name === "농업진흥구역" && y.c === "2" && D.agriOK) return c.ag === "농업진흥구역"; if (y.c === "2") return false; return true; }); }); }
+    var nPart = nH.filter(function (x) { return !(x.name === "농업진흥구역" && D.agriOK) && x.list.some(function (y) { return y.c === "2"; }); }).map(function (x) { return x.name; });
     var nA = nH.length ? sum(nCell) : 0, agPart = nH.some(function (x) { return x.name === "농업진흥구역" && x.list.some(function (y) { return y.c === "2"; }); }) && D.agriOK;
-    V(G3, "s8", "태양광 설치가 막히는 지역(농업진흥구역·공익용산지·사방지·휴양림·국가유산구역 등)", nH.length && nA > 0 ? "회피" : nH.length ? "해당없음(경계만 닿음)" : "해당없음", nH.length ? nA : null,
+    V(G3, "s8", "태양광 설치가 막히는 지역(농업진흥구역·공익용산지·사방지·휴양림·국가유산구역 등)", nH.length && nA > 0 ? "회피" : nPart.length ? "주의(일부 걸침 — 범위 확인)" : nH.length ? "해당없음(경계만 닿음)" : "해당없음", nH.length ? nA : null,
       nH.length ? nH.map(function (x) { var L = nL.filter(function (l) { return l.re.test(x.name); })[0]; return x.name + "(" + uniq(x.list.filter(function (y) { return y.c !== "3"; }).map(function (y) { return P[y.i].jibun; })).join(", ") + ") — " + (L ? L.why : ""); }).join(" / ") +
-        (agPart ? ". 농업진흥구역에 '일부 걸침'인 필지는 브이월드 농업진흥구역 도면과 겹치는 부분만 뺐습니다(겹친 면적 " + nA.toLocaleString() + "㎡" + (nA === 0 ? " — 도면상 경계선만 닿아 실제로 걸친 땅이 없음" : "") + "). 도면 경계와 지적 경계 차이가 있을 수 있어 토지이음 확인도면으로 재확인" : ". 필지에 일부만 걸쳐도(저촉) 필지 전체를 뺐습니다 — 걸친 범위는 토지이음 도면으로 확인") : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
+        (agPart ? ". 농업진흥구역에 '일부 걸침'인 필지는 브이월드 농업진흥구역 도면과 겹치는 부분만 뺐습니다(겹친 면적 " + nA.toLocaleString() + "㎡" + (nA === 0 ? " — 도면상 경계선만 닿아 실제로 걸친 땅이 없음" : "") + "). 도면 경계와 지적 경계 차이가 있을 수 있어 토지이음 확인도면으로 재확인" : "") + (nPart.length ? ". " + nPart.join("·") + "은(는) 필지 일부에만 걸쳐(저촉) 있고 공개 경계 도면이 없어 걸친 면적을 계산하지 못했습니다 — 그 부분은 설치 불가이니 토지이음 확인도면·시군 담당 부서로 범위 확인(필지 전체를 빼지는 않음)" : "") : "해당 지역 없음" + nedNote, "농지법 시행령 제29조 / 산지관리법 제12조 / 사방사업법 / 자연공원법 등", luSrc);
     // 토지이용계획 이름 전부 분류 — 어느 기준에도 안 걸린 이름은 '분류 안 됨'으로 보여 줌(조용히 버리지 않음)
     var GRP = {}, unk = [], refL = [];
     function jl(k) { return uniq(ned[k].map(function (y) { return P[y.i].jibun + (y.c === "3" ? "(경계에 닿음)" : y.c === "2" ? "(일부 걸침)" : ""); })).join(", "); }
@@ -493,9 +494,10 @@
     tot.ok = tot.area - tot.av - tot.cau - tot.unk;
     rows.forEach(function (r) { if (r.v === "수동확인필요") r.v = "주의"; });
     // ── 한눈 결론: 칸마다 설치 불가 사유(먼저 걸린 것 하나) ──
-    var legalI = {}, agCell = {}; ["n", "a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) {
+    var legalI = {}, agCell = {}, partN = {}; ["n", "a", "b", "h"].forEach(function (it) { legalHits(it).forEach(function (x) { x.list.forEach(function (y) {
       if (y.c === "3") return;
       if (x.name === "농업진흥구역" && y.c === "2" && D.agriOK) { agCell[y.i] = 1; return; } // 일부 걸침: 농업진흥구역 도면 범위 칸만 제외
+      if (it === "n" && y.c === "2") { (partN[y.i] = partN[y.i] || []).push(x.name); return; } // 일부 걸침인데 경계 도면이 없음 → 필지 전체를 빼지 않고 '범위 확인 필요'로
       legalI[y.i] = x.name; }); }); });
     var homesIn = (!village && d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
     var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
@@ -532,6 +534,9 @@
     var est = D.cells.some(function (c) { return !c.no && c.vg && c.vg.est; });
     var miss = []; if (!ecoOK) miss.push("생태자연도"); if (!demOK) miss.push("경사"); if (nedErr.length) miss.push("토지이용계획(" + nedErr.join(", ") + ")"); if (!hzOK && san.length) miss.push("산사태위험지도");
     var verdict = ok < 100 ? "불가" : ok < 1000 ? "소규모 가능" : noA < total * 0.05 ? "가능" : "일부 가능";
+    var partL = uniq([].concat.apply([], Object.keys(partN).map(function (k) { return partN[k]; })));
+    if (partL.length && verdict === "가능") verdict = "일부 가능";
+    if (partL.length) cond.unshift(partL.join("·") + "에 일부가 걸침(" + uniq(Object.keys(partN).map(function (k) { return P[k].jibun; })).join(", ") + ") — 걸친 부분은 법으로 설치 불가. 공개 경계 도면이 없어 몇 ㎡인지는 자동 계산 못 함 → 토지이음 확인도면이나 시군 산림·담당 부서로 범위 확인. 설치 가능 면적은 이 부분을 빼기 전 값");
     if (miss.length) cond.unshift("자료 조회 실패: " + miss.join(", ") + " — 다시 실행하거나 직접 확인");
     var gridTxt = gbest ? "한전 공개자료상 여유 " + Math.round(gbest.f).toLocaleString() + "kW (" + gbest.r.sub + " 변전소 · " + gbest.r.dl + " 선로" + (GR.level !== "지번" ? ", " + GR.level + " 단위" : "") + ") — 참고값, 실제 접속 가능 여부는 한전 문의" : "한전 여유용량: 공개자료 조회 못 함 — 한전 문의";
     if (hzK.length) cond.push("재해 관련 지구(" + hzK.join("·") + ") — 시군 재난안전 부서 협의 필요");
