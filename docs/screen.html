@@ -109,8 +109,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261102c"></script>
-<script src="screen-rules.js?v=20261105k"></script>
-<script src="screen.js?v=20261105k"></script>
+<script src="screen-rules.js?v=20261109a"></script>
+<script src="screen.js?v=20261109a"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -228,10 +228,11 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
     why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15|^산지 평균/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
-    if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("또 땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다. 환경청 기준상 태양광을 피해야 하는 땅입니다.");
+    var SL=S.steepLeft||0;if(stP>=0.3&&SL>=T*0.05)L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상입니다. 그중 숲이 아닌 부분("+py(SL)+")은 환경청 지침상 회피 대상은 아니지만, 산림과 붙은 20도 이상 경작지는 신중검토 대상이고 깎고 메우는 공사비가 큽니다. 군 조례의 개발행위허가 경사 기준도 확인해야 합니다.");
+    else if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다.");
     var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
     if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
-    var tail="전체 "+py(T)+" 중 패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다.")+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
+    var CA=Math.min(S.cau||0,ok),OK2=ok-CA,tail="전체 "+py(T)+" 중 "+(CA>=3.3?"확실히 놓을 수 있는 땅은 "+(OK2<3.3?"없고":"약 "+py(OK2)+"이고")+", 협의 결과에 따라 달라지는 신중검토 땅이 약 "+py(CA)+" 더 있습니다.":"패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다."))+(tiny?" 너무 좁아 사업이 안 됩니다.":lay);
     var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9"||r.id==="s8")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s8"?"일부가 공익용산지 등 법으로 막힌 구역(걸친 범위 확인)":r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
     var el=$("vboss");el.className="boss "+cls;
     el.innerHTML=(L.length?"<b class='h'>이유</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
