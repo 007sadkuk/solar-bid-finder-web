@@ -587,7 +587,7 @@ html.emb body{background:transparent}html.emb main.w{padding-top:0}
       var l=zone&&ZR?Math.min.apply(0,subs.map(function(x){return x.l})):1,why=[];
       if(!zone)why.push("용도지역을 확인하지 못했습니다");
       if(GB){l=2;why.push("개발제한구역은 신규 건축이 매우 제한됩니다")}
-      if(AGJ){l=2;if(u[0]==="house")why.push("농업진흥구역: 일반 전원주택은 지을 수 없고 농업인 주택(농업인 세대, 부지 660㎡ 이하)만 가능");else if(u[0]==="warehouse")why.push("농업진흥구역: 일반 창고는 안 되고 농업용 창고 등 농업용 시설만 가능");else why.push("농업진흥구역")}
+      if(AGJ){l=2;if(u[0]==="house")why.push("농업진흥구역: 일반 전원주택은 지을 수 없고 농업인 주택(농업인 세대·부지 660㎡ 이하)만 가능");else if(u[0]==="warehouse")why.push("농업진흥구역: 일반 창고는 안 되고 농업용 창고 등 농업용 시설만 가능");else why.push("농업진흥구역")}
       else if(AGB){l=Math.max(l,1);why.push("농업보호구역(업종·규모 제한)")}
       if(SJ){if(u[0]==="factory"||u[0]==="shop")l=2;else l=Math.max(l,1);if(u[0]==="house"){l=2;why.push("보전산지: 일반 전원주택 단지는 어렵고 농림어업인 주택 등 법에서 정한 시설만 가능(산림부서 확인)")}else why.push("보전산지(산지전용 제한)")}
       if(meng&&l<2){l=1;why.push("건축하려면 도로에 접한 진입로(통상 폭 4m 이상) 확보 필요")}
