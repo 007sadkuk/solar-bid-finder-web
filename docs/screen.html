@@ -51,6 +51,47 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .acl li{padding:9px 12px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1.35;color:var(--ink)}.acl li small{display:block;color:var(--sub);font-size:12.5px}
 .acl li[aria-selected=true],.acl li:hover{background:var(--field)}.acl li.m{cursor:default;color:var(--sub)}.acl li.m:hover{background:none}
 #pmap.full{height:calc(100vh - 330px)!important;min-height:420px}.pfull{background:#fff;color:#16241e;border:0;border-radius:8px;padding:7px 11px;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+
+/* ===== 2026-11 리디자인: 밝은 미색 바탕·흰 카드·잉크색 버튼(기능·구조는 그대로) ===== */
+:root{--pine:#1c1c1c;--ink:#1a1a1a;--sub:#6f6a62;--field:#f6f4f0;--sheet:#ffffff;--rule:#e3ddd3;--rule2:#eee9e1;--mark:#b98a3e;--go:#2f7a55;--no:#b23a2b;--warn:#a86a10;--q:#5b5f97;--bg2:#faf8f4;--gold:#b98a3e;--line:#e3ddd3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pine:#f2eee8;--ink:#f2eee8;--sub:#a8a197;--field:#121212;--sheet:#1b1a18;--rule:#33302b;--rule2:#2a2824;--go:#7cc79f;--no:#f09a8c;--warn:#e7b25c;--q:#b7b9f0;--bg2:#22201d;--gold:#d6ad62;--mark:#d6ad62;--line:#33302b}}
+body{background:var(--field);font-size:15.5px;line-height:1.7;-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+header{background:var(--sheet);color:var(--ink);padding:34px 0 30px;border-bottom:1px solid var(--rule)}
+header h1{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.25}
+header h1 span{color:var(--gold)!important;font-weight:400!important}
+header p{color:var(--sub)!important;font-size:14.5px;max-width:70ch}
+header p:first-child{color:var(--gold)!important;letter-spacing:.22em!important;font-size:11.5px!important;margin-bottom:10px!important}
+header a[href="find.html"]{color:var(--ink)!important;text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--gold)}
+.w{max-width:1120px;padding:0 20px}
+.card{border:1px solid var(--rule);border-radius:22px;padding:28px;margin:20px 0;box-shadow:0 18px 50px -38px rgba(60,45,20,.45)}
+h2{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0 0 14px}
+h3{font-weight:700}
+textarea,input,select{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:12px 14px;transition:border-color .2s,box-shadow .2s}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(185,138,62,.15)}
+.btn{background:var(--ink);color:var(--sheet);border-radius:999px;padding:12px 28px;font-weight:700;letter-spacing:.02em;transition:opacity .2s,transform .2s}
+.btn:hover{opacity:.86}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.45;cursor:default}
+.btn.s{border:1px solid var(--rule);border-radius:999px;padding:8px 16px;background:transparent;color:var(--ink);font-weight:600}
+.btn.s:hover{border-color:var(--ink);opacity:1}
+.seg button,.tabs button[data-t]{border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:999px;padding:7px 16px;font-weight:600;transition:all .2s}
+.seg button[aria-pressed=true],.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.tabs{gap:8px;margin:4px 0 18px}
+.prog{height:4px;background:var(--rule2)}.prog i{background:var(--gold)}
+#steps{border:1px solid var(--rule);border-radius:16px;padding:14px 18px;background:var(--bg2)}#steps li.ok b{color:var(--gold)}
+.verdict{border-top:3px solid var(--ink)}
+.verdict h2{font-size:13px;letter-spacing:.14em;color:var(--gold);font-weight:700;text-transform:uppercase}
+.vbig{font-size:38px;font-weight:800;letter-spacing:-.035em}.vok{font-weight:600;color:var(--sub)}
+.bar{height:8px;background:rgba(178,58,43,.18)}
+.boss{background:var(--bg2);border-left-width:3px;border-radius:14px;padding:14px 18px}
+.kpi div{background:var(--bg2);border:1px solid var(--rule2);border-radius:16px;padding:14px 16px}.kpi b{font-weight:800;letter-spacing:-.02em}
+.rep h3{background:transparent;color:var(--ink);border:1px solid var(--ink);padding:3px 14px;font-size:15px}
+.rep th,.rep td{border-color:var(--rule2)}.rep th{background:var(--bg2);font-weight:600}
+.sumt th{color:var(--sub)}
+table th{font-weight:600}
+.v{font-weight:700}
+details.more>summary{font-weight:700;list-style-position:outside}
+#map{border-radius:16px;border:1px solid var(--rule)}
+.acl{border-radius:16px}
+@media (max-width:720px){header{padding:24px 0 22px}header h1{font-size:24px}.card{padding:20px;border-radius:18px}.vbig{font-size:30px}}
 </style>
 </head><body>
 <header><div class="w"><p style="margin:0 0 4px;font-size:12.5px;letter-spacing:.12em;color:#9fb8a9;font-weight:700">KUMHO TECHNICS · INTERNAL</p><h1><a href="screen.html" title="처음 화면으로" style="color:inherit;text-decoration:none">태양광 입지검토 <span style="font-weight:500;color:#c7d6cc">×</span> 금호테크닉스</a></h1><p>지번 하나로 설치 가능 여부·면적·근거(협의지침·개발행위허가 기준)를 한 번에 검토합니다. 사내 전용<span class="hdrlink"> · <a href="find.html" style="color:#f3c623;font-weight:700">🔍 주변 후보지 찾기(실험)</a></span></p></div></header>
