@@ -48,7 +48,7 @@ var BFGeo=(function(){
     return out;
   }
   async function landChar(pnu){ // 토지특성(도로접면·지형높이·지형형상·이용상황). 응답 키 이름이 달라도 찾도록 느슨하게 처리
-    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getLandCharacteristics",r=null;
+    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"100",pageNo:"1"},u="https://api.vworld.kr/ned/data/getLandCharacteristics",r=null;
     try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
     if(!r)try{r=await jsonp(u,p)}catch(e){}
     window.BF_LC_LAST=r;
@@ -65,7 +65,7 @@ var BFGeo=(function(){
     return (R.result.items||[]).map(function(x){return {addr:(x.address&&x.address.parcel)||x.title||"",pnu:x.id||"",pt:x.point?[+x.point.x,+x.point.y]:null}}).filter(function(x){return x.addr});
   }
   async function landPrice(pnu){ // 개별공시지가(원/㎡) 최근 연도. 응답 형식은 NED 공통 형식으로 가정
-    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"10",pageNo:"1"},u="https://api.vworld.kr/ned/data/getIndvdLandPriceAttr",r=null;
+    var p={key:getKey(),domain:domain(),pnu:pnu,format:"json",numOfRows:"100",pageNo:"1"},u="https://api.vworld.kr/ned/data/getIndvdLandPriceAttr",r=null;
     try{r=await (await fetch(u+"?"+new URLSearchParams(p).toString())).json()}catch(e){}
     if(!r)r=await jsonp(u,p);
     var f=r&&r.indvdLandPrices&&r.indvdLandPrices.field;if(!f)return null;if(!Array.isArray(f))f=[f];
