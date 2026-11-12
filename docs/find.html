@@ -34,6 +34,8 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   <form class="card" id="gate" hidden><p class="sub">금호테크닉스 사내 전용입니다. 비밀번호를 입력하세요.</p><input id="gpw" type="password" inputmode="numeric" autocomplete="off"> <button class="btn">열기</button> <span id="gmsg" style="color:var(--no)"></span></form>
   <section id="app" hidden>
   <div class="card">
+    <form class="bar" id="jf" autocomplete="off" style="margin-bottom:10px"><input id="jq" placeholder="지번 또는 동네 이름 (예: 김천시 감천면 무안리 산39-5 / 예천군 은풍면 시항리)" style="flex:1 1 320px;min-width:0"><button class="btn" type="submit" id="jgo">지번으로 찾기</button></form>
+    <p class="sub" id="jmsg" style="margin:-4px 0 10px">지번(또는 리·동 이름)을 넣으면 그 주변 약 2km 범위로 지도를 옮기고 바로 후보지를 찾습니다. 지도로 직접 옮겨도 됩니다.</p>
     <div class="bar">
       <label class="sub">사업 형태 <select id="biz"><option value="general">일반 태양광</option><option value="village">햇빛소득마을(주택 이격 없음)</option></select></label>
       <label class="sub">최소 면적 <select id="minA"><option value="0" selected>제한 없음(작은 땅도 묶어서 봄)</option><option value="500">500㎡</option><option value="1500">1,500㎡</option><option value="3000">3,000㎡</option><option value="10000">10,000㎡</option></select></label>
@@ -85,6 +87,19 @@ a.go{font-weight:800;color:var(--go);white-space:nowrap}
   var KT={};async function keiTiles(keys){await Promise.all(keys.filter(function(k){return !(k in KT)}).map(function(k){KT[k]=null;return fetch("kei/"+k+".png").then(function(r){if(!r.ok)throw 0;return r.blob()}).then(createImageBitmap).then(function(bm){var c=document.createElement("canvas");c.width=bm.width;c.height=bm.height;var g=c.getContext("2d",{willReadFrequently:true});g.drawImage(bm,0,0);KT[k]=g.getImageData(0,0,bm.width,bm.height).data}).catch(function(){KT[k]=null})}))}
   function kei(t){var tx=Math.floor(t[0]/5000),ty=Math.floor(t[1]/5000),d=KT[tx+"_"+ty];if(!d)return 0;var col=Math.floor((t[0]-tx*5000)/10),row=Math.floor(((ty+1)*5000-t[1])/10);if(col<0||row<0||col>499||row>499)return 0;return d[(row*500+col)*4]}
 
+  var JMK=null;
+  $("jf").addEventListener("submit",async function(e){e.preventDefault();var q=$("jq").value.trim();if(!q){$("jmsg").textContent="지번이나 동네 이름을 넣어 주세요.";return}
+    init();$("jgo").disabled=true;$("jmsg").textContent="위치를 찾는 중…";
+    try{var r=await BFGeo.searchAddr(q,5);
+      if((!r||!r.length)&&!/\d/.test(q))r=await BFGeo.searchAddr(q+" 1",5);
+      var h=(r||[]).filter(function(x){return x.pt})[0];
+      if(!h){$("jmsg").textContent="이 주소를 찾지 못했습니다. 시·군부터 적고, 산 번지는 '산'을 붙여 주세요.";return}
+      if(JMK)M.removeLayer(JMK);JMK=L.circleMarker([h.pt[1],h.pt[0]],{radius:9,color:"#111",weight:3,fillColor:"#fff",fillOpacity:.9}).addTo(M).bindTooltip(h.addr,{permanent:false});
+      $("jmsg").textContent="찾은 위치: "+h.addr+" — 주변 후보지를 찾는 중입니다.";
+      M.setView([h.pt[1],h.pt[0]],15);await new Promise(function(ok){setTimeout(ok,400)});
+      if(!$("go").disabled)$("go").click()}
+    catch(er){$("jmsg").textContent="위치 찾기 실패: "+(er&&er.message||er)}
+    finally{$("jgo").disabled=false}});
   $("go").addEventListener("click",async function(){
     var z=M.getZoom();if(z<14){$("msg").textContent="범위가 너무 넓습니다. 지도를 더 확대해 주세요(읍·면 일부 정도).";return}
     var b=M.getBounds(),B=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()],village=$("biz").value==="village",minA=+$("minA").value;
