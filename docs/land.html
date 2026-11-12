@@ -651,6 +651,7 @@ html.emb body{background:transparent}html.emb main.w{padding-top:0}
       E.push(["토지비",land?"− "+won(land):"계산 불가",landT]);
       E.push(["전용 부담금",fee!==null?"− "+won(fee):"계산 불가",feeT]);
       if(rev&&land!=null&&fee!=null){gap=rev-land-fee;E.push(["공사비 등에 쓸 수 있는 금액",(gap<0?"− ":"")+won(Math.abs(gap))||"0원",gap>0?"평당 "+won(gap/(area/3.3058))+" · 이 안에서 토목·도로·상하수도·설계·인허가·세금·금융비를 해결해야 이익이 납니다":"매입·부담금만으로 매출을 넘습니다 — 사업성 없음"])}
+      if(sl!==null&&sl>15)E.push(["경사 주의","평균 "+sl.toFixed(0)+"°","경사가 커서 깎고 메우는 토목비·옹벽비가 크게 늘어납니다. 위 금액 안에서 해결하기 어려울 수 있습니다."]);
       u.econ={rows:E,gap:gap,note:"주변 대지 거래가는 이미 지어진 집터 기준이라 새 단지 분양가와 다를 수 있습니다. 취득세·양도세·설계·인허가·금융비는 빠져 있습니다. 필지 분할은 지자체 조례로 제한될 수 있습니다."}})();
     var Q=$("rquick");Q.innerHTML="";
     U.forEach(function(u){var d=el("div","q"),t;
