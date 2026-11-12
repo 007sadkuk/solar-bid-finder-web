@@ -42,6 +42,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
 .rep .bi{width:30%}.sumt ul{margin:0;padding-left:1.1em}.sumt th{text-align:left;width:30%}.rep .kv{display:grid;grid-template-columns:9em 1fr;gap:4px 12px;font-size:15px}.rep .kv b{color:var(--sub);font-weight:600}
 .rep .concl{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin:14px 0 0;background:rgba(91,140,200,.08)}.rep .concl b{color:var(--no)}
 @media (max-width:720px){.rep .kv{grid-template-columns:1fr}.rep .bi{width:auto}.vcols{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}#map{height:380px}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 14px}.tabs button[data-t]{border:1px solid var(--line,#d6d6d6);background:#fff;border-radius:999px;padding:8px 18px;font:inherit;font-weight:700;cursor:pointer}.tabs button[aria-pressed="true"]{background:var(--ink,#1a1a1a);color:#fff;border-color:var(--ink,#1a1a1a)}.tabs .sp{flex:1}
+#tLand iframe{width:100%;border:0;min-height:600px;display:block}#landPrint{display:none}#landPrint h2{margin-top:0}#landPrint table{width:100%;border-collapse:collapse}#landPrint th,#landPrint td{text-align:left;padding:6px 8px;border-bottom:1px solid #ddd;vertical-align:top;font-size:14px}#landPrint th{width:28%;color:#555;font-weight:600}
+@media print{#tLand,.tabs{display:none!important}#tSite{display:block!important}#landPrint.on{display:block;break-before:page}}
 @media print{header,.noprint{display:none!important}.card{box-shadow:none;break-inside:avoid}}
 .acw{position:relative}
 .acl{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:1000;margin:0;padding:6px;list-style:none;background:var(--sheet);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.14);max-height:320px;overflow:auto}
@@ -67,6 +70,9 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   </form>
 
   <div id="res" hidden>
+    <div class="tabs noprint" id="tabs" role="group" aria-label="결과 보기"><button type="button" data-t="site" aria-pressed="true">입지 검토</button><button type="button" data-t="land" aria-pressed="false">땅의 가치</button><span class="sp"></span><button class="btn s" type="button" id="repAll">보고서 한 번에 출력</button></div>
+    <div id="tLand" hidden><iframe id="landF" title="땅의 가치 결과"></iframe></div>
+    <div id="tSite">
     <section class="card verdict rep" id="vcard">
       <h2>태양광 발전사업 입지검토 요약</h2>
       <p class="sub" id="ttl"></p><p class="sub noprint" id="elinks" style="margin:2px 0 6px"></p>
@@ -102,6 +108,8 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
       <p class="sub">면적은 필지 경계(연속지적도) 기준으로 계산해 토지대장 면적과 조금 다를 수 있습니다. </p>
     <h2>데이터·기준</h2><div class="sub" id="src"></div>
       <p class="noprint"><button class="btn s" type="button" id="csv">CSV 받기</button> <button class="btn s" type="button" onclick="print()">인쇄·PDF</button></p></details>
+    </div>
+    <section class="card" id="landPrint"></section>
   </div>
   </section>
 </main>
@@ -146,10 +154,27 @@ details.more>summary{cursor:pointer;font-weight:800;font-size:16.5px}details.mor
   function stepsDone(){clearInterval(TT);T0=0;$("steps").hidden=true}
   function go(){var t=$("addr").value.trim();if(!t){$("m").textContent="지번을 입력하세요";return}$("m").textContent="";$("go").disabled=true;
     if(!EMB)try{history.replaceState(null,"","?addr="+encodeURIComponent(t))}catch(e){}
-    Screen.run(t,prog).then(function(d){stepsDone();D=d;try{window.PICK_SET&&PICK_SET(d.P)}catch(_){}veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
+    Screen.run(t,prog).then(function(d){stepsDone();D=d;try{window.PICK_SET&&PICK_SET(d.P)}catch(_){}veg2="";vegP=d.P.map(function(){return ""});$("res").hidden=false;if(map)map._fit=0;vegUI();redo();landLoad(t);$("pt").textContent=d.miss.length?"찾지 못한 지번: "+d.miss.join(", "):"";$("pg").hidden=true;
       if(!EMB)setTimeout(function(){$("res").scrollIntoView({behavior:"smooth"})},50)})
     .catch(function(e){stepsDone();$("m").textContent=e.message;$("pg").hidden=true;$("pt").textContent=""}).then(function(){$("go").disabled=false})}
 
+  /* 땅의 가치 탭: land.html을 embed 모드로 끼워 같은 지번을 바로 조회(고객 기록은 남기지 않음) */
+  var LANDQ="";
+  function landLoad(t){if(EMB){$("tabs").hidden=true;return}LANDQ=t;$("landF").src="land.html?embed=1&addr="+encodeURIComponent(t);$("landPrint").classList.remove("on")}
+  function tab(k){Array.prototype.forEach.call(document.querySelectorAll("#tabs [data-t]"),function(b){b.setAttribute("aria-pressed",String(b.dataset.t===k))});$("tSite").hidden=k!=="site";$("tLand").hidden=k!=="land";if(k==="site"&&map){map._fit=0;setTimeout(drawMap,30)}}
+  Array.prototype.forEach.call(document.querySelectorAll("#tabs [data-t]"),function(b){b.addEventListener("click",function(){tab(b.dataset.t)})});
+  window.addEventListener("message",function(e){if(e.origin===location.origin&&e.data&&e.data.landH)$("landF").style.height=(e.data.landH+20)+"px"});
+  function landDoc(){try{var d=$("landF").contentDocument;var r=d&&d.getElementById("rep");return r&&getComputedStyle(r).display!=="none"&&d.getElementById("rnums").children.length?d:null}catch(e){return null}}
+  function landSheet(d){var P=$("landPrint");P.innerHTML="";var T=function(x){return (x&&x.textContent||"").replace(/\s+/g," ").trim()};
+    P.appendChild(el("h2",null,"땅의 가치 요약"));P.appendChild(el("p","sub",T(d.getElementById("raddr"))+" · "+Array.prototype.map.call(d.querySelectorAll("#rtags > *"),T).join(" · ")));
+    var tb=el("table");function row(a,b){var tr=el("tr");tr.appendChild(el("th",null,a));tr.appendChild(el("td",null,b));tb.appendChild(tr)}
+    var dts=d.querySelectorAll("#rnums dt");Array.prototype.forEach.call(dts,function(dt){row(T(dt),T(dt.nextElementSibling))});
+    var tr=d.getElementById("rtrd");if(tr&&!tr.hidden){var li=Array.prototype.slice.call(d.querySelectorAll("#rtrdl li"),0,5).map(T);row("주변 실거래가",T(d.getElementById("rtrdh"))+(li.length?" / "+li.join(" / "):""))}
+    var ak=d.getElementById("rask");if(ak&&!ak.hidden&&T(ak))row("호가 비교",T(ak));
+    Array.prototype.forEach.call(d.querySelectorAll("#rquick .q"),function(q){row(T(q.querySelector("b")),T(q.querySelector(".v"))+" — "+T(q.querySelector(".s")))});
+    P.appendChild(tb);P.appendChild(el("p","sub","공시지가·실거래가는 국토교통부 공개 자료 기준이며 감정가·시세와 다를 수 있습니다. 개발 판정은 용도지역 기준 1차 검토입니다."));P.classList.add("on")}
+  $("repAll").addEventListener("click",function(){var b=this,n=0;tab("site");b.disabled=true;b.textContent="땅의 가치 불러오는 중…";
+    (function wait(){var d=landDoc();if(d||n>60){b.disabled=false;b.textContent="보고서 한 번에 출력";if(d)landSheet(d);else{var P=$("landPrint");P.innerHTML="<h2>땅의 가치 요약</h2><p class=\"sub\">땅의 가치 결과를 받지 못해 이번 출력에는 빠졌습니다. 땅의 가치 탭에서 결과가 나온 뒤 다시 출력해 주세요.</p>";P.classList.add("on")}setTimeout(function(){print()},150);return}n++;setTimeout(wait,500)})()});
   function vegUI(){var V=$("veg");V.innerHTML="";var has2=D.cells.some(function(c){return c.e==="2"&&c.v!=="1"&&c.v!=="3"});
     function sel(lbl,opts,val,on){var l=el("label");l.appendChild(el("span",null,lbl));var s=el("select");opts.forEach(function(o){var op=el("option",null,o[1]);op.value=o[0];s.appendChild(op)});s.value=val;s.addEventListener("change",function(){on(s.value);redo()});l.appendChild(s);V.appendChild(l)}
     if(has2)sel("생태자연도 2등급 구간",[["","자동(군락명으로 추정)"],["3+","Ⅲ등급 이상"],["4","Ⅳ등급"]],veg2,function(v){veg2=v});

@@ -228,7 +228,10 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   .talk form{grid-template-columns:1fr}
   .sheet,.talk{padding:22px 18px}
 }
+html.emb header.top,html.emb form.ask,html.emb .talk,html.emb footer,html.emb #moreb,html.emb .foot-d{display:none!important}
+html.emb #rmore{display:block!important}html.emb body{background:transparent}html.emb main.w{padding-top:0}
 </style>
+<script>if(/[?&]embed=1\b/.test(location.search))document.documentElement.classList.add("emb")</script>
 </head><body>
 <header class="top"><div class="w">
   <div class="bar">
@@ -448,6 +451,7 @@ footer{padding:20px 0 40px;border-top:1px solid var(--rule);font-size:13.5px;col
   function dbg(t){if(!DBG)return;var d=document.getElementById("dbg");if(!d){d=document.createElement("div");d.id="dbg";d.style.cssText="position:fixed;left:8px;bottom:8px;z-index:9999;background:#000;color:#0f0;font:12px monospace;padding:6px 8px;border-radius:6px;max-width:90vw;max-height:45vh;overflow:auto;white-space:pre-wrap;word-break:break-all";document.body.appendChild(d)}d.textContent=(d.textContent?d.textContent+"\n":"")+t}
   if(DBG)setTimeout(function(){dbg("설정 endpoint: "+(CFG.endpoint?CFG.endpoint.slice(0,48)+"…":"(비어 있음)"))},500);
   function send(payload){
+    if(document.documentElement.classList.contains("emb"))return Promise.resolve(false); /* 부지검토 안에 끼워 볼 때는 고객 기록 안 남김 */
     if(!CFG.endpoint){dbg("기록 안 보냄: endpoint 비어 있음");return Promise.resolve(false)}
     dbg("기록 보내는 중: "+payload.type);
     payload.ts=new Date().toISOString();payload.page=location.href;
@@ -859,6 +863,7 @@ $("tmsg").textContent=a?"지번을 복사했습니다. 카카오톡 대화창에
   $("moreb").addEventListener("click",function(){var m=$("rmore"),o=m.hidden;m.hidden=!o;this.textContent=o?"자세한 분석 접기":"자세한 분석 보기";this.setAttribute("aria-expanded",String(o));
     if(o&&MAP&&MAP._bfPoly)setTimeout(function(){MAP.invalidateSize();MAP.fitBounds(MAP._bfPoly.getBounds(),{padding:[30,30],maxZoom:18})},50);
     if(o)m.scrollIntoView({behavior:"smooth",block:"start"})});
+  if(document.documentElement.classList.contains("emb")&&parent!==window){var pH=0;setInterval(function(){var h=document.documentElement.scrollHeight;if(h!==pH){pH=h;try{parent.postMessage({landH:h},location.origin)}catch(e){}}},600)}
   window.addEventListener("beforeprint",function(){if(MAP&&MAP._bfPoly){MAP.invalidateSize()}});
   $("again").addEventListener("click",function(){$("rep").style.display="none";$("addr").value="";window.scrollTo({top:0,behavior:"smooth"});setTimeout(function(){$("addr").focus()},400)});
 })();
