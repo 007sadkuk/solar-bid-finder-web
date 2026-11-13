@@ -137,7 +137,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     <section class="card">
       <h2>지도</h2>
       <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/신중/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="md" aria-pressed="false">모듈 배치</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
-      <div id="map"></div><div class="lg" id="lg"></div>
+      <div id="map"></div><div class="lg" id="lg"></div><p class="noprint" style="margin:10px 0 0"><button class="btn s" type="button" id="t3d">⛰ 3D 지형으로 보기</button> <span class="sub">땅 모양과 경사를 입체로 돌려 볼 수 있습니다</span></p>
       <p class="sub" id="shiftNote"></p>
     </section>
     <section class="card rep" id="rep2"></section>
@@ -160,6 +160,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
 <script src="screen-rules.js?v=20261113c"></script>
+<script src="terrain3d.js?v=20261113a"></script>
 <script src="screen.js?v=20261113c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -392,6 +393,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
+  $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
   $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
   function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
     [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],
