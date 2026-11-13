@@ -160,7 +160,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
 <script src="screen-rules.js?v=20261109c"></script>
-<script src="screen.js?v=20261109c"></script>
+<script src="screen.js?v=20261113a"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -297,8 +297,8 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       [/농업진흥구역/,"우량 농지(농업진흥구역)라 법으로 땅 위 태양광이 막혀 있습니다(건물 지붕형만 가능)."],
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
-    why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15|^산지 평균/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
-    var SL=S.steepLeft||0;if(stP>=0.3&&SL>=T*0.05)L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상입니다. 그중 숲이 아닌 부분("+py(SL)+")은 환경청 지침상 회피 대상은 아니지만, 산림과 붙은 20도 이상 경작지는 신중검토 대상이고 깎고 메우는 공사비가 큽니다. 군 조례의 개발행위허가 경사 기준도 확인해야 합니다.");
+    why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
+    var SL=S.steepLeft||0;if(stP>=0.3&&SL>=T*0.05)L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상입니다. 그중 숲이 아닌 부분("+py(SL)+")은 환경청 지침상 회피 대상은 아니지만, 시·군 조례의 개발행위허가 경사 기준을 넘으면 허가가 안 나므로 기준을 확인하기 전까지 「신중검토」로 분류했습니다. 깎고 메우는 공사비도 큽니다.");
     else if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다.");
     var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
     if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
@@ -311,7 +311,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   function head(){var P=D.P,S=J.sum;try{eumLinks()}catch(e){}$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
     $("meta").textContent="조회 "+D.at.toLocaleString("ko-KR");
     var tiny=S.verdict==="소규모 가능"&&LAY&&!LAY.tables,vb=$("vbig");var hz9=J.rows.some(function(r){return r.id==="s9"&&/^주의/.test(r.v)}),zN=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s8")&&/^주의/.test(r.v)}).length,live=!tiny&&S.verdict!=="불가";var onlyCau=!tiny&&S.cau&&(S.ok-S.cau)<330&&S.verdict!=="불가";if(onlyCau)tiny=true;vb.textContent=(onlyCau?"태양광 어려움(협의가 필요한 땅만 남음)":tiny?"태양광 어려움(땅이 좁음)":"태양광 "+S.verdict)+(live&&hz9?" · 재해지구 협의 필요":"")+(live&&zN?" · 확인할 지구 "+zN+"건":"");vb.className="vbig "+(S.verdict==="가능"&&!hz9&&!zN?"g":S.verdict==="불가"||tiny?"r":"y");try{boss(tiny)}catch(e){$("vboss").textContent=""}try{if(LITE)liteT()}catch(e){$("vlite").textContent=""}
-    $("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)";$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
+    var CA0=Math.min(S.cau||0,S.ok||0);$("vok").textContent="설치 가능 면적 "+n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)"+(CA0>=1?" — 확실 "+n(S.ok-CA0)+" · 신중검토 "+n(CA0):"");$("vbar").style.width=(S.total?S.ok/S.total*100:0)+"%";
     $("vgrid").textContent=S.grid;var vl=$("vlay");if(vl)vl.textContent=layTxt();
     var s1=J.rows.filter(function(r){return r.id==="s1"})[0],sd=String(P[0].pnu).slice(0,2),ag=(R.eiaAgency||{})[sd]||"관할 유역·지방환경청";
     $("vseia").textContent=s1?(/^대상$/.test(s1.v)?"대상 — 협의기관: "+ag+" (시군이 협의 요청). "+s1.d:/^대상 아님/.test(s1.v)?"대상 아님 — "+s1.d:"도시지역 — 시군 확인 ("+s1.d+")"):"-";
