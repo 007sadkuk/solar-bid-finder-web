@@ -73,7 +73,7 @@
       function setH(x) { for (var k = 0; k < nx * ny; k++) pos.setZ(k, (h[k] - mn) * x); pos.needsUpdate = true; geo.computeVertexNormals(); }
       setH(2); var mesh = new THREE.Mesh(geo, mat); mesh.rotation.x = -Math.PI / 2; scene.add(mesh);
       scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 1.1)); var sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(-span * .4, span, span * .6); scene.add(sun);
-      cam.position.set(0, span * .75, span * .95); var ctl = new OC(cam, renderer.domElement); ctl.target.set(0, (mxh - mn), 0); ctl.enableDamping = true; ctl.maxPolarAngle = Math.PI * .49; ctl.update();
+      cam.position.set(span * .35, span * .38, span * .85); var ctl = new OC(cam, renderer.domElement); ctl.target.set(0, (mxh - mn), 0); ctl.enableDamping = true; ctl.maxPolarAngle = Math.PI * .49; ctl.update();
       var cache = {}; function mode(m) { mat.map = cache[m] || (cache[m] = tex(m)); mat.needsUpdate = true; root.querySelector("#t3lg").innerHTML = LG[m] + "<br><span style='opacity:.75;font-size:12px'>표고: Mapzen Terrarium(원자료 약 30m 해상도, 국토지리정보원 5m DEM 아님) · 판정 경사는 산림청 10m 격자 · 마우스 왼쪽 드래그 회전, 휠 확대, 오른쪽 드래그 이동 · 고저차 " + Math.round(mxh - mn) + "m</span>";
         root.querySelectorAll("#t3m button").forEach(function (x) { x.style.background = x.dataset.t === m ? "#fff" : "#1b1e23"; x.style.color = x.dataset.t === m ? "#111" : "#fff"; }); }
       root.querySelectorAll("#t3m button").forEach(function (x) { x.onclick = function () { mode(x.dataset.t); }; });
