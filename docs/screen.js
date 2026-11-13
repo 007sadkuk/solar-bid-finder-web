@@ -586,9 +586,9 @@
     if (!ecoOK) cf.items.push({ t: "생태자연도 조회 실패", how: "다시 검토하거나 에코뱅크에서 직접 확인" });
     cf.items.push({ t: "보호종 서식지·철새도래지", how: "공개 자료로는 확인 불가 → 소규모환평 현지조사(동진)로 확인" });
     cf.items.push({ t: "기맥·지맥 능선", how: "정맥만 자동 확인 → 산림청 산줄기 지도로 확인" });
-    var cauA = 0, steepFarm = 0, steepAll = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) steepFarm += a; } });
+    var cauA = 0, steepFarm = 0, steepAll = 0, sfb = [0, 0, 0]; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) { steepFarm += a; sfb[c.s < 20 ? 0 : c.s < 25 ? 1 : 2] += a; } } });
     if (steepFarm >= 1) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
-    var sum = { cau: Math.round(cauA), steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var sum = { cau: Math.round(cauA), steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
