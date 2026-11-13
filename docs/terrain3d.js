@@ -58,13 +58,17 @@
       function tex(mode) { var c = document.createElement("canvas"); c.width = TW; c.height = TH; var g = c.getContext("2d");
         if (mode === "slope") { var sc = document.createElement("canvas"); sc.width = nx; sc.height = ny; var sg = sc.getContext("2d"), im = sg.createImageData(nx, ny);
           for (var k = 0; k < nx * ny; k++) { var col = slopeCol(sl[k]); im.data[k * 4] = col[0]; im.data[k * 4 + 1] = col[1]; im.data[k * 4 + 2] = col[2]; im.data[k * 4 + 3] = 255; }
-          sg.putImageData(im, 0, 0); g.globalAlpha = 1; g.drawImage(sat, 0, 0); g.globalAlpha = .72; g.imageSmoothingEnabled = true; g.drawImage(sc, 0, 0, TW, TH); g.globalAlpha = 1; }
+          sg.putImageData(im, 0, 0); g.globalAlpha = 1; g.drawImage(sat, 0, 0); g.globalAlpha = .55; g.imageSmoothingEnabled = true; g.drawImage(sc, 0, 0, TW, TH); g.globalAlpha = 1;
+          // 필지 안은 판정에 쓴 경사(산림청 10m 격자 등, c.s)로 덮어 결과 화면과 같은 값이 보이게
+          var pc = document.createElement("canvas"); pc.width = D.nx; pc.height = D.ny; var pg = pc.getContext("2d"), pi = pg.createImageData(D.nx, D.ny);
+          D.cells.forEach(function (cl) { if (cl.s === null || cl.s === undefined) return; var col = slopeCol(cl.s), ii = ((D.ny - 1 - cl.iy) * D.nx + cl.ix) * 4; pi.data[ii] = col[0]; pi.data[ii + 1] = col[1]; pi.data[ii + 2] = col[2]; pi.data[ii + 3] = 235; });
+          pg.putImageData(pi, 0, 0); var q0 = toPx(b[0] + sh.dx, b[1] + sh.dy + D.ny * D.dlat), q1 = toPx(b[0] + sh.dx + D.nx * D.dlon, b[1] + sh.dy); g.imageSmoothingEnabled = false; g.drawImage(pc, q0[0], q0[1], q1[0] - q0[0], q1[1] - q0[1]); }
         else { g.drawImage(sat, 0, 0);
           if (mode === "st") { var cc = document.createElement("canvas"); cc.width = D.nx; cc.height = D.ny; var cg = cc.getContext("2d"), ci = cg.createImageData(D.nx, D.ny);
             D.cells.forEach(function (cl) { var col = o.cellColor(cl); if (!col) return; var ii = ((D.ny - 1 - cl.iy) * D.nx + cl.ix) * 4; ci.data[ii] = col[0]; ci.data[ii + 1] = col[1]; ci.data[ii + 2] = col[2]; ci.data[ii + 3] = 175; });
             cg.putImageData(ci, 0, 0); var p0 = toPx(b[0] + sh.dx, b[1] + sh.dy + D.ny * D.dlat), p1 = toPx(b[0] + sh.dx + D.nx * D.dlon, b[1] + sh.dy); g.imageSmoothingEnabled = false; g.drawImage(cc, p0[0], p0[1], p1[0] - p0[0], p1[1] - p0[1]); } }
         outline(g); var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }
-      var LG = { sat: "위성사진(브이월드) · 흰 선: 검토 필지", slope: "경사: <span style='color:#2e7d32'>■</span>5°미만 <span style='color:#8bc34a'>■</span>5–10° <span style='color:#ffeb3b'>■</span>10–15° <span style='color:#ff9800'>■</span>15–20° <span style='color:#e53935'>■</span>20–25° <span style='color:#8c1414'>■</span>25°이상", st: "<span style='color:#2ea05a'>■</span> 확실히 가능 <span style='color:#f3c623'>■</span> 신중검토 <span style='color:#b3261e'>■</span> 설치 불가" };
+      var LG = { sat: "위성사진(브이월드) · 흰 선: 검토 필지", slope: "경사: <span style='color:#2e7d32'>■</span>5°미만 <span style='color:#8bc34a'>■</span>5–10° <span style='color:#ffeb3b'>■</span>10–15° <span style='color:#ff9800'>■</span>15–20° <span style='color:#e53935'>■</span>20–25° <span style='color:#8c1414'>■</span>25°이상<br><span style='font-size:12px'>필지 안(진한 색): 판정에 쓴 경사(산림청 10m 격자)와 같은 값 · 필지 밖(옅은 색): 표고로 계산한 참고값</span>", st: "<span style='color:#2ea05a'>■</span> 확실히 가능 <span style='color:#f3c623'>■</span> 신중검토 <span style='color:#b3261e'>■</span> 설치 불가" };
       // 장면
       var el = root, W = innerWidth, Hh = innerHeight, renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.setSize(W, Hh); root.appendChild(renderer.domElement);
       var scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d0f12);
