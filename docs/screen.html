@@ -136,7 +136,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     </section>
     <section class="card">
       <h2>지도</h2>
-      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="md" aria-pressed="false">모듈 배치</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
+      <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/신중/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="md" aria-pressed="false">모듈 배치</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
       <div id="map"></div><div class="lg" id="lg"></div>
       <p class="sub" id="shiftNote"></p>
     </section>
@@ -331,7 +331,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 
   var COL={st:{2:[179,38,30],1:[224,140,0],3:[110,110,200],0:null},e:{"1":[0,90,40],"2":[60,170,80],"3":[200,220,120],"9":[150,90,200]},z:{}};
   var ZC=[[66,133,244],[219,68,55],[244,180,0],[15,157,88],[171,71,188],[0,172,193]];
-  function cellColor(c){if(MODE==="md")return c.no?[179,38,30]:[245,222,150];if(MODE==="st")return c.no?[179,38,30]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
+  function cellColor(c){if(MODE==="md")return c.no?[179,38,30]:c.st===1?[243,198,35]:[245,222,150];if(MODE==="st")return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90];if(MODE==="e")return c.e?COL.e[c.e]||[120,120,120]:null;
     if(MODE==="s"){if(c.s===null)return null;var s=c.s;return s<5?[46,125,50]:s<10?[139,195,74]:s<15?[255,235,59]:s<20?[255,193,7]:s<25?[255,111,0]:s<30?[229,57,53]:[183,28,28]}
     if(MODE==="k"){if(!c.kg)return null;return [[38,115,0],[152,230,0],[230,230,0],[230,152,0],[230,0,0]][c.kg-1]}
     if(MODE==="h"){if(c.hz==null)return null;return [[183,28,28],[229,57,53],[255,152,0],[255,235,59],[139,195,74]][c.hz-1]}
@@ -385,7 +385,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
     if(MODE==="md"&&LAY){LAY.T.forEach(function(t){var lo0=b[0]+sh.dx+t.x/D.kx,lo1=b[0]+sh.dx+(t.x+LAY.TW)/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+LAY.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:t.small?"#7f5fd0":"#1f4fa8",weight:1,fillColor:t.small?"#a68cf0":"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
-    var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능",[245,222,150]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["설치 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
+    var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능",[245,222,150]],["신중검토(협의·조례 기준에 달림)",[243,198,35]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["신중검토(협의·조례 기준에 달림)",[243,198,35]],["확실히 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     if(MODE==="md"&&LAY){var lt=el("span",null,"테이블 "+LAY.tables+"개 → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp");lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild)}
