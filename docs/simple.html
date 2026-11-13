@@ -65,7 +65,7 @@ ul{margin:6px 0 0;padding-left:20px}
     $("go").disabled=true;$("msg").textContent="검토 중입니다(20초~1분)…";$("res").hidden=true;
     try{var D=await Screen.run(t,function(){});var J=Screen.judge(D,"",D.P.map(function(){return ""}),{biz:"general"}),S=J.sum,T=S.total||1;
       var sure=Math.max(0,(S.ok||0)-Math.min(S.cau||0,S.ok||0)),kw=Math.round(sure/15/10)*10,vd,cls;
-      if(S.verdict==="불가"||sure<1650){vd="어려움";cls="r"}else if(sure>=3300&&sure/T>=0.3){vd="가능";cls="g"}else{vd="일부 가능";cls="y"}
+      if(S.verdict==="불가"||sure<1650){vd="어려움";cls="r"}else if(S.verdict==="가능"){vd="가능";cls="g"}else{vd="일부 가능";cls="y"} /* 상세 입지검토와 같은 판정 */
       $("ttl").textContent=(D.P.length===1?D.P[0].addr:D.P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+D.P.map(function(p){return p.jibun}).join(", "))+" · "+py(T);
       $("vd").textContent="태양광 "+vd;$("vd").className="big "+cls;
       $("one").innerHTML=vd==="어려움"?"놓을 수 있는 땅이 거의 없습니다.":"놓을 수 있는 땅 약 <b>"+py(sure)+"</b> (대략 "+kw.toLocaleString()+"kW)";
