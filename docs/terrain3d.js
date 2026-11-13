@@ -29,6 +29,7 @@
       + '<span id="t3m" style="display:flex;gap:6px;flex-wrap:wrap"><button data-t="sat">위성사진</button><button data-t="slope">경사도</button><button data-t="st">설치 가능/신중/불가</button></span>'
       + '<label style="margin-left:6px">높이 과장 <select id="t3x"><option value="1">1배(실제)</option><option value="1.5">1.5배</option><option value="2" selected>2배</option><option value="3">3배</option></select></label>'
       + '<span style="flex:1"></span><button id="t3c">닫기 ✕</button></div>'
+      + '<div id="t3n" title="누르면 북쪽이 위로 오게 돌립니다" style="position:absolute;right:16px;top:70px;z-index:2;width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid #666;cursor:pointer"><svg id="t3na" viewBox="0 0 64 64" width="64" height="64"><polygon points="32,8 40,34 32,29 24,34" fill="#ff4b3e"/><polygon points="32,56 40,34 32,39 24,34" fill="#ddd"/><text x="32" y="7" text-anchor="middle" font-size="0" fill="#fff"></text></svg><b style="position:absolute;left:0;right:0;top:-20px;text-align:center;font-size:13px">북(N)</b></div>'
       + '<div id="t3lg" style="position:absolute;left:12px;bottom:12px;z-index:2;background:rgba(0,0,0,.6);padding:8px 12px;border-radius:10px;max-width:calc(100% - 24px)"></div>'
       + '<div id="t3msg" style="position:absolute;inset:0;display:grid;place-items:center;z-index:1">지형을 불러오는 중…</div>';
     document.body.appendChild(root);
@@ -84,7 +85,8 @@
       root.querySelector("#t3x").onchange = function () { setH(+this.value); };
       mode(o.start || "st"); root.querySelector("#t3msg").remove();
       UI.renderer = renderer; UI.onRes = function () { var w = innerWidth, hh = innerHeight; renderer.setSize(w, hh); cam.aspect = w / hh; cam.updateProjectionMatrix(); }; window.addEventListener("resize", UI.onRes);
-      (function loop() { if (!UI) return; UI.raf = requestAnimationFrame(loop); ctl.update(); renderer.render(scene, cam); })();
+      var na = root.querySelector("#t3na"); root.querySelector("#t3n").onclick = function () { var d = cam.position.clone().sub(ctl.target), r = Math.sqrt(d.x * d.x + d.z * d.z); cam.position.set(ctl.target.x, cam.position.y, ctl.target.z + r); ctl.update(); };
+      (function loop() { if (!UI) return; UI.raf = requestAnimationFrame(loop); ctl.update(); na.style.transform = "rotate(" + (ctl.getAzimuthalAngle() * 180 / Math.PI).toFixed(1) + "deg)"; renderer.render(scene, cam); })();
     } catch (e) { var m = root.querySelector("#t3msg"); if (m) m.textContent = "3D 지형을 만들지 못했습니다: " + (e && e.message || e); }
   }
   window.Terrain3D = { open: open, close: close };
