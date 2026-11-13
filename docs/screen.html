@@ -159,8 +159,8 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
-<script src="screen-rules.js?v=20261109c"></script>
-<script src="screen.js?v=20261113b"></script>
+<script src="screen-rules.js?v=20261113c"></script>
+<script src="screen.js?v=20261113c"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -298,7 +298,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
     why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
-    var SL=S.steepLeft||0,SB=S.steepLeftBins||[0,0,0];if(SL>=T*0.05){var hasSan=why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])});L.push((hasSan?"산(임야)은 경사 15도 기준(산지관리법·환경청 지침)으로 이미 뺐습니다. ":"")+"남은 땅 중 숲이 아닌 곳(과수원·밭·논 등) "+py(SL)+"가 경사 15도 이상입니다(15~20도 "+py(SB[0])+" · 20~25도 "+py(SB[1])+" · 25도 이상 "+py(SB[2])+"). 15도 기준은 산에만 적용돼 이 땅이 바로 막히지는 않지만, 시·군 조례의 개발행위허가 경사 기준을 넘으면 허가가 안 납니다. 그래서 기준을 확인하기 전까지 「조건부」로 봤습니다. 허가가 나더라도 깎고 메우는 토목비가 커서 사업성이 떨어질 수 있습니다.")}
+    var SL=S.steepLeft||0,SB=S.steepLeftBins||[0,0,0];if(SL>=T*0.05){var hasSan=why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])});L.push((hasSan?"산(임야)은 경사 15도 기준(산지관리법·환경청 지침)으로 이미 뺐습니다. ":"")+"남은 땅 중 숲이 아닌 곳(과수원·밭·논 등) "+py(SL)+"가 경사 15도 이상입니다(15~20도 "+py(SB[0])+" · 20~25도 "+py(SB[1])+" · 25도 이상 "+py(SB[2])+"). 15도 기준은 산에만 적용되고, 과수원·밭·논은 시·군 조례의 개발행위허가 경사 기준을 따릅니다. "+(S.ord?S.ord.name+" 조례("+S.ord.src+")는 평균 경사 약 "+S.ord.deg+"도(경사 "+S.ord.pct+"%) 이상을 막습니다. 이 기준이면 "+S.ord.deg+"도 미만인 "+py(Math.max(0,SL-S.ord.over))+"는 법적으로 막히지 않을 수 있고"+(S.ord.over>=3.3?", "+S.ord.deg+"도 이상인 "+py(S.ord.over)+"는 막힙니다":"")+". 다만 "+S.ord.gap+". ":"이 시·군의 경사 기준은 아직 확인하지 못했습니다. ")+"그래서 「조건부」로 봤습니다. 허가가 나더라도 깎고 메우는 토목비가 많이 들어 사업성이 떨어질 수 있습니다.")}
     else if(stP>=0.3&&!why.some(function(w){return /^경사 15|^산지 평균/.test(w[0])}))L.push("땅의 "+Math.round(stP*100)+"%가 경사 15도 이상으로 가파릅니다.");
     var ok=S.ok||0,lay=LAY&&LAY.tables?" 패널은 약 "+Math.round(LAY.kwp)+"kW 정도 놓을 수 있습니다.":"",h,cls;
     if(S.verdict==="불가"||tiny){h="한마디로: 태양광이 어렵습니다.";cls="r"}else if(S.verdict==="가능"){h="한마디로: 태양광 가능합니다.";cls="g"}else{h="한마디로: 일부만 태양광이 가능합니다.";cls="y"}
