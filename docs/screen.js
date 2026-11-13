@@ -317,6 +317,7 @@
     function slopeNote() { return fsCov > 0.95 ? "경사는 산림청 산사태위험지도 작성용 10m 경사 격자 값(서산 명천리 검증: 15° 이상 7,000㎡ vs 보고서 7,036㎡). 허가 서류의 평균경사도는 산지관리법 방식으로 따로 산정" : fsCov > 0 ? "경사 일부(" + Math.round((1 - fsCov) * 100) + "%)는 산림청 격자 값이 없어 공개 표고로 계산 [추정, 실제보다 작게 나올 수 있음]" : "[추정] 산림청 경사 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 공개 표고(약 30m)로 계산해 실제보다 작게 나올 수 있음"; }
     var ecoOK = !D.eco.err, fsCov = D.cells.length ? D.cells.filter(function (c) { return c.sf; }).length / D.cells.length : 0, demOK = !D.demErr || fsCov > 0;
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
+    var ordS0 = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, siteM = wmean(D.cells.filter(function (c) { return c.s !== null; })), ordOK = !!(ordS0 && siteM !== null && siteM < ordS0.deg);
     D.cells.forEach(function (c) { var v = vegOf(c), st = 0, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
       else if (R.kei && c.kg === R.kei.avoid) st = 2; // 국토환경성평가 1등급(동진 검토·환경청 협의 실무 기준)
@@ -326,7 +327,7 @@
       else if (steep && v.ge4 === null) st = 3;
       else if (c.e === "2" && v.ge3 === false && v.ge4 === true && c.s !== null && c.s < S.avoid) st = 1;
       else if (/^(전|답|과)$/.test(P[c.p].jcode) && D.forestNb[c.p] && c.s !== null && c.s >= S.crop) st = 1;
-      else if (steep) st = 1; // 숲 아닌 15° 이상 땅: 환경청 회피 대상은 아니나 시군 조례 개발행위허가 경사 기준을 모르므로 "확실"에서 뺌(보수적)
+      else if (steep && !ordOK) st = 1; // 조례 경사 기준을 모르거나 부지 평균이 기준 이상이면 신중. 기준 확인+평균 미만이면 법적으로 막히지 않음(토목비 문구로 안내) // 숲 아닌 15° 이상 땅: 환경청 회피 대상은 아니나 시군 조례 개발행위허가 경사 기준을 모르므로 "확실"에서 뺌(보수적)
       c.st = st; c.vg = v; });
 
     var ned = {}; P.forEach(function (p, i) { (Array.isArray(p.ned) ? p.ned : []).forEach(function (x) { var k = x[0]; (ned[k] = ned[k] || []).push({ i: i, c: x[1] }); }); });
@@ -587,8 +588,9 @@
     cf.items.push({ t: "보호종 서식지·철새도래지", how: "공개 자료로는 확인 불가 → 소규모환평 현지조사(동진)로 확인" });
     cf.items.push({ t: "기맥·지맥 능선", how: "정맥만 자동 확인 → 산림청 산줄기 지도로 확인" });
     var cauA = 0, steepFarm = 0, steepAll = 0, sfb = [0, 0, 0], ordS = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, ordOver = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) { steepFarm += a; sfb[c.s < 20 ? 0 : c.s < 25 ? 1 : 2] += a; if (ordS && c.s >= ordS.deg) ordOver += a; } } });
-    if (steepFarm >= 1) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
-    var sum = { cau: Math.round(cauA), steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, pct: ordS.pct, src: ordS.src, gap: ordS.gap, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 시행령 개정(2026.9.18 시행, 보도 기준)으로 이격 상한·도로 이격 폐지가 적용되는지 시 허가부서 확인");
+    if (steepFarm >= 1 && !ordOK) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
+    var sum = { cau: Math.round(cauA), steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
