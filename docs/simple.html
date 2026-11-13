@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>태양광 부지 간단 검토</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#222;font:16px/1.6 "Pretendard Variable",Pretendard,system-ui,sans-serif}
+header{background:#1f3b63;color:#fff;padding:16px 0}header h1{margin:0;font-size:21px}
+.w{max-width:760px;margin:0 auto;padding:0 14px}
+.box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:16px;margin:14px 0}
+textarea{width:100%;font:inherit;padding:8px;border:1px solid #bbb;border-radius:6px;min-height:60px}
+button{font:inherit;padding:8px 16px;border:1px solid #1f3b63;background:#1f3b63;color:#fff;border-radius:6px;cursor:pointer}
+button.s{background:#fff;color:#1f3b63}button:disabled{opacity:.5}
+#map{height:360px;border-radius:6px;margin-top:10px}
+.sub{color:#666;font-size:14px}
+.big{font-size:26px;font-weight:800;margin:4px 0}.g{color:#1b7f3b}.y{color:#b26a00}.r{color:#c0392b}
+table{width:100%;border-collapse:collapse;margin-top:8px}td,th{border-bottom:1px solid #eee;padding:8px 4px;text-align:left;font-size:15px}th{width:40%;color:#555;font-weight:600}
+ul{margin:6px 0 0;padding-left:20px}
+</style>
+</head><body>
+<header><div class="w"><h1>태양광 부지 간단 검토</h1><div style="font-size:13px;opacity:.8">금호테크닉스</div></div></header>
+<main class="w">
+  <div class="box">
+    <b>지번</b>
+    <textarea id="addr" placeholder="예) 경상북도 영주시 봉현면 노좌리 341, 334, 401"></textarea>
+    <div class="sub">여러 필지는 쉼표로 번지만 이어 적습니다. 지도에서 땅을 눌러도 들어갑니다.</div>
+    <div style="margin-top:8px"><button id="go">검토</button> <button class="s" id="tog">지도에서 고르기</button> <button class="s" id="clr">지우기</button> <span class="sub" id="msg"></span></div>
+    <div id="map" hidden></div>
+  </div>
+  <div class="box" id="res" hidden>
+    <div class="sub" id="ttl"></div>
+    <div class="big" id="vd"></div>
+    <div id="one"></div>
+    <table id="tb"></table>
+    <p class="sub" style="margin:10px 0 0">공공데이터로 본 간단 검토입니다. 허가 여부를 확정하는 것이 아니며, 실제 사업 전에는 상세 입지검토가 필요합니다.</p>
+  </div>
+</main>
+<script src="core.js?v=20261029c"></script>
+<script src="vwkey.js"></script>
+<script src="site-config.js?v=20261030a"></script>
+<script src="geo.js?v=20261112a"></script>
+<script src="screen-rules.js?v=20261113f"></script>
+<script src="screen.js?v=20261113f"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  function py(m){return Math.round(m/3.3058).toLocaleString()+"평"}
+  /* 지도에서 고르기 */
+  var M=null,SEL={},LY=null;
+  function list(){var ks=Object.keys(SEL);if(!ks.length){$("addr").value="";return}var a=ks.map(function(k){return SEL[k].addr});
+    var head=a[0],pre=head.replace(/\s(산\s?)?[\d-]+$/,"");$("addr").value=head+a.slice(1).map(function(x){return x.indexOf(pre+" ")===0?", "+x.slice(pre.length+1):"\n"+x}).join("")}
+  $("tog").onclick=function(){var m=$("map");m.hidden=!m.hidden;if(!m.hidden&&!M){var k=BFGeo.getKey();M=L.map("map").setView([36.3,128.6],9);
+    if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19}).addTo(M);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(M)}
+    LY=L.layerGroup().addTo(M);M.on("click",async function(e){if(M.getZoom()<16){$("msg").textContent="지도를 더 확대한 뒤 눌러 주세요.";return}$("msg").textContent="필지 찾는 중…";
+      try{var p=await BFGeo.parcelAt(e.latlng.lng,e.latlng.lat);if(!p){$("msg").textContent="필지를 찾지 못했습니다.";return}
+        if(SEL[p.pnu]){LY.removeLayer(SEL[p.pnu].ly);delete SEL[p.pnu]}else SEL[p.pnu]={addr:p.addr,ly:L.polygon(p.ring,{color:"#ffd400",weight:2,fillOpacity:.25}).addTo(LY)};list();$("msg").textContent=""}catch(er){$("msg").textContent="필지 조회 실패"}})}
+    if(M)setTimeout(function(){M.invalidateSize()},50)};
+  $("clr").onclick=function(){SEL={};if(LY)LY.clearLayers();$("addr").value="";$("res").hidden=true};
+  /* 검토: 판정 엔진은 상세 입지검토와 같고, 결과만 짧게 보여줌 */
+  var CAT=[["법으로 막힌 지역(농업진흥구역·공익용산지 등)",/농업진흥|공익용|개발제한|보호구역|사방지|휴양림|국가유산|절대보전|공원|군사|도로|하천|철도|재해/],
+    ["산 경사(15도 기준)",/경사|산지 평균/],["자연환경 등급(생태자연도·국토환경성평가)",/생태|식생|국토환경성|산사태|멸종|정맥/],["주택과의 거리",/주택|이격/]];
+  $("go").onclick=async function(){var t=$("addr").value.trim();if(!t){$("msg").textContent="지번을 넣어 주세요.";return}
+    $("go").disabled=true;$("msg").textContent="검토 중입니다(20초~1분)…";$("res").hidden=true;
+    try{var D=await Screen.run(t,function(){});var J=Screen.judge(D,"",D.P.map(function(){return ""}),{biz:"general"}),S=J.sum,T=S.total||1;
+      var sure=Math.max(0,(S.ok||0)-Math.min(S.cau||0,S.ok||0)),kw=Math.round(sure/15/10)*10,vd,cls;
+      if(S.verdict==="불가"||sure<1650){vd="어려움";cls="r"}else if(sure>=3300&&sure/T>=0.3){vd="가능";cls="g"}else{vd="일부 가능";cls="y"}
+      $("ttl").textContent=(D.P.length===1?D.P[0].addr:D.P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+D.P.map(function(p){return p.jibun}).join(", "))+" · "+py(T);
+      $("vd").textContent="태양광 "+vd;$("vd").className="big "+cls;
+      $("one").innerHTML=vd==="어려움"?"놓을 수 있는 땅이 거의 없습니다.":"놓을 수 있는 땅 약 <b>"+py(sure)+"</b> (대략 "+kw.toLocaleString()+"kW)";
+      var why=S.why||[],tb=$("tb");tb.innerHTML="";
+      CAT.forEach(function(c){var a=why.filter(function(w){return c[1].test(w[0])}).reduce(function(s,w){return s+w[1]},0),tr=document.createElement("tr");
+        tr.innerHTML="<th>"+c[0]+"</th><td>"+(a>=T*0.01?"<span class='r'>걸림</span> — 땅의 "+Math.round(a/T*100)+"%":"문제 없음")+"</td>";tb.appendChild(tr)});
+      var st=document.createElement("tr"),sl=S.steepLeft||0;st.innerHTML="<th>농지 경사</th><td>"+(sl>=T*0.1?"<span class='y'>가파름</span> — 땅의 "+Math.round(sl/T*100)+"%가 15도 이상(토목비 큼)":"보통")+"</td>";tb.appendChild(st);
+      if((S.cau||0)>=T*0.05){var cu=document.createElement("tr");cu.innerHTML="<th>협의 필요</th><td><span class='y'>있음</span> — "+py(S.cau)+"은 환경청 협의 결과에 따라 달라짐</td>";tb.appendChild(cu)}
+      $("res").hidden=false;$("msg").textContent=D.miss&&D.miss.length?"찾지 못한 지번: "+D.miss.join(", "):"";$("res").scrollIntoView({behavior:"smooth"})}
+    catch(e){$("msg").textContent="검토 실패: "+(e&&e.message||e)}finally{$("go").disabled=false}};
+})();
+</script>
+</body></html>
