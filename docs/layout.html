@@ -27,7 +27,7 @@ td.hl{color:#c0392b;font-weight:800}
 .north svg{display:block;margin:0 auto 2px}
 .lgd{position:absolute;right:12px;bottom:28px;z-index:500;background:rgba(255,255,255,.94);border:1px solid #9aa3b2;border-radius:4px;padding:6px 10px;font-size:12px;line-height:1.8}
 .lgd i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:8px}
-.rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:11px;line-height:1.15;padding:2px 4px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:10.5px;line-height:1.1;padding:1px 4px;width:66px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .mapwrap{position:relative;height:calc(100vh - 92px);min-height:520px}
 .empty{padding:40px;font-size:16px}
 @media print{
@@ -96,7 +96,7 @@ td.hl{color:#c0392b;font-weight:800}
     /* 열 번호(북쪽부터) */
     var byR={};LY.T.forEach(function(t){(byR[t.r]=byR[t.r]||[]).push(t)});var rs=Object.keys(byR).map(Number).sort(function(a,b){return b-a}),lines=[];
     rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
-      L.marker(ll(xw-1.2,y),{icon:L.divIcon({className:"",html:"<div class='rowlab'>"+(i+1)+"열<br>"+n(cnt)+"장</div>",iconSize:null,iconAnchor:[46,14]}),interactive:false}).addTo(mods)});
+      L.marker(ll(xw-1.2,y),{icon:L.divIcon({className:"",html:"<div class='rowlab'>"+(i+1)+"열 "+n(cnt)+"장</div>",iconSize:null,iconAnchor:[70,8]}),interactive:false}).addTo(mods)});
     var units=LY.mods/O.rows;
     var rowsHTML=[["대상부지 면적","약 "+n(O.total)+" m²"],["배치 범위",cau&&O.L[key+"_c"]?"설치 가능 + 신중검토 구역 (협의 통과 전제)":"설치 가능(확실) 구역만 — 신중검토 "+n(O.cau)+" m² 제외"],["모듈",M.name+"<br>"+n(M.l*1000)+" × "+n(M.w*1000)+" × 30 mm"],
       ["모듈 수량","<b>"+n(LY.mods)+" 장</b>",1],["설비 용량","<b>"+n(LY.mods*M.kw,2)+" kWp</b>",1],["어레이 구성","세로(Portrait) "+O.rows+"단, 정남향"],["어레이 수",rs.length+" 열 / "+n(units)+" 조("+O.rows+"장 1조) · 테이블 "+LY.tables+"개("+O.tcol+"열 이하)"],
