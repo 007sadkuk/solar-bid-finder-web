@@ -539,8 +539,8 @@
     /* 하천·구거·도로·철도·제방 등: 지목이 그렇거나 하천구역·도로구역 등에 '포함'(필지 전체)이면 그 필지는 설치 불가. '저촉'(일부)은 경계 도면이 없어 빼지 않고 지도에 빗금으로 표시 */
     var infRe = ((R.groups || []).filter(function (g) { return g.k === "infra"; })[0] || {}).re, infP = {}, infPart = {};
     P.forEach(function (p, i) { if (/^(천|구|도|철|제|유)$/.test(p.jcode)) { infP[i] = "지목 " + p.jimok + "(설치 불가)"; return; }
-      if (infRe && Array.isArray(p.ned)) p.ned.forEach(function (x) { if (!infRe.test(x[0])) return; if (x[1] === "1" && !infP[i]) infP[i] = x[0] + " 포함(필지 전체)"; else if (x[1] === "2") (infPart[i] = infPart[i] || []).push(x[0]); }); });
-    D.infPart = infPart;
+      if (infRe && Array.isArray(p.ned)) p.ned.forEach(function (x) { if (!infRe.test(x[0]) || /^(국가하천|지방\d?급?하천|소하천)$/.test(x[0])) return; /* 하천 이름(지방1급하천 등)은 하천과 관련 있다는 표시라 범위는 「하천구역」 포함·저촉으로 판단 */ if (x[1] === "1" && !infP[i]) infP[i] = x[0] + " 포함(필지 전체)"; else if (x[1] === "2") (infPart[i] = infPart[i] || []).push(x[0]); }); });
+    D.infPart = infPart; var alsoL = {}; P.forEach(function (p, i) { if (infP[i] && legalI[i]) alsoL[legalI[i]] = (alsoL[legalI[i]] || []).concat([p.jibun]); });
     D.cells.forEach(function (c) { var r = null;
       if (infP[c.p]) r = infP[c.p];
       else if (legalI[c.p]) r = legalI[c.p];
@@ -606,7 +606,7 @@
     if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 시행령 개정(2026.9.18 시행, 보도 기준)으로 이격 상한·도로 이격 폐지가 적용되는지 시 허가부서 확인");
     if (steepFarm >= 1 && !ordOK) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
     var cauBy = { k1: 0, k2: 0, ord: 0 }; D.cells.forEach(function (c) { if (!c.no && c.st === 1 && c.cw && cauBy[c.cw] !== undefined) cauBy[c.cw] += P[c.p].cellA; });
-    var sum = { cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var sum = { whyAlso: Object.keys(alsoL).map(function (k) { return k + " (" + alsoL[k].join(", ") + ")"; }), cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
