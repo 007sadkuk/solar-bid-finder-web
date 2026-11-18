@@ -363,8 +363,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       for(var y=0;y<ny;y++)for(var x=0;x<nx;x++){var i=y*nx+x;if(!d[i])continue;if(edge){var v=Math.min(x+1,y+1,nx-x,ny-y);if(v<d[i])d[i]=v}
         if(x>0)d[i]=Math.min(d[i],d[i-1]+1);if(y>0)d[i]=Math.min(d[i],d[i-nx]+1);if(x>0&&y>0)d[i]=Math.min(d[i],d[i-nx-1]+1.414);if(x<nx-1&&y>0)d[i]=Math.min(d[i],d[i-nx+1]+1.414)}
       for(var y=ny-1;y>=0;y--)for(var x=nx-1;x>=0;x--){var i=y*nx+x;if(x<nx-1)d[i]=Math.min(d[i],d[i+1]+1);if(y<ny-1)d[i]=Math.min(d[i],d[i+nx]+1);if(x<nx-1&&y<ny-1)d[i]=Math.min(d[i],d[i+nx+1]+1.414);if(x>0&&y<ny-1)d[i]=Math.min(d[i],d[i+nx-1]+1.414)}return d}
-    var dOut=dist(function(g){return g===-1},true),dEx=dist(function(g){return g===0},false);
-    function ok(x,y){var ix=Math.floor(x/st),iy=Math.floor(y/st);if(ix<0||iy<0||ix>=nx||iy>=ny)return false;var i=iy*nx+ix;return G[i]===1&&dOut[i]*st>=MOD.set&&dEx[i]*st>=MOD.gap}
+    function g1(x,y){var ix=Math.floor(x/st),iy=Math.floor(y/st);if(ix<0||iy<0||ix>=nx||iy>=ny)return false;return G[iy*nx+ix]===1}
+    var MR=Math.max(MOD.set,MOD.gap),MD=[[1,0],[-1,0],[0,1],[0,-1],[.707,.707],[.707,-.707],[-.707,.707],[-.707,-.707]];
+    function ok(x,y){if(!g1(x,y))return false;for(var k=0;k<8;k++)if(!g1(x+MD[k][0]*MR,y+MD[k][1]*MR))return false;return true} /* 점 주변 2m(경계·제외구역 이격)까지 모두 설치 가능 칸이어야 함 */
     var SP=modSpec(),dep=SP.dep,P=SP.pitch,cw=SP.colW,W=nx*st,Hh=ny*st,R=0.25,NX=Math.floor(W/R)+1,best={n:-1};
     for(var off=0;off<P;off+=0.25){var T=[],r=0;
       for(var y0=off;y0+dep<=Hh;y0+=P,r++){var run=new Int32Array(NX+1);
