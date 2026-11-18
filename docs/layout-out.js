@@ -9,7 +9,7 @@
   function nf(v) { return Math.round(v).toLocaleString("ko-KR"); }
   function bbox(d) {
     var x0 = 1e18, y0 = 1e18, x1 = -1e18, y1 = -1e18;
-    d.rings.forEach(function (r) { r.forEach(function (v) { x0 = Math.min(x0, v[0]); y0 = Math.min(y0, v[1]); x1 = Math.max(x1, v[0]); y1 = Math.max(y1, v[1]); }); });
+    (d.rings.concat(d.exRings || [])).forEach(function (r) { r.forEach(function (v) { x0 = Math.min(x0, v[0]); y0 = Math.min(y0, v[1]); x1 = Math.max(x1, v[0]); y1 = Math.max(y1, v[1]); }); });
     return [x0, y0, x1, y1];
   }
   function summary(d) {
@@ -33,6 +33,11 @@
     // 필지
     d.rings.forEach(function (r) {
       o.push('<polygon points="' + r.map(function (v) { return X(v[0]) + "," + Y(v[1]); }).join(" ") + '" fill="#fff8d6" stroke="#9a6b00" stroke-width="0.35"/>');
+    });
+    (d.exRings || []).forEach(function (r, i) {
+      o.push('<polygon points="' + r.map(function (v) { return X(v[0]) + "," + Y(v[1]); }).join(" ") + '" fill="#eeeeee" stroke="#888" stroke-width="0.3" stroke-dasharray="2 1.2"/>');
+      var cx = 0, cy = 0; r.forEach(function (v) { cx += v[0]; cy += v[1]; }); cx /= r.length; cy /= r.length;
+      o.push('<text x="' + X(cx) + '" y="' + Y(cy) + '" font-size="3.4" text-anchor="middle" fill="#666">' + esc((d.exLabels || [])[i] || "제외") + '</text>');
     });
     // 모듈 테이블
     var dep = p.dep, tw = p.w;
@@ -68,30 +73,35 @@
       ["위치", d.addr],
       ["지번", d.jibun],
       ["대지면적", nf(d.area) + " ㎡ (" + f1(d.area / 3.3058) + "평)"],
-      ["발전방식", "태양광 · 고정형 · 정남향 · 경사각 " + p.tilt + "°"],
+      ["발전방식", "태양광 · 고정형 · 정남향 · 모듈각 " + p.tilt + "°" + (p.shade ? " · 음영각 " + p.shade + "°" : "")],
       ["모듈", f1(p.kw * 1000) + " Wp (" + Math.round(p.l * 1000) + " × " + Math.round(p.w * 1000) + " mm)"],
       ["어레이", p.st + "단 × 최대 " + p.tcol + "열 / 테이블 " + d.tables.length + "개"],
       ["설치 장수", nf(p.mods) + " 장" + (p.target ? " (목표 " + nf(p.target) + "장" + (p.maxMods < p.target ? " · 부지 한계 " + nf(p.maxMods) + "장" : "") + ")" : "")],
       ["설치 용량", f1(kwp) + " kWp (" + f1(kwp / 1000 * 1000) / 1000 + " MWp)"],
-      ["어레이 줄 간격", (p.pmin === p.pmax ? p.pmin : p.pmin + " ~ " + p.pmax) + " m (동지 오전 9시 무음영)"],
+      ["어레이 줄 간격", (p.pmin === p.pmax ? p.pmin : p.pmin + " ~ " + p.pmax) + " m (" + (p.shade ? "음영각 " + p.shade + "° 기준" : "동지 오전 9시 무음영") + ")"],
+      ["모듈 간격", Math.round((p.mg || 0) * 1000) + " mm (단 사이)"],
       ["이격", "경계 " + p.set + " m · 제외구역 " + p.gap + " m"],
-      ["비고", "입지검토 자동배치 참고도 — 지형·지장물·건축물·진입로 미반영, 실시설계 별도"]
+      ["비고", (d.note ? d.note + " " : "") + "입지검토 자동배치 참고도 — 지형·지장물·진입로 미반영, 실시설계 별도"]
     ];
-    var lh = 6.4, hh = 6.5 + rows.length * lh + 1;
+    var lh = 6.4;
+    function wrap(v, n) { var out = [], t = String(v); while (t.length > n) { out.push(t.slice(0, n)); t = t.slice(n); } out.push(t); return out; }
+    var wr = rows.map(function (r) { return wrap(r[1], 40); }), tot = 0;
+    wr.forEach(function (w) { tot += (w.length > 1 ? 3.6 * w.length + 2.8 : lh); });
+    var hh = 6.5 + tot + 1;
     box(hh, "설 계 개 요");
     var yy = y + 6.5;
-    rows.forEach(function (r) {
-      o.push('<line x1="' + PX + '" y1="' + (yy + lh) + '" x2="' + (PX + PW) + '" y2="' + (yy + lh) + '" stroke="#999" stroke-width="0.15"/><line x1="' + (PX + 26) + '" y1="' + yy + '" x2="' + (PX + 26) + '" y2="' + (yy + lh) + '" stroke="#999" stroke-width="0.15"/>');
-      o.push('<text x="' + (PX + 2) + '" y="' + (yy + 4.4) + '" font-size="3.3" font-weight="700">' + esc(r[0]) + '</text>');
-      var v = String(r[1]), fs = v.length > 34 ? 2.7 : v.length > 26 ? 3.0 : 3.3;
-      o.push('<text x="' + (PX + 28) + '" y="' + (yy + 4.4) + '" font-size="' + fs + '">' + esc(v) + '</text>');
-      yy += lh;
+    rows.forEach(function (r, i) {
+      var w = wr[i], rh = w.length > 1 ? 3.6 * w.length + 2.8 : lh;
+      o.push('<line x1="' + PX + '" y1="' + f1(yy + rh) + '" x2="' + (PX + PW) + '" y2="' + f1(yy + rh) + '" stroke="#999" stroke-width="0.15"/><line x1="' + (PX + 26) + '" y1="' + f1(yy) + '" x2="' + (PX + 26) + '" y2="' + f1(yy + rh) + '" stroke="#999" stroke-width="0.15"/>');
+      o.push('<text x="' + (PX + 2) + '" y="' + f1(yy + 4.4) + '" font-size="3.3" font-weight="700">' + esc(r[0]) + '</text>');
+      w.forEach(function (ln, k) { o.push('<text x="' + (PX + 28) + '" y="' + f1(yy + (w.length > 1 ? 4.2 + 3.6 * k : 4.4)) + '" font-size="' + (w.length > 1 ? 2.9 : 3.3) + '">' + esc(ln) + '</text>'); });
+      yy += rh;
     });
     y += hh + 4;
     // 구조물 단면 (S=1/100)
     var sh = 62;
     box(sh, "구조물 측면도 (" + p.st + "단) S=1/100");
-    var tl = p.st * p.l, ang = p.tilt * Math.PI / 180, hgt = tl * Math.sin(ang), dp = tl * Math.cos(ang), low = 0.5, S = 10, bx0 = PX + 18, gy = y + sh - 12;
+    var tl = p.st * p.l + (p.st - 1) * (p.mg || 0), ang = p.tilt * Math.PI / 180, hgt = tl * Math.sin(ang), dp = tl * Math.cos(ang), low = 0.5, S = 10, bx0 = PX + 18, gy = y + sh - 12;
     var pxA = bx0, pyA = gy - low * S, pxB = bx0 + dp * S, pyB = gy - (low + hgt) * S;
     o.push('<line x1="' + (PX + 4) + '" y1="' + gy + '" x2="' + (PX + PW - 4) + '" y2="' + gy + '" stroke="#555" stroke-width="0.35"/><text x="' + (PX + PW - 5) + '" y="' + (gy + 3.6) + '" font-size="3" text-anchor="end">G.L</text>');
     o.push('<line x1="' + f1(pxA) + '" y1="' + f1(pyA) + '" x2="' + f1(pxB) + '" y2="' + f1(pyB) + '" stroke="#1f4fa8" stroke-width="1.2"/>');
@@ -155,7 +165,7 @@
     var B = bbox(d), ts = Math.max(1.5, Math.round(Math.max(B[2] - B[0], B[3] - B[1]) / 120 * 10) / 10), x0 = B[2] + ts * 4, y0 = B[3];
     text(x0, y0, ts * 1.6, d.title + " 모듈 배치도 (참고)");
     [["위치", d.addr], ["지번", d.jibun], ["대지면적", nf(d.area) + " ㎡"], ["모듈", f1(p.kw * 1000) + "Wp (" + Math.round(p.l * 1000) + "x" + Math.round(p.w * 1000) + "mm)"],
-      ["어레이", p.st + "단 x 최대 " + p.tcol + "열, 경사각 " + p.tilt + "도, 정남향"], ["설치 장수", nf(p.mods) + " 장"], ["설치 용량", f1(p.kwp) + " kWp"],
+      ["어레이", p.st + "단 x 최대 " + p.tcol + "열, 모듈각 " + p.tilt + "도" + (p.shade ? ", 음영각 " + p.shade + "도" : "") + ", 정남향"], ["설치 장수", nf(p.mods) + " 장"], ["설치 용량", f1(p.kwp) + " kWp"],
       ["줄 간격", (p.pmin === p.pmax ? p.pmin : p.pmin + "~" + p.pmax) + " m"], ["이격", "경계 " + p.set + "m / 제외구역 " + p.gap + "m"], ["작성일", d.date]
     ].forEach(function (r, i) { text(x0, y0 - ts * 3.2 * (i + 1), ts, r[0] + " : " + r[1]); });
     text(B[0], B[1] - ts * 2, ts, "입지검토 자동배치 참고도 — 지형·지장물 미반영");
