@@ -319,7 +319,7 @@
     function slopeNote() { return fsCov > 0.95 ? "경사는 산림청 산사태위험지도 작성용 10m 경사 격자 값(서산 명천리 검증: 15° 이상 7,000㎡ vs 보고서 7,036㎡). 허가 서류의 평균경사도는 산지관리법 방식으로 따로 산정" : fsCov > 0 ? "경사 일부(" + Math.round((1 - fsCov) * 100) + "%)는 산림청 격자 값이 없어 공개 표고로 계산 [추정, 실제보다 작게 나올 수 있음]" : "[추정] 산림청 경사 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 공개 표고(약 30m)로 계산해 실제보다 작게 나올 수 있음"; }
     var ecoOK = !D.eco.err, fsCov = D.cells.length ? D.cells.filter(function (c) { return c.sf; }).length / D.cells.length : 0, demOK = !D.demErr || fsCov > 0;
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
-    var ordS0 = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, siteM = wmean(D.cells.filter(function (c) { return c.s !== null; })), ordOK = !!(ordS0 && siteM !== null && siteM < ordS0.deg);
+    var ordS0 = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, siteM = wmean(D.cells.filter(function (c) { return c.s !== null; })), ordNone0 = !ordS0 && P[0] && P[0].pnu && R.ordNone ? R.ordNone[String(P[0].pnu).slice(0, 5)] || null : null, ordOK = !!(ordS0 && siteM !== null && siteM < ordS0.deg) || !!ordNone0; // 조례에 경사 수치 기준이 없는 시·군은 경사 때문에 막히지 않음
     D.cells.forEach(function (c) { var v = vegOf(c), st = 0, cw = null, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
       else if (R.kei && c.kg === R.kei.avoid) st = 2; // 국토환경성평가 1등급(동진 검토·환경청 협의 실무 기준)
@@ -606,7 +606,7 @@
         fdet.push(P[i].jibun + " " + Math.round(P[i].area).toLocaleString() + "㎡ × " + pr.won.toLocaleString() + "원(" + pr.year + "년)×30%" + (pr.won * 0.3 > 50000 ? "→상한 5만원" : "") + " = 약 " + Math.round(a / 10000).toLocaleString() + "만원"); });
       V(G4, "f2", "농지보전부담금(전용 면적 × 공시지가 30%, ㎡당 상한 5만원)", fmiss.length === farm.length ? "확인 불가" : "참고", Math.round(fA),
         (fee ? "약 " + Math.round(fee / 10000).toLocaleString() + "만원" + (fmiss.length ? " (공시지가를 못 받은 " + fmiss.join(", ") + " 제외)" : "") + " — " + fdet.join(" · ") : "공시지가를 받지 못했습니다") + ". 농지 필지 전체를 전용한다고 본 값이며 실제 전용 면적과 감면 여부에 따라 달라짐. 공시지가 기준연도가 오래됐으면 최신 값으로 다시 계산 [요율·상한은 보조자료 기준, 원문 미확인]", "농지법 제38조", "개별공시지가(브이월드)");
-      V(G4, "f3", "농지 경사 — 시·군 조례 개발행위(태양광) 경사 기준", ordS ? (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "주의(기준 근접)" : "해당없음") : "주의(기준 이상)") : "수동확인필요", null,
+      V(G4, "f3", "농지 경사 — 시·군 조례 개발행위(태양광) 경사 기준", !ordS && ordNone0 ? "해당없음(조례에 수치 기준 없음)" : ordS ? (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "주의(기준 근접)" : "해당없음") : "주의(기준 이상)") : "수동확인필요", null,
         ordS ? ordS.src + ": " + ordS.rule + ". 이 부지 평균 경사 약 " + (siteM != null ? siteM.toFixed(1) : "?") + "° [추정] → " + (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "기준 미만이지만 차이가 " + (ordS.deg - siteM).toFixed(1) + "°뿐이라, 공공 지형자료 추정값 오차를 감안해 측량 평균경사로 꼭 확인" : "기준 미만") : "기준 이상(측량 평균경사로 다시 확인)") : ((R.ordNone || {})[String(P[0].pnu).slice(0, 5)] || "이 시·군의 조례 경사 기준은 도구 표에 아직 없음 — 시·군 도시계획 조례의 개발행위허가(태양광) 기준 확인"), "시·군 도시계획 조례", "조례 표 + 표고[추정]");
       var nedAll = P.map(function (p) { return Array.isArray(p.ned) ? p.ned.map(function (x) { return x[0]; }).join(",") : ""; }).join(","), kj = /경지정리|농업생산기반|농업기반/.test(nedAll);
       V(G4, "f4", "우량농지·경지정리(집단화된 농지) 여부", kj ? "주의(지역·지구에 표시됨)" : "수동확인필요", null,
