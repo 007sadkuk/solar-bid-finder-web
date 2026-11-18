@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>법제처 API 키 넣기</title>
+<style>
+body{margin:0;background:#f3f4f6;font:16px/1.6 system-ui,"Malgun Gothic",sans-serif;color:#222}
+.w{max-width:640px;margin:30px auto;padding:0 16px}
+.box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:18px;margin-bottom:14px}
+input{font:inherit;padding:8px 10px;border:1px solid #bbb;border-radius:6px;width:100%;box-sizing:border-box}
+button{font:inherit;padding:8px 16px;border:1px solid #1f3b63;background:#1f3b63;color:#fff;border-radius:6px;cursor:pointer;margin-top:10px}
+button.s{background:#fff;color:#1f3b63}
+.sub{color:#666;font-size:14px}pre{white-space:pre-wrap;font-size:13px;background:#f6f6f6;padding:10px;border-radius:6px;max-height:260px;overflow:auto}
+</style></head><body><div class="w">
+<div class="box"><b>법제처 OPEN API 키(OC) 넣기</b>
+<p class="sub">OC는 open.law.go.kr에 가입한 <b>이메일의 @ 앞부분</b>입니다. 이 값은 <b>이 브라우저에만</b> 저장되고, 사이트 파일이나 깃허브에는 올라가지 않습니다.</p>
+<input id="oc" placeholder="이메일 @ 앞부분" autocomplete="off">
+<button id="save">저장</button> <button class="s" id="del">지우기</button> <span class="sub" id="st"></span></div>
+<div class="box"><b>연결 시험</b> <span class="sub">— 문경시 도시계획 조례를 검색해 봅니다</span><br>
+<button id="test">시험하기</button><pre id="out"></pre></div>
+</div>
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  function get(){try{return localStorage.getItem("law_oc")||""}catch(e){return ""}}
+  function show(){var v=get();$("st").textContent=v?"저장됨 ("+v.slice(0,2)+"…)":"저장된 값 없음"}
+  $("save").onclick=function(){var v=$("oc").value.trim().replace(/@.*$/,"");if(!v){$("st").textContent="값을 넣어 주세요";return}try{localStorage.setItem("law_oc",v)}catch(e){}$("oc").value="";show()};
+  $("del").onclick=function(){try{localStorage.removeItem("law_oc")}catch(e){}show()};
+  $("test").onclick=async function(){var oc=get();if(!oc){$("out").textContent="먼저 OC를 저장해 주세요.";return}
+    var u="https://www.law.go.kr/DRF/lawSearch.do?OC="+encodeURIComponent(oc)+"&target=ordin&type=JSON&query="+encodeURIComponent("문경시 도시계획 조례");
+    $("out").textContent="요청 중…";
+    try{var r=await fetch(u);var t=await r.text();$("out").textContent="HTTP "+r.status+"\n"+t.slice(0,1500)}
+    catch(e){$("out").textContent="브라우저에서 직접 부르기는 막혔습니다(CORS 등): "+e.message+"\n\n주소창에서 직접 열어 확인하는 방법은 아래 주소를 새 탭에 붙여 넣으면 됩니다(OC는 화면에 나오니 공유 주의):\n"+u.replace(encodeURIComponent(oc),"(OC)")}};
+  show();
+})();
+</script>
+</body></html>
