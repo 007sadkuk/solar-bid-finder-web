@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>태양광 발전설비 배치도</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#e9ecf1;color:#1b1f27;font:14px/1.5 "Pretendard Variable",Pretendard,system-ui,sans-serif}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px;background:#1f3b63;color:#fff}
+.bar b{font-size:16px;margin-right:auto}
+.bar select,.bar button{font:inherit;padding:5px 10px;border-radius:6px;border:1px solid #9fb3cf}
+.bar button{background:#fff;color:#1f3b63;font-weight:700;cursor:pointer}
+.bar label{display:flex;gap:6px;align-items:center}
+.sheet{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:0;background:#fff;margin:14px;border:1px solid #c9d0db;min-height:calc(100vh - 90px)}
+#map{min-height:calc(100vh - 92px);height:100%;border-right:1px solid #c9d0db}
+.side{padding:18px 18px 14px;display:flex;flex-direction:column;gap:14px}
+.side h1{font-size:19px;margin:0}
+.side .addr{font-size:13px;color:#4a5161;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #c9d0db;padding:5px 8px;text-align:left;vertical-align:top}
+th{background:#f1f3f7;font-weight:600;width:44%}
+td.hl{color:#c0392b;font-weight:800}
+.sec h2{font-size:14px;margin:0 0 6px}
+.note{font-size:11.5px;color:#5a6170;line-height:1.55}
+.north{position:absolute;right:16px;top:12px;z-index:500;text-align:center;font-weight:800;color:#fff;text-shadow:0 0 3px #000;font-size:16px;line-height:1}
+.north svg{display:block;margin:0 auto 2px}
+.lgd{position:absolute;right:12px;bottom:28px;z-index:500;background:rgba(255,255,255,.94);border:1px solid #9aa3b2;border-radius:4px;padding:6px 10px;font-size:12px;line-height:1.8}
+.lgd i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:8px}
+.rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:11px;line-height:1.15;padding:2px 4px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.mapwrap{position:relative}
+.empty{padding:40px;font-size:16px}
+@media print{
+  @page{size:A3 landscape;margin:7mm}
+  body{background:#fff}.bar{display:none}
+  .sheet{margin:0;border:1px solid #888;grid-template-columns:minmax(0,1fr) 112mm;min-height:0;height:281mm}
+  #map{height:281mm;min-height:0}
+  .leaflet-control-zoom{display:none}
+}
+</style>
+</head><body>
+<div class="bar"><b>태양광 발전설비 배치도</b>
+  <label>모듈 <select id="selMod"></select></label>
+  <label><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
+  <button type="button" id="btnPrint">인쇄 · PDF 저장 (A3 가로)</button>
+</div>
+<div id="root"></div>
+<script src="core.js?v=20261029c"></script>
+<script src="vwkey.js"></script>
+<script src="site-config.js?v=20261030a"></script>
+<script src="geo.js?v=20261112a"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  var O=null;try{O=JSON.parse(localStorage.getItem("scr_laydoc")||"null")}catch(e){}
+  if(!O){$("root").innerHTML="<div class='empty'>배치 자료가 없습니다. 입지검토 화면에서 「모듈 배치」를 눌러 다시 열어 주세요.</div>";return}
+  var key=O.key,cau=!!O.withCau&&!!O.L[O.key+"_c"],map=null,lay=null;
+  $("selMod").innerHTML=Object.keys(O.mods).map(function(k){return "<option value='"+k+"'"+(k===key?" selected":"")+">"+esc(O.mods[k].name)+"</option>"}).join("");
+  $("chkCau").checked=cau;$("chkCau").disabled=!O.L[key+"_c"];if(!O.L[key+"_c"])$("chkCau").parentNode.title="신중검토 구역이 없습니다";
+  $("selMod").onchange=function(){key=this.value;draw()};$("chkCau").onchange=function(){cau=this.checked;draw()};
+  $("btnPrint").onclick=function(){window.print()};
+  var d2r=Math.PI/180,sh=O.sh||{dx:0,dy:0};
+  function ll(x,y){return [O.B[1]+sh.dy+y/O.ky,O.B[0]+sh.dx+x/O.kx]}
+  function n(a,d){return (+a).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
+
+  $("root").innerHTML="<div class='sheet'><div class='mapwrap'><div id='map'></div><div class='north'><svg width='22' height='30' viewBox='0 0 22 30'><path d='M11 1 L20 28 L11 21 L2 28 Z' fill='#fff' stroke='#000' stroke-width='1'/><path d='M11 1 L11 21 L2 28 Z' fill='#111'/></svg>N</div>"+
+    "<div class='lgd'><div><i style='border-top:3px solid #e01b1b'></i>대상부지 경계</div><div><i style='border-top:2px dashed #ffd400'></i>경계 이격선 (<span id='lgSet'></span> m)</div><div><i style='height:10px;background:#1f3f9e;border:1px solid #9fb3e8'></i><span id='lgMod'></span></div></div></div>"+
+    "<div class='side'><div><h1>태양광 발전설비 배치 설계개요</h1><div class='addr' id='sAddr'></div></div><table id='sum'></table>"+
+    "<div class='sec'><h2>어레이 단면 상세 (단위: m)</h2><div id='sect'></div></div><div class='note' id='sNote'></div></div></div>";
+  $("sAddr").textContent=O.addr+" · "+O.at+" · (주)금호테크닉스";$("lgSet").textContent=O.set;
+
+  var k0=BFGeo.getKey();map=L.map("map",{preferCanvas:true,zoomSnap:0.25});
+  if(k0){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k0+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:20,maxNativeZoom:19}).addTo(map)}
+  else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,maxNativeZoom:19}).addTo(map);
+  L.control.scale({metric:true,imperial:false,position:"bottomleft",maxWidth:160}).addTo(map);
+
+  /* 부지 경계(필지 합친 외곽선)와 경계 이격선 */
+  var polys=[];O.P.forEach(function(p){p.rings.forEach(function(r){var c=r.map(function(v){return [v[0],v[1]]});if(c.length>2){var a=c[0],z=c[c.length-1];if(a[0]!==z[0]||a[1]!==z[1])c.push(a);polys.push(turf.polygon([c]))}})});
+  var site=null;try{site=polys.reduce(function(a,b){return a?turf.union(a,b):b},null)}catch(e){site=null}
+  var base=L.layerGroup().addTo(map);
+  O.P.forEach(function(p){p.rings.forEach(function(r){L.polygon(r.map(function(v){return [v[1],v[0]]}),{color:"#ffffff",weight:1,dashArray:"3 3",fill:false,opacity:.8}).bindTooltip(p.jibun+" "+p.jimok).addTo(base)})});
+  if(site){L.geoJSON(site,{style:{color:"#e01b1b",weight:3,fill:false}}).addTo(base);
+    try{var inner=turf.buffer(site,-O.set,{units:"meters"});if(inner)L.geoJSON(inner,{style:{color:"#ffd400",weight:2,dashArray:"6 5",fill:false}}).addTo(base)}catch(e){}}
+  var allLL=[];O.P.forEach(function(p){p.rings.forEach(function(r){r.forEach(function(v){allLL.push([v[1],v[0]])})})});
+  map.fitBounds(L.latLngBounds(allLL),{padding:[40,40]});
+  var mods=L.layerGroup().addTo(map);
+
+  function draw(){var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
+    $("lgMod").textContent="태양광 모듈 ("+M.name.replace(/^\S+\s/,"")+")";
+    var ct=Math.cos(O.tilt*d2r),ml=M.l*ct,mstep=(M.l+O.mg)*ct,R=new L.Canvas({padding:.5});
+    LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<O.rows;k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
+      L.rectangle([ll(x0,y0),ll(x0+M.w,y0+ml)],{renderer:R,color:"#a9bdf0",weight:.6,fillColor:"#1f3f9e",fillOpacity:.95,interactive:false}).addTo(mods)}});
+    /* 열 번호(북쪽부터) */
+    var byR={};LY.T.forEach(function(t){(byR[t.r]=byR[t.r]||[]).push(t)});var rs=Object.keys(byR).map(Number).sort(function(a,b){return b-a}),lines=[];
+    rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
+      L.marker(ll(xw-1.2,y),{icon:L.divIcon({className:"",html:"<div class='rowlab'>"+(i+1)+"열<br>"+n(cnt)+"장</div>",iconSize:null,iconAnchor:[46,14]}),interactive:false}).addTo(mods)});
+    var units=LY.mods/O.rows;
+    var rowsHTML=[["대상부지 면적","약 "+n(O.total)+" m²"],["배치 범위",cau&&O.L[key+"_c"]?"설치 가능 + 신중검토 구역 (협의 통과 전제)":"설치 가능(확실) 구역만 — 신중검토 "+n(O.cau)+" m² 제외"],["모듈",M.name+"<br>"+n(M.l*1000)+" × "+n(M.w*1000)+" × 30 mm"],
+      ["모듈 수량","<b>"+n(LY.mods)+" 장</b>",1],["설비 용량","<b>"+n(LY.mods*M.kw,2)+" kWp</b>",1],["어레이 구성","세로(Portrait) "+O.rows+"단, 정남향"],["어레이 수",rs.length+" 열 / "+n(units)+" 조("+O.rows+"장 1조) · 테이블 "+LY.tables+"개("+O.tcol+"열 이하)"],
+      ["모듈 경사각",O.tilt+"°"],["음영각(설계 태양고도)",O.shade+"°"],["어레이 경사길이",M.LS.toFixed(2)+" m"],["어레이 수평길이",M.dep.toFixed(2)+" m"],["전·후단 높이차",M.H.toFixed(2)+" m"],
+      ["어레이 간 이격거리",(Math.ceil(M.gap*100)/100).toFixed(2)+" m"],["어레이 피치(앞열~뒷열)",M.pitch.toFixed(2)+" m"],["경계 이격거리",O.set.toFixed(1)+" m"],["모듈 간 간격",(O.mg*1000)+" mm"],["테이블 간 간격",O.tgap+" m (가정)"]];
+    $("sum").innerHTML=rowsHTML.map(function(r){return "<tr><th>"+r[0]+"</th><td"+(r[2]?" class='hl'":"")+">"+r[1]+"</td></tr>"}).join("");
+    $("sect").innerHTML=section(M);
+    var lc=O.L[key+"_c"];
+    $("sNote").innerHTML="열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
+      (lc&&!(cau)?"신중검토 구역까지 배치하면 "+n(lc.mods)+"장 · "+n(lc.mods*M.kw,2)+" kWp (환경청 협의·시군 허가 결과에 따라 달라짐).<br>":"")+
+      "피치 = 수평길이 + 높이차 ÷ tan(음영각), 소수 둘째 자리 올림. 정남향·평지 기준이며 지형 경사, 지장물(나무·건물), 진입로, 전기실 자리는 반영하지 않았습니다. 필지 경계는 브이월드 연속지적도 기준이라 실제 측량 경계와 다를 수 있습니다. 허가 서류에는 확정 장수·용량을 따로 정해 쓰십시오."}
+
+  function section(M){var s=34,W=M.dep*2+M.gap,pad=26,w=W*s+pad*2,h=M.H*s+90,yb=M.H*s+30,x1=pad,x2=pad+M.dep*s,x3=pad+(M.dep+M.gap)*s,x4=x3+M.dep*s,yt=yb-M.H*s;
+    function t(x,y,str,a,c){return "<text x='"+x+"' y='"+y+"' font-size='11' text-anchor='"+(a||"middle")+"' fill='"+(c||"#222")+"'>"+str+"</text>"}
+    return "<svg viewBox='0 0 "+w+" "+h+"' width='100%' style='max-width:"+w+"px'>"+
+      "<line x1='"+(pad-10)+"' y1='"+yb+"' x2='"+(x4+10)+"' y2='"+yb+"' stroke='#888'/>"+
+      "<line x1='"+x1+"' y1='"+yb+"' x2='"+x2+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/><line x1='"+x3+"' y1='"+yb+"' x2='"+x4+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/>"+
+      "<line x1='"+x2+"' y1='"+yt+"' x2='"+x2+"' y2='"+yb+"' stroke='#555'/><line x1='"+x4+"' y1='"+yt+"' x2='"+x4+"' y2='"+yb+"' stroke='#555'/>"+
+      "<line x1='"+x2+"' y1='"+yt+"' x2='"+x3+"' y2='"+yb+"' stroke='#e08a00' stroke-dasharray='4 3'/>"+t((x2+x3)/2+14,yt+(yb-yt)/2-4,"음영각 "+O.shade+"°","middle","#e08a00")+
+      t(x1+30,yb-6,O.tilt+"°","start")+t(x2+4,(yt+yb)/2,M.H.toFixed(2),"start","#555")+
+      "<line x1='"+x1+"' y1='"+(yb+14)+"' x2='"+x2+"' y2='"+(yb+14)+"' stroke='#333'/>"+t((x1+x2)/2,yb+11,M.dep.toFixed(2))+
+      "<line x1='"+x2+"' y1='"+(yb+14)+"' x2='"+x3+"' y2='"+(yb+14)+"' stroke='#333'/>"+t((x2+x3)/2,yb+11,(Math.ceil(M.gap*100)/100).toFixed(2))+
+      "<line x1='"+x1+"' y1='"+(yb+34)+"' x2='"+x3+"' y2='"+(yb+34)+"' stroke='#333'/>"+t((x1+x3)/2,yb+31,"피치 "+M.pitch.toFixed(2)+" m")+
+      t(pad-6,yb+54,"남(S)","start")+t(x4+6,yb+54,"북(N)","end")+"</svg>"}
+
+  draw();
+  window.addEventListener("beforeprint",function(){setTimeout(function(){map.invalidateSize();map.fitBounds(L.latLngBounds(allLL),{padding:[40,40]})},50)});
+  window.addEventListener("afterprint",function(){map.invalidateSize()});
+})();
+</script>
+</body></html>

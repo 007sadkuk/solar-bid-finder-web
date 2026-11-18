@@ -380,6 +380,15 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     Object.keys(grp).forEach(function(g){var L=grp[g];nb++;if(L.length<MOD.small){ns++;L.forEach(function(t){t.small=true;nsM+=t.c*MOD.rows})}});
     var m=best.n*MOD.rows;return {mods:m,tables:T.length,blocks:nb,small:ns,smallM:nsM,kwp:Math.round(m*SP.m.kw*10)/10,T:T,dep:dep,pitch:P,spec:SP,cau:inclCau}}
   var LAY2=null;
+  /* 배치도 새 탭: 모듈 2종 × (신중검토 제외/포함) 네 가지 배치를 모두 계산해 넘김 */
+  function layDoc(){var sh=D.shift||{dx:0,dy:0},S=J.sum,k0=MOD.key,c0=MOD.cau,o={addr:$("ttl").textContent,at:new Date().toLocaleDateString("ko-KR"),total:S.total,sure:Math.max(0,(S.ok||0)-Math.min(S.cau||0,S.ok||0)),cau:Math.min(S.cau||0,S.ok||0),
+      B:D.B,sh:sh,kx:D.kx,ky:D.ky,P:D.P.map(function(p){return {jibun:p.jibun,jimok:p.jimok,area:p.area,rings:p.rings.map(function(q){return q.r.map(function(v){return [v[0]+sh.dx,v[1]+sh.dy]})})}}),
+      set:MOD.set,mg:MOD.mg,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,tgap:MOD.tgap,tcol:MOD.tcol,minCol:MOD.minCol,key:k0,withCau:c0,mods:{},L:{}};
+    try{Object.keys(MODS).forEach(function(k){MOD.key=k;var sp=modSpec();o.mods[k]={name:MODS[k].name,l:MODS[k].l,w:MODS[k].w,kw:MODS[k].kw,LS:sp.LS,H:sp.H,dep:sp.dep,gap:sp.gap,pitch:sp.pitch,colW:sp.colW};
+      [false,true].forEach(function(c){if(c&&!(S.cau>=1))return;var L=layout(c);o.L[k+(c?"_c":"")]={mods:L.mods,tables:L.tables,kwp:L.kwp,T:L.T.map(function(t){return {x:+t.x.toFixed(2),y:+t.y.toFixed(2),c:t.c,r:t.r,s:t.small?1:0}})}})})}
+    finally{MOD.key=k0;MOD.cau=c0}
+    try{localStorage.setItem("scr_laydoc",JSON.stringify(o))}catch(e){alert("배치도 데이터를 넘기지 못했습니다: "+e.message);return}
+    window.open("layout.html?t="+Date.now(),"_blank")}
   function layAll(){LAY=layout();var S=J&&J.sum;LAY2=S&&S.cau>=1&&!MOD.cau?layout(true):null}
   function layDesc(){var SP=modSpec();return SP.m.name+"("+Math.round(SP.m.l*1000).toLocaleString()+"×"+Math.round(SP.m.w*1000).toLocaleString()+") 세로 "+MOD.rows+"단·모듈각 "+MOD.tilt+"°·음영각 "+MOD.shade+"°·열 피치 "+SP.pitch.toFixed(2)+"m(줄 사이 빈 공간 "+(Math.ceil(SP.gap*100)/100).toFixed(2)+"m)·모듈 간격 20mm·경계 "+MOD.set+"m 이격·테이블 "+MOD.tcol+"열 이하"}
   function layTxt(){var o=LAY;if(!o)return "";var cap=o.kwp>=1000?(o.kwp/1000).toFixed(2)+"MW":Math.round(o.kwp).toLocaleString()+"kWp";
@@ -400,13 +409,13 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
     var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     if(MODE==="md"&&LAY){var lt=el("span",null,"테이블 "+LAY.tables+"개 → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp"+(LAY.cau?" (신중검토 포함)":""));lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild);
-      var ctl=el("span");ctl.className="noprint";ctl.innerHTML="<select id='modSel' style='font:inherit;padding:2px 4px'>"+Object.keys(MODS).map(function(k){return "<option value='"+k+"'"+(k===MOD.key?" selected":"")+">"+MODS[k].name+"</option>"}).join("")+"</select> <label style='white-space:nowrap'><input type='checkbox' id='modCau'"+(MOD.cau?" checked":"")+"> 신중검토 구역에도 배치</label>";lg.insertBefore(ctl,lt.nextSibling);
-      var re=function(){MOD.key=$("modSel").value;MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re}
+      var ctl=el("span");ctl.className="noprint";ctl.innerHTML="<select id='modSel' style='font:inherit;padding:2px 4px'>"+Object.keys(MODS).map(function(k){return "<option value='"+k+"'"+(k===MOD.key?" selected":"")+">"+MODS[k].name+"</option>"}).join("")+"</select> <label style='white-space:nowrap'><input type='checkbox' id='modCau'"+(MOD.cau?" checked":"")+"> 신중검토 구역에도 배치</label> <button type='button' class='btn' id='modDoc' style='padding:4px 12px'>📐 배치도 새 탭으로 열기</button>";lg.insertBefore(ctl,lt.nextSibling);
+      var re=function(){MOD.key=$("modSel").value;MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
-  $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
+  $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap();if(MODE==="md"&&D&&J&&LAY)layDoc()});
   function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
     [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],
      ["경사도·산사태위험","산림청 산사태정보시스템의 10m 격자(경사 Slope, 산사태위험지도 hazard2025)를 칸마다 조회"+(D.fsErr?" — 이번 조회 실패: "+D.fsErr+" → 공개 표고(약 30m)로 대신 계산[추정]":"")+". 허가용 평균경사도(산지관리법)는 별도 산정"],["용도지역","브이월드 용도지역 레이어(관리·농림·자연환경보전·도시지역). 고시연도 레이어 속성 기준"],["토지이용계획","브이월드 NED 토지이용계획속성(필지별 지역·지구)"],["지적·건물","브이월드 연속지적도, 도로명주소 건물"],
