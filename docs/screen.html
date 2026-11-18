@@ -160,8 +160,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
 <script src="screen-rules.js?v=20261118d"></script>
+<script src="ordinance.js?v=20261118f"></script>
 <script src="terrain3d.js?v=20261113e"></script>
-<script src="screen.js?v=20261118e"></script>
+<script src="screen.js?v=20261118g"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -405,12 +406,13 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     var b=D.B,bounds=[[b[1]+sh.dy,b[0]+sh.dx],[b[1]+sh.dy+D.ny*D.dlat,b[0]+sh.dx+D.nx*D.dlon]];
     ov=L.imageOverlay(cv.toDataURL(),bounds,{interactive:false}).addTo(map);ov.getElement&&ov.getElement()&&(ov.getElement().style.imageRendering="pixelated");
     lines=L.layerGroup().addTo(map);D.P.forEach(function(p){p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#fff",weight:2,fill:false}).bindTooltip(p.jibun+" "+p.jimok,{sticky:true}).addTo(lines)})});
+    D.P.forEach(function(p,i){var ip=D.infPart&&D.infPart[i];if(!ip)return;p.rings.forEach(function(o){var ll=o.r.map(function(v){return [v[1]+sh.dy,v[0]+sh.dx]});L.polygon(ll,{color:"#2b8cff",weight:3,dashArray:"6 4",fillColor:"#2b8cff",fillOpacity:.18}).bindTooltip(p.jibun+": "+ip.join("·")+" 일부 걸침 — 걸친 범위는 공개 도면이 없어 토지이용계획확인원(토지이음)으로 확인. 걸친 부분은 설치 불가",{sticky:true}).addTo(lines)})});
     D.houses.forEach(function(h){L.circleMarker(h.c,{radius:4,color:h.d<=R.houses.near?"#ff3b30":"#ffcc00",weight:2,fillOpacity:.8}).bindTooltip(h.name+" · "+h.d+"m"+(h.use&&h.use.length?" · "+h.use.join("/"):"")).addTo(lines)});
     if(MODE==="md"&&LAY){LAY.T.forEach(function(t){var lo0=b[0]+sh.dx+t.x/D.kx,lo1=b[0]+sh.dx+(t.x+t.w)/D.kx,la0=b[1]+sh.dy+t.y/D.ky,la1=b[1]+sh.dy+(t.y+LAY.dep)/D.ky;L.rectangle([[la0,lo0],[la1,lo1]],{color:t.small?"#7f5fd0":"#1f4fa8",weight:1,fillColor:t.small?"#a68cf0":"#3b6fd8",fillOpacity:.85,interactive:false}).addTo(lines)})}
     if(!map._fit){map.fitBounds(bounds,{padding:[20,20]});map._fit=1}
     var lg=$("lg");lg.innerHTML="";var items=MODE==="md"?[["설치 가능(확실)",[150,215,150]],["신중검토(협의·조례 기준에 달림)",[243,198,35]],["설치 불가",[179,38,30]],["모듈",[59,111,216]]]:MODE==="st"?[["설치 불가",[179,38,30]],["신중검토(협의·조례 기준에 달림)",[243,198,35]],["확실히 가능",[46,160,90]]]:MODE==="e"?[["1등급",COL.e["1"]],["2등급",COL.e["2"]],["3등급",COL.e["3"]],["별도관리지역",COL.e["9"]]]:MODE==="k"?[["1등급",[38,115,0]],["2등급",[152,230,0]],["3등급",[230,230,0]],["4등급",[230,152,0]],["5등급",[230,0,0]]]:MODE==="h"?[["1등급",[183,28,28]],["2등급",[229,57,53]],["3등급",[255,152,0]],["4등급",[255,235,59]],["5등급",[139,195,74]]]:MODE==="s"?[["5° 미만",[46,125,50]],["5–10°",[139,195,74]],["10–15°",[255,235,59]],["15–20°",[255,193,7]],["20–25°",[255,111,0]],["25–30°",[229,57,53]],["30° 이상",[183,28,28]]]:Object.keys(COL.z).map(function(k){return [k,COL.z[k]]});
     items.forEach(function(x){var s=el("span");var i=el("i");i.style.background="rgb("+x[1].join(",")+")";s.appendChild(i);s.appendChild(document.createTextNode(x[0]));lg.appendChild(s)});
-    var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
+    if(D.infPart&&Object.keys(D.infPart).length){var s3=el("span"),i3=el("i");i3.style.background="rgba(43,140,255,.35)";i3.style.border="2px dashed #2b8cff";s3.appendChild(i3);s3.appendChild(document.createTextNode("하천·도로 구역 일부 걸침(범위 확인)"));lg.appendChild(s3)}var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     if(MODE==="md"&&LAY){var lt=el("span",null,"테이블 "+LAY.tables+"개 → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp"+(LAY.cau?" (신중검토 포함)":""));lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild);
       var ctl=el("span");ctl.className="noprint";ctl.innerHTML="<select id='modSel' style='font:inherit;padding:2px 4px'>"+Object.keys(MODS).map(function(k){return "<option value='"+k+"'"+(k===MOD.key?" selected":"")+">"+MODS[k].name+"</option>"}).join("")+"</select> <label style='white-space:nowrap'><input type='checkbox' id='modCau'"+(MOD.cau?" checked":"")+"> 신중검토 구역에도 배치</label> <button type='button' class='btn' id='modDoc' style='padding:4px 12px'>📐 배치도 새 탭으로 열기</button>";lg.insertBefore(ctl,lt.nextSibling);
       var re=function(){MOD.key=$("modSel").value;MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc}

@@ -7,6 +7,13 @@
   var R = window.SCREEN_RULES, CFG = window.KT_CFG || {};
   var SIDO = { "충남": "충청남도", "충북": "충청북도", "경북": "경상북도", "경남": "경상남도", "전남": "전라남도", "전북": "전북특별자치도", "강원": "강원특별자치도", "경기": "경기도", "대구": "대구광역시", "부산": "부산광역시", "울산": "울산광역시", "광주": "광주광역시", "대전": "대전광역시", "세종": "세종특별자치시", "제주": "제주특별자치도", "서울": "서울특별시", "인천": "인천광역시" };
 
+  /* 시·군 조례 경사 기준 찾기: 경북 수기 확인본(시군구 코드) → 전국 자동 추출본(주소의 시도·시군 이름) */
+  var PKS = [["서울", "서울"], ["부산", "부산"], ["대구", "대구"], ["인천", "인천"], ["광주", "광주"], ["대전", "대전"], ["울산", "울산"], ["세종", "세종"], ["경기", "경기"], ["강원", "강원"], ["충청북", "충북"], ["충북", "충북"], ["충청남", "충남"], ["충남", "충남"], ["전북", "전북"], ["전라북", "전북"], ["전라남", "전남"], ["전남", "전남"], ["경상북", "경북"], ["경북", "경북"], ["경상남", "경남"], ["경남", "경남"], ["제주", "제주"]];
+  function pkOf(t) { t = String(t || ""); for (var i = 0; i < PKS.length; i++) if (t.indexOf(PKS[i][0]) === 0) return PKS[i][1]; return null; }
+  function ordKey(P) { var t = String((P[0] && P[0].addr) || "").split(/\s+/), p = pkOf(t[0]); return p ? [p + " " + (t[1] || ""), p] : []; }
+  function ordFind(P) { var R = window.SCREEN_RULES || {}; if (!P[0]) return null; var c = String(P[0].pnu || "").slice(0, 5); if (R.ordSlope && R.ordSlope[c]) return R.ordSlope[c];
+    var O = window.SCREEN_ORD; if (!O) return null; var k = ordKey(P); for (var i = 0; i < k.length; i++) if (O.N[k[i]]) return O.N[k[i]]; return null; }
+  function ordUnk(P) { var O = window.SCREEN_ORD; if (!O) return null; var k = ordKey(P); for (var i = 0; i < k.length; i++) if (O.U[k[i]]) return O.U[k[i]]; return null; }
   function polys(G) { if (!G) return []; if (G.type === "Polygon") return [G.coordinates[0]]; if (G.type === "MultiPolygon") return G.coordinates.map(function (p) { return p[0]; }); return []; }
   function pip(pt, r) { var x = pt[0], y = pt[1], c = false; for (var i = 0, j = r.length - 1; i < r.length; j = i++) { var a = r[i], b = r[j]; if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
   function bbox(r) { var b = [Infinity, Infinity, -Infinity, -Infinity]; r.forEach(function (p) { if (p[0] < b[0]) b[0] = p[0]; if (p[1] < b[1]) b[1] = p[1]; if (p[0] > b[2]) b[2] = p[0]; if (p[1] > b[3]) b[3] = p[1]; }); return b; }
@@ -319,7 +326,7 @@
     function slopeNote() { return fsCov > 0.95 ? "경사는 산림청 산사태위험지도 작성용 10m 경사 격자 값(서산 명천리 검증: 15° 이상 7,000㎡ vs 보고서 7,036㎡). 허가 서류의 평균경사도는 산지관리법 방식으로 따로 산정" : fsCov > 0 ? "경사 일부(" + Math.round((1 - fsCov) * 100) + "%)는 산림청 격자 값이 없어 공개 표고로 계산 [추정, 실제보다 작게 나올 수 있음]" : "[추정] 산림청 경사 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 공개 표고(약 30m)로 계산해 실제보다 작게 나올 수 있음"; }
     var ecoOK = !D.eco.err, fsCov = D.cells.length ? D.cells.filter(function (c) { return c.sf; }).length / D.cells.length : 0, demOK = !D.demErr || fsCov > 0;
     // 칸별 상태: 2 = 회피, 1 = 신중, 3 = 식생 확인 시 회피 가능, 0 = 해당 없음
-    var ordS0 = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, siteM = wmean(D.cells.filter(function (c) { return c.s !== null; })), ordNone0 = !ordS0 && P[0] && P[0].pnu && R.ordNone ? R.ordNone[String(P[0].pnu).slice(0, 5)] || null : null, ordOK = !!(ordS0 && siteM !== null && siteM < ordS0.deg) || !!ordNone0; // 조례에 경사 수치 기준이 없는 시·군은 경사 때문에 막히지 않음
+    var ordS0 = ordFind(P), siteM = wmean(D.cells.filter(function (c) { return c.s !== null; })), ordNone0 = !ordS0 && P[0] && P[0].pnu && R.ordNone ? R.ordNone[String(P[0].pnu).slice(0, 5)] || null : null, ordOK = !!(ordS0 && siteM !== null && siteM < ordS0.deg) || !!ordNone0; // 조례에 경사 수치 기준이 없는 시·군은 경사 때문에 막히지 않음
     D.cells.forEach(function (c) { var v = vegOf(c), st = 0, cw = null, steep = c.s !== null && c.s >= S.avoid;
       if (c.e === "1") st = 2;
       else if (R.kei && c.kg === R.kei.avoid) st = 2; // 국토환경성평가 1등급(동진 검토·환경청 협의 실무 기준)
@@ -529,8 +536,14 @@
       legalI[y.i] = x.name; }); }); });
     var homesIn = (!village && d5 !== null && d5 < Dist) ? (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).filter(function (h) { return h.d < Dist; }) : [];
     var why = {}, noA = 0, kx = D.kx, ky = D.ky, sh = D.shift || { dx: 0, dy: 0 };
+    /* 하천·구거·도로·철도·제방 등: 지목이 그렇거나 하천구역·도로구역 등에 '포함'(필지 전체)이면 그 필지는 설치 불가. '저촉'(일부)은 경계 도면이 없어 빼지 않고 지도에 빗금으로 표시 */
+    var infRe = ((R.groups || []).filter(function (g) { return g.k === "infra"; })[0] || {}).re, infP = {}, infPart = {};
+    P.forEach(function (p, i) { if (/^(천|구|도|철|제|유)$/.test(p.jcode)) { infP[i] = "지목 " + p.jimok + "(설치 불가)"; return; }
+      if (infRe && Array.isArray(p.ned)) p.ned.forEach(function (x) { if (!infRe.test(x[0])) return; if (x[1] === "1" && !infP[i]) infP[i] = x[0] + " 포함(필지 전체)"; else if (x[1] === "2") (infPart[i] = infPart[i] || []).push(x[0]); }); });
+    D.infPart = infPart;
     D.cells.forEach(function (c) { var r = null;
       if (legalI[c.p]) r = legalI[c.p];
+      else if (infP[c.p]) r = infP[c.p];
       else if (agCell[c.p] && c.ag === "농업진흥구역") r = "농업진흥구역";
       else if (sjCell[c.p] && c.sj === 1) r = "공익용산지";
       else if (c.e === "1") r = "생태자연도 1등급";
@@ -589,7 +602,7 @@
     if (!ecoOK) cf.items.push({ t: "생태자연도 조회 실패", how: "다시 검토하거나 에코뱅크에서 직접 확인" });
     cf.items.push({ t: "보호종 서식지·철새도래지", how: "공개 자료로는 확인 불가 → 소규모환평 현지조사(동진)로 확인" });
     cf.items.push({ t: "기맥·지맥 능선", how: "정맥만 자동 확인 → 산림청 산줄기 지도로 확인" });
-    var cauA = 0, steepFarm = 0, steepAll = 0, sfb = [0, 0, 0], ordS = R.ordSlope && P[0] && P[0].pnu ? R.ordSlope[String(P[0].pnu).slice(0, 5)] || null : null, ordOver = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) { steepFarm += a; sfb[c.s < 20 ? 0 : c.s < 25 ? 1 : 2] += a; if (ordS && c.s >= ordS.deg) ordOver += a; } } });
+    var cauA = 0, steepFarm = 0, steepAll = 0, sfb = [0, 0, 0], ordS = ordFind(P), ordOver = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) { steepFarm += a; sfb[c.s < 20 ? 0 : c.s < 25 ? 1 : 2] += a; if (ordS && c.s >= ordS.deg) ordOver += a; } } });
     if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 시행령 개정(2026.9.18 시행, 보도 기준)으로 이격 상한·도로 이격 폐지가 적용되는지 시 허가부서 확인");
     if (steepFarm >= 1 && !ordOK) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
     var cauBy = { k1: 0, k2: 0, ord: 0 }; D.cells.forEach(function (c) { if (!c.no && c.st === 1 && c.cw && cauBy[c.cw] !== undefined) cauBy[c.cw] += P[c.p].cellA; });
@@ -607,7 +620,7 @@
       V(G4, "f2", "농지보전부담금(전용 면적 × 공시지가 30%, ㎡당 상한 5만원)", fmiss.length === farm.length ? "확인 불가" : "참고", Math.round(fA),
         (fee ? "약 " + Math.round(fee / 10000).toLocaleString() + "만원" + (fmiss.length ? " (공시지가를 못 받은 " + fmiss.join(", ") + " 제외)" : "") + " — " + fdet.join(" · ") : "공시지가를 받지 못했습니다") + ". 농지 필지 전체를 전용한다고 본 값이며 실제 전용 면적과 감면 여부에 따라 달라짐. 공시지가 기준연도가 오래됐으면 최신 값으로 다시 계산 [요율·상한은 보조자료 기준, 원문 미확인]", "농지법 제38조", "개별공시지가(브이월드)");
       V(G4, "f3", "농지 경사 — 시·군 조례 개발행위(태양광) 경사 기준", !ordS && ordNone0 ? "해당없음(조례에 수치 기준 없음)" : ordS ? (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "주의(기준 근접)" : "해당없음") : "주의(기준 이상)") : "수동확인필요", null,
-        ordS ? ordS.src + ": " + ordS.rule + ". 이 부지 평균 경사 약 " + (siteM != null ? siteM.toFixed(1) : "?") + "° [추정] → " + (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "기준 미만이지만 차이가 " + (ordS.deg - siteM).toFixed(1) + "°뿐이라, 공공 지형자료 추정값 오차를 감안해 측량 평균경사로 꼭 확인" : "기준 미만") : "기준 이상(측량 평균경사로 다시 확인)") : ((R.ordNone || {})[String(P[0].pnu).slice(0, 5)] || "이 시·군의 조례 경사 기준은 도구 표에 아직 없음 — 시·군 도시계획 조례의 개발행위허가(태양광) 기준 확인"), "시·군 도시계획 조례", "조례 표 + 표고[추정]");
+        ordS ? ordS.src + ": " + ordS.rule + ". 이 부지 평균 경사 약 " + (siteM != null ? siteM.toFixed(1) : "?") + "° [추정] → " + (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "기준 미만이지만 차이가 " + (ordS.deg - siteM).toFixed(1) + "°뿐이라, 공공 지형자료 추정값 오차를 감안해 측량 평균경사로 꼭 확인" : "기준 미만") : "기준 이상(측량 평균경사로 다시 확인)") : ((R.ordNone || {})[String(P[0].pnu).slice(0, 5)] || (ordUnk(P) ? ordUnk(P) + ": 법제처 원문에서 경사 수치 기준을 자동으로 찾지 못함(별표·용도지역별 규정일 수 있음) — 원문 확인" : "이 시·군의 조례 경사 기준은 도구 표에 아직 없음 — 시·군 도시계획 조례의 개발행위허가(태양광) 기준 확인")), "시·군 도시계획 조례", "조례 표 + 표고[추정]");
       var nedAll = P.map(function (p) { return Array.isArray(p.ned) ? p.ned.map(function (x) { return x[0]; }).join(",") : ""; }).join(","), kj = /경지정리|농업생산기반|농업기반/.test(nedAll);
       V(G4, "f4", "우량농지·경지정리(집단화된 농지) 여부", kj ? "주의(지역·지구에 표시됨)" : "수동확인필요", null,
         kj ? "토지이용계획에 농업생산기반 관련 지구가 있음 — 많은 시·군 조례가 집단화된 농지 한가운데 입지를 제한" : "공개 자료로 판정하지 않음 — 시·군 농정과나 한국농어촌공사에 경지정리(농업생산기반정비) 구역인지 확인. 많은 시·군 조례가 집단화된 농지 한가운데 입지를 제한", "시·군 조례 / 농어촌정비법", "토지이용계획");
