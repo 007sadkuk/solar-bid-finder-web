@@ -127,6 +127,7 @@
     var zoneP = Promise.all(["LT_C_UQ111", "LT_C_UQ112", "LT_C_UQ113", "LT_C_UQ114"].map(function (L) { return allFeatures(L, B, 2); }));
     var nedP = Promise.all(P.map(function (p) { return BFGeo.nedQuery(p.pnu).then(function (x) { return x; }).catch(function (e) { return { err: e.message }; }); }));
     var lcP = Promise.all(P.map(function (p) { return BFGeo.landChar(p.pnu).catch(function () { return null; }); }));
+    var priceP = Promise.all(P.map(function (p) { return /^(전|답|과)$/.test(p.jcode) ? BFGeo.landPrice(p.pnu).catch(function () { return null; }) : Promise.resolve(null); }));
     var ecoP = ecoFetch(Breal), vtnP = Promise.resolve({ err: "식생평가 API에는 식생보전등급(Ⅰ~Ⅴ)이 없음" });
     var demP = demPrep(pad(Breal, 40)).then(function () { return null; }).catch(function (e) { return e.message; });
     var nbP = allFeatures("LP_PA_CBND_BUBUN", pad(B, 25), 2);
@@ -147,7 +148,7 @@
 
     var zones = []; zr.forEach(function (fs) { fs.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { zones.push({ n: pr.uname || "?", y: pr.dyear || "", r: r, b: bbox(r) }); }); }); });
     var agR = await agP, agri = []; if (agR.f) agR.f.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { agri.push({ n: pr.uname || "?", r: r, b: bbox(r) }); }); });
-    var lc = await lcP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; });
+    var lc = await lcP, prc = await priceP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; p.price = prc[i]; });
 
     prog("필지 안을 격자로 나눠 계산하고 있습니다", 70);
     var area = 0; P.forEach(function (p) { area += p.area; });
@@ -201,15 +202,16 @@
 
     // 진입로(지적상 도로 접함), 이웃 산림
     var mine = {}; P.forEach(function (p) { mine[p.pnu] = 1; });
-    var roads = [], forestNb = {};
+    var roads = [], forestNb = {}, waterNb = [];
     // 경계를 1m 간격으로 따라가며 다른 필지와 맞닿은 길이(m)
     function shared(A, Bs) { var L = 0; for (var i = 0; i < A.length - 1; i++) { var a = A[i], b = A[i + 1], len = Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * ky), n = Math.max(1, Math.ceil(len)); for (var k = 0; k < n; k++) { var t = (k + 0.5) / n, pt = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; if (Bs.some(function (r) { return ringDist(pt, r, kx, ky) < 0.6; })) L += len / n; } } return L; }
-    nb.forEach(function (f) { var pr = f.properties || {}; if (mine[String(pr.pnu)]) return; var ji = BFGeo.jibunInfo(pr.jibun); if (!/^(도|임)$/.test(ji.code)) return;
+    nb.forEach(function (f) { var pr = f.properties || {}; if (mine[String(pr.pnu)]) return; var ji = BFGeo.jibunInfo(pr.jibun); if (!/^(도|임|구|천|유)$/.test(ji.code)) return;
       var rs = polys(f.geometry), touch = [];
       P.forEach(function (p, i) { var bx = p.rings.reduce(function (m, o) { return [Math.min(m[0], o.b[0]), Math.min(m[1], o.b[1]), Math.max(m[2], o.b[2]), Math.max(m[3], o.b[3])]; }, [Infinity, Infinity, -Infinity, -Infinity]);
         if (!rs.some(function (r) { var rb = bbox(r); return rb[0] <= bx[2] + 1e-5 && rb[2] >= bx[0] - 1e-5 && rb[1] <= bx[3] + 1e-5 && rb[3] >= bx[1] - 1e-5; })) return;
         var L = p.rings.reduce(function (s, o) { return s + shared(o.r, rs); }, 0); if (L > 0.5) touch.push({ i: i, L: L }); });
       if (!touch.length) return;
+      if (/^(구|천|유)$/.test(ji.code)) { waterNb.push({ jibun: String(pr.jibun).replace(/\s*\S$/, "").trim() || String(pr.jibun), name: ji.name }); return; }
       if (ji.code === "도") roads.push({ jibun: String(pr.jibun), touch: touch }); else touch.forEach(function (t) { if (t.L >= 2) forestNb[t.i] = (forestNb[t.i] || 0) + 1; }); });
     // 사업지 안 지목 '임' 필지와 맞닿은 경작지도 산림 연접으로 봄
     P.forEach(function (p, i) { if (p.jcode !== "임") return; P.forEach(function (q, j) { if (i === j || forestNb[j]) return;
@@ -282,7 +284,7 @@
 
     prog("판정하고 있습니다", 95);
     return { at: new Date(), P: P, miss: miss, B: B, step: step, dlon: dlon, dlat: dlat, nx: nx, ny: ny, cells: cells, shift: SH, kx: kx, ky: ky,
-      fsErr: fsErr, fsN: fsN, agriOK: !agR.err, sanji: sanji, kei: kei, acc: acc, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, houses: houses };
+      fsErr: fsErr, fsN: fsN, agriOK: !agR.err, sanji: sanji, kei: kei, acc: acc, grid: grid, vlab: vlab, vtn: vtn.err ? { err: vtn.err } : { ok: true, n: vtn.f.length, keys: vtn.f[0] ? Object.keys(vtn.f[0].o) : [] }, ridge: ridge, sgg: P[0].pnu.slice(0, 5), eco: eco.err ? { err: eco.err } : { ok: true, n: eco.f.length, attrs: eco.attrs, extra: eco.f.some(function (f) { return !!f.x; }) }, bldUse: bldUse, demErr: demErr, zones: zones, roads: roads, forestNb: forestNb, waterNb: waterNb, houses: houses };
   }
 
   /* ── 판정: 식생보전등급 입력(veg2: 2등급 구간, vegP[i]: 필지별 그 밖의 구간)에 따라 다시 계산 ──
@@ -595,6 +597,24 @@
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
+    var farm = P.map(function (p, i) { return i; }).filter(function (i) { return /^(전|답|과)$/.test(P[i].jcode); });
+    if (farm.length) {
+      var G4 = "농지(전·답·과) 개발행위 확인", fA = farm.reduce(function (a, i) { return a + P[i].area; }, 0);
+      V(G4, "f1", "농지전용 허가(농지법 제34조)", "대상", Math.round(fA), farm.map(function (i) { return P[i].jibun + " " + P[i].jimok; }).join(", ") + " — 농업진흥구역 밖 농지에 일반 태양광을 놓으려면 농지전용 허가가 필요합니다(개발행위허가 때 함께 의제 처리되는지는 시·군 확인). 농사를 계속 짓는 영농형 태양광은 별도 법(2026.12.17 시행 예정, 최대 30년)으로 따로 허가 [보조자료]", "농지법 제34조 / 영농형 태양광법", "지목");
+      var fee = 0, fmiss = [], fdet = [];
+      farm.forEach(function (i) { var pr = P[i].price; if (!pr || !pr.won) { fmiss.push(P[i].jibun); return; } var u = Math.min(pr.won * 0.3, 50000), a = P[i].area * u; fee += a;
+        fdet.push(P[i].jibun + " " + Math.round(P[i].area).toLocaleString() + "㎡ × " + pr.won.toLocaleString() + "원(" + pr.year + "년)×30%" + (pr.won * 0.3 > 50000 ? "→상한 5만원" : "") + " = 약 " + Math.round(a / 10000).toLocaleString() + "만원"); });
+      V(G4, "f2", "농지보전부담금(전용 면적 × 공시지가 30%, ㎡당 상한 5만원)", fmiss.length === farm.length ? "확인 불가" : "참고", Math.round(fA),
+        (fee ? "약 " + Math.round(fee / 10000).toLocaleString() + "만원" + (fmiss.length ? " (공시지가를 못 받은 " + fmiss.join(", ") + " 제외)" : "") + " — " + fdet.join(" · ") : "공시지가를 받지 못했습니다") + ". 농지 필지 전체를 전용한다고 본 값이며 실제 전용 면적과 감면 여부에 따라 달라짐. 공시지가 기준연도가 오래됐으면 최신 값으로 다시 계산 [요율·상한은 보조자료 기준, 원문 미확인]", "농지법 제38조", "개별공시지가(브이월드)");
+      V(G4, "f3", "농지 경사 — 시·군 조례 개발행위(태양광) 경사 기준", ordS ? (ordOK ? "해당없음" : "주의(기준 이상)") : "수동확인필요", null,
+        ordS ? ordS.src + ": " + ordS.rule + ". 이 부지 평균 경사 약 " + (siteM != null ? siteM.toFixed(1) : "?") + "° [추정] → " + (ordOK ? "기준 미만" : "기준 이상(측량 평균경사로 다시 확인)") : "이 시·군의 조례 경사 기준은 도구 표에 아직 없음 — 시·군 도시계획 조례의 개발행위허가(태양광) 기준 확인", "시·군 도시계획 조례", "조례 표 + 표고[추정]");
+      var nedAll = P.map(function (p) { return Array.isArray(p.ned) ? p.ned.map(function (x) { return x[0]; }).join(",") : ""; }).join(","), kj = /경지정리|농업생산기반|농업기반/.test(nedAll);
+      V(G4, "f4", "우량농지·경지정리(집단화된 농지) 여부", kj ? "주의(지역·지구에 표시됨)" : "수동확인필요", null,
+        kj ? "토지이용계획에 농업생산기반 관련 지구가 있음 — 많은 시·군 조례가 집단화된 농지 한가운데 입지를 제한" : "공개 자료로 판정하지 않음 — 시·군 농정과나 한국농어촌공사에 경지정리(농업생산기반정비) 구역인지 확인. 많은 시·군 조례가 집단화된 농지 한가운데 입지를 제한", "시·군 조례 / 농어촌정비법", "토지이용계획");
+      var WN = D.waterNb || [], wseen = {}; WN = WN.filter(function (w) { if (wseen[w.jibun]) return false; wseen[w.jibun] = 1; return true; });
+      V(G4, "f5", "배수 — 구거·하천·유지와 맞닿음", WN.length ? "주의(점용 확인)" : "수동확인필요", null,
+        WN.length ? "맞닿은 " + WN.map(function (w) { return w.jibun + "(" + w.name + ")"; }).join(", ") + " — 이쪽으로 배수하면 구거·하천 점용허가 필요(관리 주체: 시·군 또는 한국농어촌공사)" : "맞닿은 구거·하천 필지 없음 — 빗물을 어디로 뺄지 배수 계획 필요(주변 논 물길을 막지 않게)", "농어촌정비법·하천법", "연속지적도 이웃 필지");
+    }
     return { rows: rows, per: per, tot: tot, sum: sum, rep: rep };
   }
   function uniqA(a) { var s = {}; return a.filter(function (x) { if (!x || s[x]) return false; s[x] = 1; return true; }); }

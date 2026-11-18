@@ -159,9 +159,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
-<script src="screen-rules.js?v=20261113f"></script>
+<script src="screen-rules.js?v=20261118b"></script>
 <script src="terrain3d.js?v=20261113e"></script>
-<script src="screen.js?v=20261118a"></script>
+<script src="screen.js?v=20261118b"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -282,6 +282,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     R2.appendChild(el("h3",null,"3. 신중 검토 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
     var CF=cauFixList();if(CF.length){R2.appendChild(el("h3",null,"신중검토 구간을 풀어내는 방법"));CF.forEach(function(x){R2.appendChild(el("p",null,"■ "+x.t+(x.a?" ("+n(x.a)+")":"")));var ol=el("ol");x.steps.forEach(function(t,i){ol.appendChild(el("li",null,t+(i===x.steps.length-1&&LAY&&LAY.tables?" 현재 배치 기준 약 "+Math.round(LAY.kwp).toLocaleString()+"kWp(신중검토 구역 제외).":"")))});R2.appendChild(ol)});R2.appendChild(el("p","sub",cauFixNote()))}
     R2.appendChild(el("p","sub","동물 이동로·생태축, 수질, 경관 조망점 등 나머지 신중검토 항목은 공개 자료로 판정하지 않으며 현장 확인이 필요합니다."));
+    var FR=J.rows.filter(function(r){return r.g==="농지(전·답·과) 개발행위 확인"});if(FR.length){R2.appendChild(el("h3",null,"농지(전·답·과) 개발행위 확인 사항"));var TF=el("table"),hf=el("tr");["항목","판정","내용"].forEach(function(x,i){hf.appendChild(el("th",i===2?"bi":null,x))});TF.appendChild(hf);
+      FR.forEach(function(r){var o=ox(r.v),tr=el("tr",o[0]==="△"?"hit":null);tr.appendChild(el("td",null,r.t));tr.appendChild(el("td","ox "+o[1],r.v));tr.appendChild(el("td",null,r.d));TF.appendChild(tr)});R2.appendChild(TF);
+      R2.appendChild(el("p","sub","산(임야)이 아닌 농지는 산지관리법 대신 농지법(전용·부담금)과 시·군 도시계획 조례(경사·이격·집단화 농지)를 따릅니다."))}
     var sl=S.slope;if(sl&&sl.total){R2.appendChild(el("h3",null,"4. 경사도 분석"));var T2=el("table"),h2=el("tr");["구분","면적","구성비(%)"].forEach(function(x){h2.appendChild(el("th",null,x))});T2.appendChild(h2);
       var lab=["5도 미만","5~10도 미만","10~15도 미만","15~20도 미만","20~25도 미만","25~30도 미만","30도 이상"];
       var tr0=el("tr");["합계",n(sl.total),"100"].forEach(function(x){tr0.appendChild(el("td",null,x))});tr0.style.fontWeight="800";T2.appendChild(tr0);
@@ -318,7 +321,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     var CA=Math.min(S.cau||0,ok),OK2=ok-CA,tail="전체 "+py(T)+" 중 "+(CA>=3.3?"확실히 놓을 수 있는 땅은 "+(OK2<3.3?"없고":"약 "+py(OK2)+"이고")+", 협의 결과에 따라 달라지는 신중검토 땅이 약 "+py(CA)+" 더 있습니다.":"패널을 놓을 수 있는 땅은 "+(ok<3.3?"없습니다.":"약 "+py(ok)+"입니다."))+(tiny?(CA>=3.3?" 확실히 놓을 땅이 거의 없어 사업이 어렵습니다.":" 너무 좁아 사업이 안 됩니다."):lay);
     var ex=J.rows.filter(function(r){return (/^z_/.test(r.id)||r.id==="s9"||r.id==="s8")&&/^주의/.test(r.v)}).map(function(r){return r.id==="s8"?"일부가 공익용산지 등 법으로 막힌 구역(걸친 범위 확인)":r.id==="s9"?"재해 위험 지구(시 재난부서 협의)":r.id==="z_mil"?"군부대 협의(비행안전구역 등)":r.id==="z_infra"?"도로·하천 구역에 걸친 부분은 못 씀":r.id==="z_plan"?"시 도시계획 기준 확인":r.id==="z_env"?"개발제한·보호구역 확인":"시 확인이 필요한 지역·지구"});
     var el=$("vboss");el.className="boss "+cls;
-    el.innerHTML=(L.length?"<b class='h'>이유</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(function(){var CF=cauFixList();if(!CF.length||tiny&&!(S.cau>0))return "";return "<div class='c'><b>협의(신중검토) 풀어내는 방법</b><ol>"+CF.map(function(x){return "<li><b>"+esc(x.t)+"</b>: "+x.steps.map(function(t){return t.split(" — ")[0]}).join(" → ")+"</li>"}).join("")+"</ol><span style='font-size:.9em;opacity:.8'>자세한 방법은 아래 보고서 「신중검토 구간을 풀어내는 방법」 참고. "+cauFixNote()+"</span></div>"})()+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
+    el.innerHTML=(L.length?"<b class='h'>이유</b><ol>"+L.map(function(x){return "<li>"+x+"</li>"}).join("")+"</ol>":"")+"<div>"+tail+"</div>"+(function(){var FR=J.rows.filter(function(r){return r.g==="농지(전·답·과) 개발행위 확인"});if(!FR.length||S.verdict==="불가")return "";var g=function(id){return FR.filter(function(r){return r.id===id})[0]},f2=g("f2"),f5=g("f5"),f3=g("f3");var it=["농지전용 허가 필요"];if(f2&&/^약 /.test(f2.d))it.push("농지보전부담금 "+f2.d.split(" — ")[0]);if(f3)it.push(/^해당없음/.test(f3.v)?"조례 경사 기준 충족":/^주의/.test(f3.v)?"조례 경사 기준 이상(측량 확인)":"조례 경사 기준 확인");it.push("경지정리(집단화 농지) 여부 확인");if(f5)it.push(/^주의/.test(f5.v)?"배수: 구거·하천 점용 확인":"배수 계획 필요");return "<div class='c'><b>농지 확인</b>: "+it.join(" · ")+"</div>"})()+(function(){var CF=cauFixList();if(!CF.length||tiny&&!(S.cau>0))return "";return "<div class='c'><b>협의(신중검토) 풀어내는 방법</b><ol>"+CF.map(function(x){return "<li><b>"+esc(x.t)+"</b>: "+x.steps.map(function(t){return t.split(" — ")[0]}).join(" → ")+"</li>"}).join("")+"</ol><span style='font-size:.9em;opacity:.8'>자세한 방법은 아래 보고서 「신중검토 구간을 풀어내는 방법」 참고. "+cauFixNote()+"</span></div>"})()+(ex.length&&!tiny&&S.verdict!=="불가"?"<div class='c'>추가로 확인할 것: "+ex.join(" · ")+"</div>":"");}
   function eumLinks(){var P=D.P,part=J.rows.some(function(r){return r.id==="s8"&&/^주의/.test(r.v)});
     $("elinks").innerHTML=(part?"<b style='color:var(--warn)'>공익용산지 등이 일부 걸쳐 있습니다 — 아래 토지이음에서 '이음지도로 보기'를 눌러 걸친 범위를 확인하세요.</b><br>":"")+"토지이음에서 직접 보기: "+P.map(function(p){return "<a target='_blank' rel='noopener' href='https://www.eum.go.kr/web/ar/lu/luLandDet.jsp?pnu="+p.pnu+"&mode=search&isNoScr=script&selGbn=umd'>"+esc(p.jibun)+" ↗</a>"}).join(" · ")}
   function head(){var P=D.P,S=J.sum;try{eumLinks()}catch(e){}$("ttl").textContent=(P.length===1?P[0].addr:P[0].addr.replace(/\s(산\s?)?[\d-]+$/,"")+" "+P.map(function(p){return p.jibun}).join(", "))+" · "+n(S.total);
