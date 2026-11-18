@@ -542,8 +542,8 @@
       if (infRe && Array.isArray(p.ned)) p.ned.forEach(function (x) { if (!infRe.test(x[0])) return; if (x[1] === "1" && !infP[i]) infP[i] = x[0] + " 포함(필지 전체)"; else if (x[1] === "2") (infPart[i] = infPart[i] || []).push(x[0]); }); });
     D.infPart = infPart;
     D.cells.forEach(function (c) { var r = null;
-      if (legalI[c.p]) r = legalI[c.p];
-      else if (infP[c.p]) r = infP[c.p];
+      if (infP[c.p]) r = infP[c.p];
+      else if (legalI[c.p]) r = legalI[c.p];
       else if (agCell[c.p] && c.ag === "농업진흥구역") r = "농업진흥구역";
       else if (sjCell[c.p] && c.sj === 1) r = "공익용산지";
       else if (c.e === "1") r = "생태자연도 1등급";
