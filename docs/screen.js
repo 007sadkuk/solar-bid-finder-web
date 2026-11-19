@@ -559,19 +559,22 @@
     P.forEach(function (p, i) { if (/^(천|구|도|철|제|유)$/.test(p.jcode)) { infP[i] = "지목 " + p.jimok + "(설치 불가)"; return; }
       if (infRe && Array.isArray(p.ned)) p.ned.forEach(function (x) { if (!infRe.test(x[0]) || /^(국가하천|지방\d?급?하천|소하천)$/.test(x[0])) return; /* 하천 이름(지방1급하천 등)은 하천과 관련 있다는 표시라 범위는 「하천구역」 포함·저촉으로 판단 */ if (x[1] === "1" && !infP[i]) infP[i] = x[0] + " 포함(필지 전체)"; else if (x[1] === "2") (infPart[i] = infPart[i] || []).push(x[0]); }); });
     D.infPart = infPart; var alsoL = {}; P.forEach(function (p, i) { if (infP[i] && legalI[i]) alsoL[legalI[i]] = (alsoL[legalI[i]] || []).concat([p.jibun]); });
+    /* 소규모 환경영향평가 비대상(면적 기준)이면 환경청 협의가 없으므로 협의지침의 회피·신중 항목은 참고로만 보고 설치 가능 면적에서 빼지 않음(opt.seiaGate===false면 예전처럼 적용). 생태자연도 1등급은 보수적으로 계속 제외 */
+    var GATE = opt && opt.seiaGate !== false && !urb && ratio < 1;
+    if (GATE) D.cells.forEach(function (c) { if (c.st === 1 && (c.cw === "k1" || c.cw === "k2")) { c.st = 0; c.cw = null; } else if ((c.st === 2 || c.st === 3) && c.e !== "1") c.st = 0; });
     D.cells.forEach(function (c) { var r = null;
       if (infP[c.p]) r = infP[c.p];
       else if (legalI[c.p]) r = legalI[c.p];
       else if (agCell[c.p] && c.ag === "농업진흥구역") r = "농업진흥구역";
       else if (sjCell[c.p] && c.sj === 1) r = "공익용산지";
       else if (c.e === "1") r = "생태자연도 1등급";
-      else if (R.kei && c.kg === R.kei.avoid) r = "국토환경성평가 1등급";
+      else if (!GATE && R.kei && c.kg === R.kei.avoid) r = "국토환경성평가 1등급";
       else if (c.st === 2 && c.e === "2" && c.vg.ge3) r = "생태자연도 2등급 + 식생 양호";
       else if (c.st === 2 && c.s !== null && c.s >= S.avoid) r = "경사 15° 이상 산림";
       else if (c.st === 3) r = "식생등급 자료 없음(안전하게 제외)";
-      if (!r && san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2) r = "산사태위험 1·2등급";
-      if (!r && c.x && c.x.smld === "1") r = "멸종위기종 서식";
-      if (!r && rgNear) r = "정맥 100m 안";
+      if (!r && !GATE && san.indexOf(c.p) >= 0 && c.hz !== null && c.hz !== undefined && c.hz <= 2) r = "산사태위험 1·2등급";
+      if (!r && !GATE && c.x && c.x.smld === "1") r = "멸종위기종 서식";
+      if (!r && !GATE && rgNear) r = "정맥 100m 안";
       if (!r && homesIn.length) { var lo = D.B[0] + (c.ix + 0.5) * D.dlon + sh.dx, la = D.B[1] + (c.iy + 0.5) * D.dlat + sh.dy;
         if (homesIn.some(function (h) { return Math.hypot((h.c[1] - lo) * kx, (h.c[0] - la) * ky) < Dist; })) r = "주택 " + Dist + "m 이격"; }
       c.no = r; if (r) { why[r] = (why[r] || 0) + P[c.p].cellA; noA += P[c.p].cellA; } });
@@ -605,6 +608,7 @@
       d: (carve.san ? "회피 구간을 뺀 산지 평균 약 " + mRest.toFixed(1) + "°로 15°를 넘어, 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞췄습니다(빼는 구간은 사업부지·일시사용 신청 면적에서 제외). [실무] 이렇게 신청 면적을 줄여 평균경사도를 맞추는 방식은 허가청이 받아주는지 사전 확인 필요. " : "") + (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = preCond.slice();
+    if (GATE) cond.push("소규모 환경영향평가 대상 아님(면적÷기준면적 합 " + ratio.toFixed(2) + ") → 환경청 협의가 없어 「육상태양광 협의지침」의 회피·신중 항목(생태자연도 2등급·식생, 경사 15° 산림, 국토환경성평가, 산사태위험, 정맥 등)은 참고로만 보고 설치 가능 면적에서 빼지 않았습니다. 생태자연도 1등급만 계속 제외. 사업면적을 늘려 대상이 되면 다시 적용됩니다. [확인 필요] 시·군이 개발행위허가 때 같은 기준을 따로 보는지는 허가부서 확인");
     if (carve.ord) cond.push("조례 경사 기준(" + (ordS0 ? ordS0.name + " " + ordS0.deg + "°" : "") + "): 남은 땅 평균 약 " + carve.ordM0.toFixed(1) + "°라 기준 이상 → 가장 가파른 칸부터 " + carve.ord.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.ordM != null ? carve.ordM.toFixed(1) : "?") + "°로 맞춰 계산했습니다(공공 지형자료 오차를 감안해 기준보다 0.5° 낮게 맞춤). 빼는 구간은 사업부지에서 제외(분할 또는 신청 면적 조정)하고, 측량 평균경사도로 다시 확인. [실무] 허가청이 이 방식을 받아주는지 사전 확인");
     if (carve.san) cond.push("산지 평균경사도 15°: 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞춰 계산(기준보다 0.5° 낮게 여유) — 빼는 구간은 일시사용 신청 면적에서 제외. [실무] 허가청 사전 확인");
     var s2r = rows.filter(function (r) { return r.id === "s2"; })[0].v; if (!/^확인됨/.test(s2r)) cond.push(/맹지/.test(s2r) ? "진입로: 실제 도로가 안 붙어 있음 — 진입로 확보(토지 사용승낙·도로 개설) 필요" : "진입로: 길이 좁거나 지적도에만 있음 — 현장에서 폭·통행 확인");
@@ -643,7 +647,7 @@
     if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 제27조의3·시행령 제27조의3(시행 2026.11.17, 법제처 원문 확인): 태양광은 주거지 이격만 둘 수 있고(조례로 최대 200m, 그 거리 안 주택이 조례 호수(최소 5호) 미만이면 미적용), 도로 이격은 둘 수 없음. 예외 지역(국가유산 보존지역·보호구역, 생태·경관보전지역, 관광지·관광단지, 자연취락지구)은 조례 그대로. 조례가 아직 개정 전이면 허가부서가 어느 기준을 쓰는지 확인");
     if (steepFarm >= 1 && !ordOK) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
     var cauBy = { k1: 0, k2: 0, ord: 0 }; D.cells.forEach(function (c) { if (!c.no && c.st === 1 && c.cw && cauBy[c.cw] !== undefined) cauBy[c.cw] += P[c.p].cellA; });
-    var sum = { restM: wmean(D.cells.filter(function (c) { return !c.no && c.s !== null; })), userCut: Math.round(cutA), carve: carve, dis: disInfo, whyAlso: Object.keys(alsoL).map(function (k) { return k + " (" + alsoL[k].join(", ") + ")"; }), cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var sum = { seiaGate: GATE, restM: wmean(D.cells.filter(function (c) { return !c.no && c.s !== null; })), userCut: Math.round(cutA), carve: carve, dis: disInfo, whyAlso: Object.keys(alsoL).map(function (k) { return k + " (" + alsoL[k].join(", ") + ")"; }), cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;

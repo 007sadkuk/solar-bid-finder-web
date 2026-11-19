@@ -120,6 +120,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       <p class="sub" id="ttl"></p><p class="sub noprint" id="elinks" style="margin:2px 0 6px"></p>
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
       <label class="noprint" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;margin:0 0 8px" title="평균경사 기준(조례·산지 15°)을 넘으면 가장 가파른 칸부터 빼고 나머지로 계산합니다(실무에서 가파른 구간을 사업부지에서 빼고 신청하는 방식)"><input type="checkbox" id="carveChk"> 경사 기준 넘으면 가파른 구간만 빼고 계산(실무 방식)</label>
+      <label class="noprint" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;margin:0 0 8px 12px" title="소규모 환경영향평가 대상(용도지역별 기준면적)이 아니면 환경청 협의가 없으므로 협의지침의 회피·신중 항목을 설치 가능 면적에서 빼지 않습니다"><input type="checkbox" id="seiaChk"> 소규모 환평 대상 아니면 협의지침 기준 빼고 보기</label>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
       <div id="vboss" class="boss"></div><div id="vlite"></div>
@@ -165,11 +166,12 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="ordinance.js?v=20261119a"></script>
 <script src="terrain3d.js?v=20261113e"></script>
 <script src="ldet.js?v=20261119a"></script>
-<script src="screen.js?v=20261119f"></script>
+<script src="screen.js?v=20261119g"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   var LITE=/[?&]lite=1\b/.test(location.search);
+  var SEIAG=true;try{SEIAG=localStorage.getItem("scr_seiag")!=="0"}catch(e){}
   try{window.SCR_CARVE=localStorage.getItem("scr_carve")!=="0"}catch(e){window.SCR_CARVE=true}
   var BIZ="general";try{BIZ=localStorage.getItem("scr_biz")||"general"}catch(e){}
   if(LITE){BIZ="village";document.body.classList.add("lite");try{var hl=document.querySelector("header h1 a");if(hl)hl.href="screen.html?lite=1"}catch(e){}}
@@ -232,7 +234,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     var need=D.P.map(function(p,i){return D.cells.some(function(c){return c.p===i&&!c.v&&c.e!=="2"})});
     D.P.forEach(function(p,i){if(!need[i])return;sel(p.jibun+" ("+p.jimok+")"+(has2?" — 2등급 밖":""),[["","자동(이용상황으로 추정)"],["4+","Ⅳ등급 이상(산림 등)"],["5","Ⅴ등급 이하(농경지·나지 등)"]],vegP[i],function(v){vegP[i]=v})});
     var note=$("vegNote");var np=D.cells.filter(function(c){return c.vl}).length;note.textContent=(np?"2026년 생태자연도 고시도면에 식생보전등급이 적힌 곳은 그 값을 그대로 썼습니다(사업지의 "+Math.round(np/D.cells.length*100)+"%). ":"")+(D.vlab&&!D.vlab.cov?"이 지역은 고시도면 자료를 아직 넣지 않아 ":"")+"나머지는 생태자연도 군락명(식재림 Ⅳ, 자연림 Ⅲ)과 이용상황으로 자동 판단했습니다."}
-  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ,cut:CUT,cutSlope:SCUT});try{layAll()}catch(e){LAY=null;LAY2=null}head();report();rows();per();drawMap();srcs()}
+  function redo(){J=Screen.judge(D,veg2,vegP,{biz:BIZ,cut:CUT,cutSlope:SCUT,seiaGate:SEIAG});try{layAll()}catch(e){LAY=null;LAY2=null}head();report();rows();per();drawMap();srcs()}
   /* 입지검토서 형식(협의지침 표) */
   function ox(v){return /^회피|^신중검토/.test(v)?["O","o"]:/^해당없음|^대상 아님|^확인됨/.test(v)?["X","x"]:/^주의|^맹지|^대상/.test(v)?["△","t"]:["-",""]}
   function ppTxt(pp){return pp.map(function(x){return x[0]+" "+(x[2]>=0.6?"대부분 ":x[2]<0.15?"일부 ":"")+x[1].toLocaleString()+"㎡"}).join(", ")}
@@ -295,8 +297,8 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       r1.appendChild(el("td",null,Math.round(ks).toLocaleString()));r2.appendChild(el("td",null,"100"));TK.appendChild(r1);TK.appendChild(r2);R2.appendChild(TK);
       R2.appendChild(el("p","sub","자료: KEI 국토환경성평가지도 2025(기후에너지환경부, 5m 원자료를 10m로 변환). 1·2등급은 보전 위주 지역으로 개발이 어려운 편입니다."+(KE.none>50?" 등급 없음 "+n(KE.none)+".":"")))}
     else R2.appendChild(el("p","sub","국토환경성평가 등급 자료를 불러오지 못했습니다."));
-    R2.appendChild(el("h3",null,"2. 입지를 회피해야 할 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G}),["입지 회피 지역","해당 여부","비고"]));
-    R2.appendChild(el("h3",null,"3. 신중 검토 지역"));R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
+    R2.appendChild(el("h3",null,"2. 입지를 회피해야 할 지역"));if(S.seiaGate){var gN=el("p","sub","※ 소규모 환경영향평가 대상이 아니어서(면적 기준) 이 항목은 환경청 협의에 쓰이지 않습니다 — 참고로만 표시하고 설치 가능 면적에서 빼지 않았습니다(생태자연도 1등급 제외).");gN.style.cssText="color:#b26a00;margin:2px 0 6px";R2.appendChild(gN)}R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G}),["입지 회피 지역","해당 여부","비고"]));
+    R2.appendChild(el("h3",null,"3. 신중 검토 지역"));if(S.seiaGate){var gN=el("p","sub","※ 소규모 환경영향평가 대상이 아니어서(면적 기준) 이 항목은 환경청 협의에 쓰이지 않습니다 — 참고로만 표시하고 설치 가능 면적에서 빼지 않았습니다(생태자연도 1등급 제외).");gN.style.cssText="color:#b26a00;margin:2px 0 6px";R2.appendChild(gN)}R2.appendChild(tbl(J.rows.filter(function(r){return r.g===G2}),["입지의 신중한 검토 필요 지역","해당 여부","비고"]));
     var CF=cauFixList();if(CF.length){R2.appendChild(el("h3",null,"신중검토 구간을 풀어내는 방법"));CF.forEach(function(x){R2.appendChild(el("p",null,"■ "+x.t+(x.a?" ("+n(x.a)+")":"")));var ol=el("ol");x.steps.forEach(function(t,i){ol.appendChild(el("li",null,t+(i===x.steps.length-1&&LAY&&LAY.tables?" 현재 배치 기준 약 "+Math.round(LAY.kwp).toLocaleString()+"kWp(신중검토 구역 제외).":"")))});R2.appendChild(ol)});R2.appendChild(el("p","sub",cauFixNote()))}
     R2.appendChild(el("p","sub","동물 이동로·생태축, 수질, 경관 조망점 등 나머지 신중검토 항목은 공개 자료로 판정하지 않으며 현장 확인이 필요합니다."));
     var FR=J.rows.filter(function(r){return r.g==="농지(전·답·과) 개발행위 확인"});if(FR.length){R2.appendChild(el("h3",null,"농지(전·답·과) 개발행위 확인 사항"));var TF=el("table"),hf=el("tr");["항목","판정","내용"].forEach(function(x,i){hf.appendChild(el("th",i===2?"bi":null,x))});TF.appendChild(hf);
@@ -460,6 +462,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       var re=function(){var v=$("modSel").value;if(v==="__add"){var nid=addUM();v=nid||MOD.key}else if(v==="__del"){if(confirm(MODS[MOD.key].name+" 을(를) 목록에서 지울까요?")){delUM(MOD.key);v="f655"}else v=MOD.key}MOD.key=MODS[v]?v:"f655";MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc;$("modCmpB").onclick=function(){var t=$("modCmpT");if(t.innerHTML){t.innerHTML="";return}t.innerHTML="계산 중…";setTimeout(function(){t.innerHTML=modCmp()},20)};var lb=el("button",null,"🔒 잠그기");lb.type="button";lb.className="btn";lb.style.padding="4px 10px";lb.onclick=function(){LDET.lock()};ctl.appendChild(document.createTextNode(" "));ctl.appendChild(lb)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
+  $("seiaChk").checked=SEIAG;$("seiaChk").onchange=function(){SEIAG=this.checked;try{localStorage.setItem("scr_seiag",this.checked?"1":"0")}catch(e){}if(D)redo()};
   $("carveChk").checked=window.SCR_CARVE!==false;$("carveChk").onchange=function(){window.SCR_CARVE=this.checked;try{localStorage.setItem("scr_carve",this.checked?"1":"0")}catch(e){}if(D)redo()};
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
