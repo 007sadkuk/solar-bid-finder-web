@@ -12,7 +12,7 @@ body{margin:0;background:#e9ecf1;color:#1b1f27;font:14px/1.5 "Pretendard Variabl
 .bar select,.bar button{font:inherit;padding:5px 10px;border-radius:6px;border:1px solid #9fb3cf}
 .bar button{background:#fff;color:#1f3b63;font-weight:700;cursor:pointer}
 .bar label{display:flex;gap:6px;align-items:center}
-.sheet{background:#fff;margin:14px auto;border:1px solid #c9d0db;width:min(calc(100vw - 28px),calc((100vh - 84px)*406/283));aspect-ratio:406/283}
+.sheet{position:relative;container-type:inline-size;background:#fff;margin:14px auto;border:1px solid #c9d0db;width:min(calc(100vw - 28px),calc((100vh - 84px)*406/283));aspect-ratio:406/283}
 .cap{font-size:12px;color:#c9d6ea}
 #map{height:100%}
 .side{padding:18px 18px 14px;display:flex;flex-direction:column;gap:14px}
@@ -30,10 +30,10 @@ td.hl{color:#c0392b;font-weight:800}
 .lgd i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:8px}
 .rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:10.5px;line-height:1.1;padding:1px 4px;width:66px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .mapwrap{position:relative;height:100%}
-.tb{--k:1;position:absolute;right:12px;bottom:22px;z-index:600;width:calc(360px*var(--k));max-width:calc(100% - 24px);max-height:calc(100% - 30px);overflow:auto;background:#fff;border:2px solid #111;font-size:calc(11.5px*var(--k));line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tb{--k:1;position:absolute;right:12px;bottom:22px;z-index:600;width:calc(21cqw*var(--k));max-width:calc(100% - 24px);max-height:calc(100% - 30px);overflow:hidden;background:#fff;border:2px solid #111;font-size:calc(.7cqw*var(--k));line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 .tb table{font-size:1em}
-.tb th,.tb td{border:1px solid #333;padding:3px 6px}
-.tb th{background:#f1f3f7;width:72px;white-space:nowrap}
+.tb th,.tb td{border:1px solid #333;padding:.25em .5em}
+.tb th{background:#f1f3f7;width:6.3em;white-space:nowrap}
 .tb .ttl{background:#1f3b63;color:#fff;font-size:1.25em;font-weight:800;text-align:center;padding:5px;letter-spacing:.5px}
 .tb .sv{padding:2px 4px 0}
 .tb .ft td{font-size:.92em;text-align:center;background:#fafbfc}
@@ -56,7 +56,7 @@ td.hl{color:#c0392b;font-weight:800}
 <div class="bar"><b>태양광 발전설비 배치도</b>
   <label>모듈 <select id="selMod"></select></label>
   <label><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
-  <label>명판 크기 <input type="range" id="tbK" min="80" max="220" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
+  <label>명판 크기 <input type="range" id="tbK" min="60" max="200" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
   <button type="button" id="btnTb">명판 숨기기</button>
   <button type="button" id="btnPrint">인쇄 · PDF 저장 (A3 가로)</button>
   <span class="cap">화면에 보이는 그대로 인쇄됩니다</span>
@@ -126,7 +126,7 @@ td.hl{color:#c0392b;font-weight:800}
     var gap2=(Math.ceil(M.gap*100)/100).toFixed(2),inC=cau&&O.L[key+"_c"];
     $("tb").innerHTML="<div class='ttl'>태양광 발전설비 배치도</div><table>"+
       "<tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr>"+
-      "<tr><th>부지 면적</th><td>약 "+n(O.total)+" m²</td><th style='width:52px'>배치 범위</th><td>"+(inC?"확실+신중검토":"확실 구역만")+"</td></tr>"+
+      "<tr><th>부지 면적</th><td>약 "+n(O.total)+" m²</td><th style='width:4.6em'>배치 범위</th><td>"+(inC?"확실+신중검토":"확실 구역만")+"</td></tr>"+
       "<tr><th>모듈</th><td colspan='3'>"+esc(M.name)+" ("+n(M.l*1000)+"×"+n(M.w*1000)+"×30)</td></tr>"+
       "<tr><th>수량·용량</th><td colspan='3' class='hl'>"+n(LY.mods)+" 장 · "+n(LY.mods*M.kw,2)+" kWp</td></tr>"+
       "<tr><th>어레이</th><td colspan='3'>세로 "+O.rows+"단 · 정남향 · 모듈각 "+O.tilt+"° · 음영각 "+O.shade+"° · "+rs.length+"열 / 테이블 "+LY.tables+"개</td></tr>"+
@@ -141,7 +141,7 @@ td.hl{color:#c0392b;font-weight:800}
 
   function section(M,mini){var s=mini?22:34,W=M.dep*2+M.gap,pad=26,w=W*s+pad*2,h=M.H*s+90,yb=M.H*s+30,x1=pad,x2=pad+M.dep*s,x3=pad+(M.dep+M.gap)*s,x4=x3+M.dep*s,yt=yb-M.H*s;
     function t(x,y,str,a,c){return "<text x='"+x+"' y='"+y+"' font-size='11' text-anchor='"+(a||"middle")+"' fill='"+(c||"#222")+"'>"+str+"</text>"}
-    return "<svg viewBox='0 0 "+w+" "+h+"' width='100%' style='max-width:"+(mini?"100%":w+"px")+";max-height:"+(mini?"calc(110px*var(--k))":"400px")+";display:block;margin:0 auto'>"+
+    return "<svg viewBox='0 0 "+w+" "+h+"' width='100%' style='max-width:"+(mini?"100%":w+"px")+";max-height:"+(mini?"calc(7cqw*var(--k))":"400px")+";display:block;margin:0 auto'>"+
       "<line x1='"+(pad-10)+"' y1='"+yb+"' x2='"+(x4+10)+"' y2='"+yb+"' stroke='#888'/>"+
       "<line x1='"+x1+"' y1='"+yb+"' x2='"+x2+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/><line x1='"+x3+"' y1='"+yb+"' x2='"+x4+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/>"+
       "<line x1='"+x2+"' y1='"+yt+"' x2='"+x2+"' y2='"+yb+"' stroke='#555'/><line x1='"+x4+"' y1='"+yt+"' x2='"+x4+"' y2='"+yb+"' stroke='#555'/>"+
