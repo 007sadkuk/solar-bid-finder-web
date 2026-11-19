@@ -54,8 +54,9 @@ td.hl{color:#c0392b;font-weight:800}
 </style>
 </head><body>
 <div class="bar"><b>태양광 발전설비 배치도</b>
-  <label>모듈 <select id="selMod"></select></label>
-  <label><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
+  <button type="button" id="btnLd">🔒 상세 보기</button>
+  <label class="det2">모듈 <select id="selMod"></select></label>
+  <label class="det2"><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
   <label>명판 크기 <input type="range" id="tbK" min="60" max="200" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
   <button type="button" id="btnTb">명판 숨기기</button>
   <button type="button" id="btnPrint">인쇄 · PDF 저장 (A3 가로)</button>
@@ -66,6 +67,7 @@ td.hl{color:#c0392b;font-weight:800}
 <script src="vwkey.js"></script>
 <script src="site-config.js?v=20261030a"></script>
 <script src="geo.js?v=20261112a"></script>
+<script src="ldet.js?v=20261119a"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
@@ -79,6 +81,7 @@ td.hl{color:#c0392b;font-weight:800}
   $("chkCau").checked=cau;$("chkCau").disabled=!O.L[key+"_c"];if(!O.L[key+"_c"])$("chkCau").parentNode.title="신중검토 구역이 없습니다";
   $("selMod").onchange=function(){key=this.value;draw()};$("chkCau").onchange=function(){cau=this.checked;draw()};
   $("btnPrint").onclick=function(){window.print()};
+  $("btnLd").onclick=function(){if(LDET.ok())LDET.lock();else LDET.unlock()};
   function setK(v){v=+v||130;$("tbK").value=v;$("tbKv").textContent=v+"%";var t=$("tb");if(t)t.style.setProperty("--k",v/100);try{localStorage.setItem("lay_tbk",v)}catch(e){}}
   $("tbK").oninput=function(){setK(this.value)};$("tbK").onchange=function(){setK(this.value);fit()};
   $("btnTb").onclick=function(){var t=$("tb"),h=t.style.display==="none";t.style.display=h?"":"none";this.textContent=h?"명판 숨기기":"명판 보이기";fit()};
@@ -108,7 +111,12 @@ td.hl{color:#c0392b;font-weight:800}
   function fit(){map.invalidateSize();var tb=$("tb"),sz=map.getSize(),tw=tb&&tb.style.display!=="none"?tb.offsetWidth:0,th=tw?tb.offsetHeight:0,side=sz.x-tw>sz.y-th*0.9;map.fitBounds(L.latLngBounds(allLL),{paddingTopLeft:[50,50],paddingBottomRight:!tw?[50,50]:side?[tw+40,40]:[40,th+30],maxZoom:19,animate:false})}fit();setTimeout(fit,200);window.addEventListener("resize",function(){map.invalidateSize()});
   var mods=L.layerGroup().addTo(map);
 
-  function draw(){var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
+  function draw(){var UL=!!(window.LDET&&LDET.ok());$("btnLd").textContent=UL?"🔒 잠그기":"🔒 상세 보기";Array.prototype.forEach.call(document.querySelectorAll(".det2"),function(x){x.style.display=UL?"":"none"});
+    if(!UL){mods.clearLayers();$("lgMod").parentNode.style.display="none";
+      $("tb").innerHTML="<div class='ttl'>태양광 발전설비 배치도</div><table><tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr><tr><th>부지 면적</th><td colspan='3'>약 "+n(O.total)+" m²</td></tr><tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>";
+      $("sum").innerHTML="";$("sNote").textContent="";return}
+    $("lgMod").parentNode.style.display="";
+    var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
     $("lgMod").textContent="태양광 모듈 ("+M.name.replace(/^\S+\s/,"")+")";
     var ct=Math.cos(O.tilt*d2r),ml=M.l*ct,mstep=(M.l+O.mg)*ct,R=new L.Canvas({padding:.5});
     LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<O.rows;k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
@@ -152,6 +160,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<line x1='"+x1+"' y1='"+(yb+34)+"' x2='"+x3+"' y2='"+(yb+34)+"' stroke='#333'/>"+t((x1+x3)/2,yb+31,"피치 "+M.pitch.toFixed(2)+" m")+
       t(pad-6,yb+54,"남(S)","start")+t(x4+6,yb+54,"북(N)","end")+"</svg>"}
 
+  LDET.onChange(function(){draw();fit()});
   var k0v=130;try{k0v=+localStorage.getItem("lay_tbk")||130}catch(e){}setK(k0v);
   draw();fit();setTimeout(fit,600);setTimeout(fit,1500);window.addEventListener("load",fit);try{document.fonts.ready.then(fit)}catch(e){}
   /* 인쇄 = 화면 그대로: 지금 보이는 도면 크기를 고정하고 A3 가로(406×283mm 인쇄 영역)에 맞게 통째로 축소·확대 */
