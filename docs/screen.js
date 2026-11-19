@@ -156,6 +156,8 @@
     var zones = []; zr.forEach(function (fs) { fs.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { zones.push({ n: pr.uname || "?", y: pr.dyear || "", r: r, b: bbox(r) }); }); }); });
     var agR = await agP, agri = []; if (agR.f) agR.f.forEach(function (f) { var pr = f.properties || {}; polys(f.geometry).forEach(function (r) { agri.push({ n: pr.uname || "?", r: r, b: bbox(r) }); }); });
     var lc = await lcP, prc = await priceP; P.forEach(function (p, i) { p.ned = ned[i]; p.lc = lc[i]; p.price = prc[i]; });
+    // 면적: 토지특성의 토지면적(lndpclAr, 토지대장 면적)을 우선. 지적도 도형으로 잰 값과 20% 넘게 다르면 자료 오류로 보고 도형 값 유지
+    P.forEach(function (p) { p.areaGeo = p.area; p.areaSrc = "도면"; var v = p.lc && p.lc.raw ? +p.lc.raw.lndpclAr : NaN; if (isFinite(v) && v > 0 && Math.abs(v - p.area) <= p.area * 0.2) { p.area = v; p.areaSrc = "대장"; } });
 
     prog("필지 안을 격자로 나눠 계산하고 있습니다", 70);
     var area = 0; P.forEach(function (p) { area += p.area; });
