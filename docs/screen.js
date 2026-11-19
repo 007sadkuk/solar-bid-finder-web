@@ -582,6 +582,8 @@
     var CUTS = (opt && opt.cut) || [], cutA = 0;
     var SCUT = opt && opt.cutSlope != null ? +opt.cutSlope : null;
     if (SCUT != null) D.cells.forEach(function (c) { if (c.no || c.s === null || c.s < SCUT) return; var a = P[c.p].cellA, r = "직접 뺀 구역(경사 " + SCUT + "° 이상)"; c.no = r; why[r] = (why[r] || 0) + a; noA += a; cutA += a; });
+    var CX = (opt && opt.cutCells) || null;
+    if (CX && CX.size) D.cells.forEach(function (c) { if (c.no || !CX.has(c.ix + "," + c.iy)) return; var a = P[c.p].cellA, r = "직접 뺀 구역(칸 선택)"; c.no = r; why[r] = (why[r] || 0) + a; noA += a; cutA += a; });
     if (CUTS.length) { var cb = CUTS.map(function (r) { return { r: r, b: bbox(r) }; });
       D.cells.forEach(function (c) { if (c.no) return; var q = [D.B[0] + (c.ix + 0.5) * D.dlon, D.B[1] + (c.iy + 0.5) * D.dlat];
         if (cb.some(function (o) { return inB(q, o.b) && pip(q, o.r); })) { var a = P[c.p].cellA, r = "직접 뺀 구역(지도에 그림)"; c.no = r; why[r] = (why[r] || 0) + a; noA += a; cutA += a; } }); }
