@@ -257,7 +257,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     R2.appendChild(el("h2",null,"태양광 발전사업 입지검토"));R2.appendChild(el("p","sub","육상태양광발전사업 환경성 평가 협의 지침 기준 · "+D.at.toLocaleDateString("ko-KR")+" 공공데이터 자동 검토"));
     R2.appendChild(el("h3",null,"1. 사업의 개요"));var kv=el("div","kv");
     function K(k,v){kv.appendChild(el("b",null,k));kv.appendChild(el("span",null,v))}
-    K("위치",P[0].addr+(P.length>1?" 외 "+(P.length-1)+"필지":""));K("면적",n(S.total));
+    K("위치",P[0].addr+(P.length>1?" 외 "+(P.length-1)+"필지":""));K("면적(필지 합계)",n(S.total));K("설치 가능 면적",n(S.ok)+" ("+(S.total?Math.round(S.ok/S.total*100):0)+"%)"+(S.cau>=1?" — 확실 "+n(Math.max(0,S.ok-Math.min(S.cau,S.ok)))+", 신중검토 "+n(Math.min(S.cau,S.ok)):""));
     var zA={};D.cells.forEach(function(c){var k=c.z||"(용도지역 없음)";zA[k]=(zA[k]||0)+P[c.p].cellA});K("용도지역",Object.keys(zA).map(function(k){return k+" "+n(zA[k])}).join(", "));
     var s5=J.rows.filter(function(r){return r.id==="s5"})[0];K("다른 법령 지역·지구",s5&&!/^해당없음/.test(s5.v)?s5.d.replace(/\([^)]*\)/g,"").replace(/ · /g,", "):"해당 없음");
     if(S.slope&&S.slope.mAll!=null)K("산지 평균경사도","약 "+S.slope.mAll.toFixed(1)+"°"+(S.slope.mRest!=null&&Math.abs(S.slope.mRest-S.slope.mAll)>0.05?" (회피 구간 제외 시 약 "+S.slope.mRest.toFixed(1)+"°)":""));
