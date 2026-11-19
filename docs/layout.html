@@ -105,7 +105,7 @@ td.hl{color:#c0392b;font-weight:800}
   if(site){L.geoJSON(site,{style:{color:"#e01b1b",weight:3,fill:false}}).addTo(base);
     try{var inner=turf.buffer(site,-O.set,{units:"meters"});if(inner)L.geoJSON(inner,{style:{color:"#ffd400",weight:2,dashArray:"6 5",fill:false}}).addTo(base)}catch(e){}}
   var allLL=[];O.P.forEach(function(p){p.rings.forEach(function(r){r.forEach(function(v){allLL.push([v[1],v[0]])})})});
-  function fit(){map.invalidateSize();var tb=$("tb"),sz=map.getSize(),tw=tb&&tb.style.display!=="none"?tb.offsetWidth:0,th=tw?tb.offsetHeight:0,side=sz.x-tw>sz.y-th*0.9;map.fitBounds(L.latLngBounds(allLL),{paddingTopLeft:[50,50],paddingBottomRight:!tw?[50,50]:side?[tw+40,40]:[40,th+30],maxZoom:19})}fit();setTimeout(fit,200);window.addEventListener("resize",function(){map.invalidateSize()});
+  function fit(){map.invalidateSize();var tb=$("tb"),sz=map.getSize(),tw=tb&&tb.style.display!=="none"?tb.offsetWidth:0,th=tw?tb.offsetHeight:0,side=sz.x-tw>sz.y-th*0.9;map.fitBounds(L.latLngBounds(allLL),{paddingTopLeft:[50,50],paddingBottomRight:!tw?[50,50]:side?[tw+40,40]:[40,th+30],maxZoom:19,animate:false})}fit();setTimeout(fit,200);window.addEventListener("resize",function(){map.invalidateSize()});
   var mods=L.layerGroup().addTo(map);
 
   function draw(){var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
