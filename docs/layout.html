@@ -29,7 +29,7 @@ td.hl{color:#c0392b;font-weight:800}
 .lgd i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:8px}
 .rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:10.5px;line-height:1.1;padding:1px 4px;width:66px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .mapwrap{position:relative;height:calc(100vh - 92px);min-height:560px}
-.tb{position:absolute;right:12px;bottom:12px;z-index:600;width:360px;background:#fff;border:2px solid #111;font-size:11.5px;line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tb{position:absolute;right:12px;bottom:22px;z-index:600;width:360px;background:#fff;border:2px solid #111;font-size:11.5px;line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
 .tb table{font-size:11.5px}
 .tb th,.tb td{border:1px solid #333;padding:3px 6px}
 .tb th{background:#f1f3f7;width:72px;white-space:nowrap}
@@ -55,6 +55,7 @@ td.hl{color:#c0392b;font-weight:800}
 <div class="bar"><b>태양광 발전설비 배치도</b>
   <label>모듈 <select id="selMod"></select></label>
   <label><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
+  <button type="button" id="btnTb">명판 숨기기</button>
   <button type="button" id="btnPrint">인쇄 · PDF 저장 (A3 가로)</button>
 </div>
 <div id="root"></div>
@@ -75,6 +76,7 @@ td.hl{color:#c0392b;font-weight:800}
   $("chkCau").checked=cau;$("chkCau").disabled=!O.L[key+"_c"];if(!O.L[key+"_c"])$("chkCau").parentNode.title="신중검토 구역이 없습니다";
   $("selMod").onchange=function(){key=this.value;draw()};$("chkCau").onchange=function(){cau=this.checked;draw()};
   $("btnPrint").onclick=function(){window.print()};
+  $("btnTb").onclick=function(){var t=$("tb"),h=t.style.display==="none";t.style.display=h?"":"none";this.textContent=h?"명판 숨기기":"명판 보이기";fit()};
   var d2r=Math.PI/180,sh=O.sh||{dx:0,dy:0};
   function ll(x,y){return [O.B[1]+sh.dy+y/O.ky,O.B[0]+sh.dx+x/O.kx]}
   function n(a,d){return (+a).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
@@ -98,7 +100,7 @@ td.hl{color:#c0392b;font-weight:800}
   if(site){L.geoJSON(site,{style:{color:"#e01b1b",weight:3,fill:false}}).addTo(base);
     try{var inner=turf.buffer(site,-O.set,{units:"meters"});if(inner)L.geoJSON(inner,{style:{color:"#ffd400",weight:2,dashArray:"6 5",fill:false}}).addTo(base)}catch(e){}}
   var allLL=[];O.P.forEach(function(p){p.rings.forEach(function(r){r.forEach(function(v){allLL.push([v[1],v[0]])})})});
-  function fit(){map.invalidateSize();var wide=map.getSize().x>900;map.fitBounds(L.latLngBounds(allLL),{paddingTopLeft:[50,50],paddingBottomRight:wide?[400,50]:[40,330],maxZoom:19})}fit();setTimeout(fit,200);window.addEventListener("resize",function(){map.invalidateSize()});
+  function fit(){map.invalidateSize();var tb=$("tb"),sz=map.getSize(),tw=tb&&tb.style.display!=="none"?tb.offsetWidth:0,th=tw?tb.offsetHeight:0,side=sz.x-tw>sz.y-th*0.9;map.fitBounds(L.latLngBounds(allLL),{paddingTopLeft:[50,50],paddingBottomRight:!tw?[50,50]:side?[tw+40,40]:[40,th+30],maxZoom:19})}fit();setTimeout(fit,200);window.addEventListener("resize",function(){map.invalidateSize()});
   var mods=L.layerGroup().addTo(map);
 
   function draw(){var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
@@ -145,7 +147,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<line x1='"+x1+"' y1='"+(yb+34)+"' x2='"+x3+"' y2='"+(yb+34)+"' stroke='#333'/>"+t((x1+x3)/2,yb+31,"피치 "+M.pitch.toFixed(2)+" m")+
       t(pad-6,yb+54,"남(S)","start")+t(x4+6,yb+54,"북(N)","end")+"</svg>"}
 
-  draw();
+  draw();fit();
   window.addEventListener("beforeprint",function(){fit()});
   window.addEventListener("afterprint",function(){map.invalidateSize()});
 })();
