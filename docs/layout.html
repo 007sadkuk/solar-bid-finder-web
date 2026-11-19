@@ -55,6 +55,7 @@ td.hl{color:#c0392b;font-weight:800}
 </head><body>
 <div class="bar"><b>태양광 발전설비 배치도</b>
   <button type="button" id="btnLd">🔒 상세 보기</button>
+  <label class="det2">목표 장수 <input type="number" id="tgt" min="0" step="1" placeholder="예: 2300" style="width:90px;font:inherit;padding:4px 6px;border-radius:6px;border:1px solid #9fb3cf"></label><button type="button" class="det2" id="btnTgt">맞추기</button>
   <label class="det2">모듈 <select id="selMod"></select></label>
   <label class="det2"><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
   <label>명판 크기 <input type="range" id="tbK" min="60" max="200" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
@@ -85,6 +86,17 @@ td.hl{color:#c0392b;font-weight:800}
   function setK(v){v=+v||130;$("tbK").value=v;$("tbKv").textContent=v+"%";var t=$("tb");if(t)t.style.setProperty("--k",v/100);try{localStorage.setItem("lay_tbk",v)}catch(e){}}
   $("tbK").oninput=function(){setK(this.value)};$("tbK").onchange=function(){setK(this.value);fit()};
   $("btnTb").onclick=function(){var t=$("tb"),h=t.style.display==="none";t.style.display=h?"":"none";this.textContent=h?"명판 숨기기":"명판 보이기";fit()};
+  var TG=+O.target||0;$("tgt").value=TG||"";
+  $("btnTgt").onclick=function(){TG=Math.max(0,Math.floor(+$("tgt").value||0));draw();fit()};$("tgt").onkeydown=function(e){if(e.key==="Enter")$("btnTgt").click()};
+  /* 목표 장수: 남쪽부터 채운 배치에서 북쪽 테이블부터 덜어냄(테이블은 최소 열 유지, 3으로 안 나눠지는 나머지는 세로줄 하나를 1~2장으로) — 입지검토 화면과 같은 방식 */
+  function trimL(L0,M){var full=L0.mods,R=O.rows,T=L0.T.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:t.s,l:0}});var L={mods:full,full:full,tables:T.length,kwp:L0.kwp,T:T,target:TG||null,short:0,trim:0};
+    if(!TG)return L;if(full<=TG){L.short=TG-full;return L}
+    var rm=full-TG,S=T.slice().sort(function(a,b){return b.y-a.y||b.x-a.x}),mc=O.minCol||4;
+    for(var i=0;i<S.length&&rm>0;i++){var t=S[i];if(rm>=t.c*R){t.drop=1;rm-=t.c*R}else break}
+    for(var i=0;i<S.length&&rm>=R;i++){var t=S[i];if(t.drop)continue;var k=Math.min(Math.floor(rm/R),t.c-mc);if(k>0){t.c-=k;rm-=k*R}}
+    if(rm>0&&rm<R){var t2=S.filter(function(t){return !t.drop})[0];if(t2)t2.l=R-rm;rm=0}
+    if(rm>0){for(var i=0;i<S.length&&rm>0;i++){var t=S[i];if(t.drop)continue;var k=Math.min(Math.ceil(rm/R),t.c);t.c-=k;rm-=k*R;if(rm<0){t.c+=1;t.l=-rm;rm=0}if(t.c<=0)t.drop=1}}
+    L.T=T.filter(function(t){return !t.drop&&t.c>0});L.tables=L.T.length;L.mods=TG;L.kwp=Math.round(TG*M.kw*1000)/1000;L.trim=full-TG;return L}
   var d2r=Math.PI/180,sh=O.sh||{dx:0,dy:0};
   function ll(x,y){return [O.B[1]+sh.dy+y/O.ky,O.B[0]+sh.dx+x/O.kx]}
   function n(a,d){return (+a).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
@@ -116,7 +128,7 @@ td.hl{color:#c0392b;font-weight:800}
       $("tb").innerHTML="<div class='ttl'>태양광 발전설비 배치도</div><table><tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr><tr><th>부지 면적</th><td colspan='3'>약 "+n(O.total)+" m²</td></tr><tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>";
       $("sum").innerHTML="";$("sNote").textContent="";return}
     $("lgMod").parentNode.style.display="";
-    var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
+    var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=trimL(O.L[id],M);lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
     $("lgMod").textContent="태양광 모듈 ("+M.name.replace(/^\S+\s/,"")+")";
     var ct=Math.cos(O.tilt*d2r),ml=M.l*ct,mstep=(M.l+O.mg)*ct,R=new L.Canvas({padding:.5});
     LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<(j===t.c-1&&t.l?t.l:O.rows);k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
@@ -136,7 +148,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr>"+
       "<tr><th>부지 면적</th><td>약 "+n(O.total)+" m²</td><th style='width:4.6em'>배치 범위</th><td>"+(inC?"확실+신중검토":"확실 구역만")+"</td></tr>"+
       "<tr><th>모듈</th><td colspan='3'>"+esc(M.name)+" ("+n(M.l*1000)+"×"+n(M.w*1000)+"×30)</td></tr>"+
-      "<tr><th>수량·용량</th><td colspan='3' class='hl'>"+n(LY.mods)+" 장 · "+n(LY.mods*M.kw,2)+" kWp</td></tr>"+
+      "<tr><th>수량·용량</th><td colspan='3' class='hl'>"+n(LY.mods)+" 장 · "+n(LY.mods*M.kw,2)+" kWp"+(LY.short?" <span style='font-size:.85em'>(목표 "+n(LY.target)+"장보다 "+n(LY.short)+"장 부족)</span>":"")+"</td></tr>"+
       "<tr><th>어레이</th><td colspan='3'>세로 "+O.rows+"단 · 정남향 · 모듈각 "+O.tilt+"° · 음영각 "+O.shade+"° · "+rs.length+"열 / 테이블 "+LY.tables+"개</td></tr>"+
       "<tr><th>간격(m)</th><td colspan='3'>피치 "+M.pitch.toFixed(2)+" · 열간 이격 "+gap2+" · 경계 이격 "+O.set.toFixed(1)+" · 모듈 간 "+(O.mg*1000)+"mm</td></tr>"+
       "<tr><td colspan='4' class='sv'>"+section(M,true)+"</td></tr>"+

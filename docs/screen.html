@@ -428,9 +428,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   /* 배치도 새 탭: 모듈 2종 × (신중검토 제외/포함) 네 가지 배치를 모두 계산해 넘김 */
   function layDoc(){var sh=D.shift||{dx:0,dy:0},S=J.sum,k0=MOD.key,c0=MOD.cau,o={addr:$("ttl").textContent,at:new Date().toLocaleDateString("ko-KR"),total:S.total,sure:Math.max(0,(S.ok||0)-Math.min(S.cau||0,S.ok||0)),cau:Math.min(S.cau||0,S.ok||0),
       B:D.B,sh:sh,kx:D.kx,ky:D.ky,P:D.P.map(function(p){return {jibun:p.jibun,jimok:p.jimok,area:p.area,rings:p.rings.map(function(q){return q.r.map(function(v){return [v[0]+sh.dx,v[1]+sh.dy]})})}}),
-      set:MOD.set,mg:MOD.mg,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,tgap:MOD.tgap,tcol:MOD.tcol,minCol:MOD.minCol,key:k0,withCau:c0,mods:{},L:{}};
+      set:MOD.set,mg:MOD.mg,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,tgap:MOD.tgap,tcol:MOD.tcol,minCol:MOD.minCol,key:k0,withCau:c0,target:+MOD.target||0,mods:{},L:{}};
     try{Object.keys(MODS).forEach(function(k){MOD.key=k;var sp=modSpec();o.mods[k]={name:MODS[k].name,l:MODS[k].l,w:MODS[k].w,kw:MODS[k].kw,LS:sp.LS,H:sp.H,dep:sp.dep,gap:sp.gap,pitch:sp.pitch,colW:sp.colW};
-      [false,true].forEach(function(c){if(c&&!(S.cau>=1))return;var L=layout(c);o.L[k+(c?"_c":"")]={mods:L.mods,tables:L.tables,kwp:L.kwp,target:L.target||null,full:L.full,short:L.short||0,trim:L.trim||0,T:L.T.map(function(t){return {x:+t.x.toFixed(2),y:+t.y.toFixed(2),c:t.c,r:t.r,s:t.small?1:0,l:t.l||0}})}})})}
+      [false,true].forEach(function(c){if(c&&!(S.cau>=1))return;var L=layout(c,true);o.L[k+(c?"_c":"")]={mods:L.mods,tables:L.tables,kwp:L.kwp,target:L.target||null,full:L.full,short:L.short||0,trim:L.trim||0,T:L.T.map(function(t){return {x:+t.x.toFixed(2),y:+t.y.toFixed(2),c:t.c,r:t.r,s:t.small?1:0,l:t.l||0}})}})})}
     finally{MOD.key=k0;MOD.cau=c0}
     try{localStorage.setItem("scr_laydoc",JSON.stringify(o))}catch(e){alert("배치도 데이터를 넘기지 못했습니다: "+e.message);return}
     window.open("layout.html?t="+Date.now(),"_blank")}
