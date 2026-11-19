@@ -119,6 +119,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       <h2>태양광 발전사업 입지검토 요약</h2>
       <p class="sub" id="ttl"></p><p class="sub noprint" id="elinks" style="margin:2px 0 6px"></p>
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
+      <label class="noprint" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;margin:0 0 8px" title="평균경사 기준(조례·산지 15°)을 넘으면 가장 가파른 칸부터 빼고 나머지로 계산합니다(실무에서 가파른 구간을 사업부지에서 빼고 신청하는 방식)"><input type="checkbox" id="carveChk"> 경사 기준 넘으면 가파른 구간만 빼고 계산(실무 방식)</label>
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
       <div id="vboss" class="boss"></div><div id="vlite"></div>
@@ -163,11 +164,12 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="ordinance.js?v=20261119a"></script>
 <script src="terrain3d.js?v=20261113e"></script>
 <script src="ldet.js?v=20261119a"></script>
-<script src="screen.js?v=20261119a"></script>
+<script src="screen.js?v=20261119b"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   var LITE=/[?&]lite=1\b/.test(location.search);
+  try{window.SCR_CARVE=localStorage.getItem("scr_carve")!=="0"}catch(e){window.SCR_CARVE=true}
   var BIZ="general";try{BIZ=localStorage.getItem("scr_biz")||"general"}catch(e){}
   if(LITE){BIZ="village";document.body.classList.add("lite");try{var hl=document.querySelector("header h1 a");if(hl)hl.href="screen.html?lite=1"}catch(e){}}
   var R=window.SCREEN_RULES,D=null,J=null,veg2="",vegP=[],MODE="st",map=null,ov=null,lines=null;
@@ -359,6 +361,13 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
      설치 가능 칸에만 놓고(기본은 신중검토 구역 제외), 제외구역과 2m 이격. 테이블 사이 0.5m [기존 도구 값]. 토목·지장물·진입로는 반영 안 함 */
   var MODS={f655:{name:"외산 655Wp",l:2.382,w:1.134,kw:0.655},k645:{name:"국산 645Wp",l:2.465,w:1.134,kw:0.645}};
   var MOD={key:"f655",set:2,gap:2,rows:3,tilt:10,shade:25,mg:0.02,tcol:12,minCol:4,tgap:0.5,small:5,cau:false};
+  function loadUM(){Object.keys(MODS).forEach(function(k){if(MODS[k].user)delete MODS[k]});try{JSON.parse(localStorage.getItem("scr_umods")||"[]").forEach(function(m){MODS[m.id]={name:m.name,l:m.l,w:m.w,kw:m.kw,user:1}})}catch(e){}}loadUM();
+  function addUM(){var nm=prompt("모듈 이름 (예: 국산 650Wp, ○○사 720Wp 양면)");if(!nm)return null;var wp=+prompt("출력 (Wp, 숫자만, 예: 650)");if(!(wp>=100&&wp<=1200)){alert("출력은 100~1200 Wp 사이 숫자로 넣어 주세요.");return null}
+    var L0=+prompt("모듈 긴 변 (mm, 예: 2382)");var W0=+prompt("모듈 짧은 변 (mm, 예: 1134)");if(!(L0>=1000&&L0<=3500&&W0>=500&&W0<=1600&&L0>=W0)){alert("크기는 긴 변 1000~3500mm, 짧은 변 500~1600mm로 넣어 주세요.");return null}
+    var id="u"+Date.now().toString(36),list=[];try{list=JSON.parse(localStorage.getItem("scr_umods")||"[]")}catch(e){}list.push({id:id,name:nm.trim().slice(0,40),kw:wp/1000,l:L0/1000,w:W0/1000});try{localStorage.setItem("scr_umods",JSON.stringify(list))}catch(e){}loadUM();return id}
+  function delUM(id){var list=[];try{list=JSON.parse(localStorage.getItem("scr_umods")||"[]")}catch(e){}list=list.filter(function(m){return m.id!==id});try{localStorage.setItem("scr_umods",JSON.stringify(list))}catch(e){}loadUM()}
+  function modCmp(){var k0=MOD.key,c=J&&J.sum&&J.sum.cau>=1,rows=[];Object.keys(MODS).forEach(function(k){MOD.key=k;try{var a=layout(false),b=c?layout(true):null;rows.push("<tr><td>"+esc(MODS[k].name)+(MODS[k].user?" <small>(직접 추가)</small>":"")+"</td><td>"+Math.round(MODS[k].l*1000)+"×"+Math.round(MODS[k].w*1000)+"</td><td>"+a.mods.toLocaleString()+"장 · "+a.kwp.toLocaleString()+"kWp</td>"+(c?"<td>"+b.mods.toLocaleString()+"장 · "+b.kwp.toLocaleString()+"kWp</td>":"")+"</tr>")}catch(e){}});MOD.key=k0;
+    return "<table style='border-collapse:collapse;font-size:12.5px;margin-top:6px' border='1' cellpadding='4'><tr style='background:#f1f3f7'><th>모듈</th><th>크기(mm)</th><th>확실 구역</th>"+(c?"<th>신중검토 포함</th>":"")+"</tr>"+rows.join("")+"</table><div style='font-size:11.5px;color:#666;margin-top:3px'>같은 조건(세로 "+MOD.rows+"단·"+MOD.tilt+"°·음영각 "+MOD.shade+"°·경계 "+MOD.set+"m)으로 모듈만 바꿔 배치한 값</div>"}
   try{var _m=localStorage.getItem("scr_mod");if(MODS[_m])MOD.key=_m;MOD.cau=localStorage.getItem("scr_modcau")==="1"}catch(e){}
   function modSpec(){var m=MODS[MOD.key],d2r=Math.PI/180,LS=MOD.rows*m.l+(MOD.rows-1)*MOD.mg,H=LS*Math.sin(MOD.tilt*d2r),dep=LS*Math.cos(MOD.tilt*d2r),gap=H/Math.tan(MOD.shade*d2r);
     return {m:m,LS:LS,H:H,dep:dep,gap:gap,pitch:Math.ceil((dep+gap)*100)/100,colW:m.w+MOD.mg}}
@@ -416,10 +425,11 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     if(D.infPart&&Object.keys(D.infPart).length){var s3=el("span"),i3=el("i");i3.style.background="rgba(43,140,255,.35)";i3.style.border="2px dashed #2b8cff";s3.appendChild(i3);s3.appendChild(document.createTextNode("하천·도로 구역 일부 걸침(범위 확인)"));lg.appendChild(s3)}var s2=el("span");var i2=el("i");i2.style.background="#ffcc00";i2.style.borderRadius="50%";s2.appendChild(i2);s2.appendChild(document.createTextNode("주변 건물(빨강: "+R.houses.near+"m 안)"));lg.appendChild(s2);
     if(MODE==="md"&&LAY&&!(window.LDET&&LDET.ok())){var lk=el("span");lk.className="noprint";lk.innerHTML="<button type='button' class='btn' id='ldetBtn' style='padding:4px 12px'>🔒 상세 배치 보기</button> <a href='#' id='ldetRst' style='font-size:12px;color:#888'>코드 다시 정하기</a>";lg.insertBefore(lk,lg.firstChild);$("ldetBtn").onclick=function(){LDET.unlock()};$("ldetRst").onclick=function(e){e.preventDefault();LDET.reset()}}
     if(MODE==="md"&&LAY&&window.LDET&&LDET.ok()){var lt=el("span",null,"테이블 "+LAY.tables+"개 → "+LAY.mods.toLocaleString()+"장 · "+LAY.kwp.toLocaleString()+"kWp"+(LAY.cau?" (신중검토 포함)":""));lt.style.fontWeight="800";lg.insertBefore(lt,lg.firstChild);
-      var ctl=el("span");ctl.className="noprint";ctl.innerHTML="<select id='modSel' style='font:inherit;padding:2px 4px'>"+Object.keys(MODS).map(function(k){return "<option value='"+k+"'"+(k===MOD.key?" selected":"")+">"+MODS[k].name+"</option>"}).join("")+"</select> <label style='white-space:nowrap'><input type='checkbox' id='modCau'"+(MOD.cau?" checked":"")+"> 신중검토 구역에도 배치</label> <button type='button' class='btn' id='modDoc' style='padding:4px 12px'>📐 배치도 새 탭으로 열기</button>";lg.insertBefore(ctl,lt.nextSibling);
-      var re=function(){MOD.key=$("modSel").value;MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc;var lb=el("button",null,"🔒 잠그기");lb.type="button";lb.className="btn";lb.style.padding="4px 10px";lb.onclick=function(){LDET.lock()};ctl.appendChild(document.createTextNode(" "));ctl.appendChild(lb)}
+      var ctl=el("span");ctl.className="noprint";ctl.innerHTML="<select id='modSel' style='font:inherit;padding:2px 4px'>"+Object.keys(MODS).map(function(k){return "<option value='"+k+"'"+(k===MOD.key?" selected":"")+">"+esc(MODS[k].name)+"</option>"}).join("")+"<option value='__add'>＋ 모듈 직접 추가…</option>"+(MODS[MOD.key]&&MODS[MOD.key].user?"<option value='__del'>－ 지금 모듈 목록에서 지우기</option>":"")+"</select> <label style='white-space:nowrap'><input type='checkbox' id='modCau'"+(MOD.cau?" checked":"")+"> 신중검토 구역에도 배치</label> <button type='button' class='btn' id='modDoc' style='padding:4px 12px'>📐 배치도 새 탭으로 열기</button> <button type='button' class='btn' id='modCmpB' style='padding:4px 12px'>모듈별 비교</button><div id='modCmpT'></div>";lg.insertBefore(ctl,lt.nextSibling);
+      var re=function(){var v=$("modSel").value;if(v==="__add"){var nid=addUM();v=nid||MOD.key}else if(v==="__del"){if(confirm(MODS[MOD.key].name+" 을(를) 목록에서 지울까요?")){delUM(MOD.key);v="f655"}else v=MOD.key}MOD.key=MODS[v]?v:"f655";MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc;$("modCmpB").onclick=function(){var t=$("modCmpT");if(t.innerHTML){t.innerHTML="";return}t.innerHTML="계산 중…";setTimeout(function(){t.innerHTML=modCmp()},20)};var lb=el("button",null,"🔒 잠그기");lb.type="button";lb.className="btn";lb.style.padding="4px 10px";lb.onclick=function(){LDET.lock()};ctl.appendChild(document.createTextNode(" "));ctl.appendChild(lb)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
+  $("carveChk").checked=window.SCR_CARVE!==false;$("carveChk").onchange=function(){window.SCR_CARVE=this.checked;try{localStorage.setItem("scr_carve",this.checked?"1":"0")}catch(e){}if(D)redo()};
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
   $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
