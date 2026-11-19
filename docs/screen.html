@@ -253,7 +253,19 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     cauParts().forEach(function(x){out.push({t:CAUNAME[x.k][1],a:x.a,steps:CAUFIX[x.k]})});
     var G2="육상태양광 협의지침 — 신중 검토";J.rows.filter(function(r){return r.g===G2&&/^신중검토/.test(r.v)&&r.id==="kei2"}).forEach(function(r){out.push({t:r.t,a:r.a,steps:CAUFIX.kei2})});return out}
   function cauFixNote(){return "신중검토는 설치 금지가 아니라, 환경청(협의지침 항목)이나 시·군(조례 경사 기준)이 입지 타당성과 저감대책을 보고 판단하는 구간입니다. 서류를 내기 전에 해당 기관에 사전 상담을 받는 것을 권합니다. [추정] 위 방법은 일반적인 협의 대응 방법이며 통과를 보장하지 않습니다."}
-  function report(){var R2=$("rep2");R2.innerHTML="";var P=D.P,S=J.sum,G="육상태양광 협의지침 — 입지 회피",G2="육상태양광 협의지침 — 신중 검토",G3="개발행위허가·인허가 사전 확인";
+  var SECH={};try{SECH=JSON.parse(localStorage.getItem("scr_sech")||"{}")}catch(e){}
+  function secKey(t){return String(t||"").replace(/^\s*\d+\.\s*/,"").trim()}
+  function secTog(){var R2=$("rep2"),kids=Array.prototype.slice.call(R2.children),groups=[],cur=null;
+    kids.forEach(function(k){if(k.tagName==="H3"){cur={h:k,els:[k]};groups.push(cur)}else if(cur)cur.els.push(k)});if(!groups.length)return;
+    var pan=el("div","noprint");pan.style.cssText="margin:6px 0 12px;padding:8px 10px;border:1px dashed #b7c0cc;border-radius:8px;font-size:13px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center";
+    pan.appendChild(el("b",null,"보고서에 넣을 항목"));
+    groups.forEach(function(g){var key=secKey(g.h.textContent),off=!!SECH[key];g.els.forEach(function(x){x.style.display=off?"none":""});
+      var lb=el("label"),cb=document.createElement("input");cb.type="checkbox";cb.checked=!off;cb.style.marginRight="4px";cb.onchange=function(){SECH[key]=!this.checked;if(!SECH[key])delete SECH[key];try{localStorage.setItem("scr_sech",JSON.stringify(SECH))}catch(e){}g.els.forEach(function(x){x.style.display=SECH[key]?"none":""})};
+      lb.appendChild(cb);lb.appendChild(document.createTextNode(g.h.textContent.trim()));lb.style.whiteSpace="nowrap";pan.appendChild(lb)});
+    var all=el("button",null,"모두 켜기");all.type="button";all.className="btn s";all.style.padding="2px 10px";all.onclick=function(){SECH={};try{localStorage.removeItem("scr_sech")}catch(e){}report()};pan.appendChild(all);
+    R2.insertBefore(pan,groups[0].h)}
+  function report(){_rep();try{secTog()}catch(e){}}
+  function _rep(){var R2=$("rep2");R2.innerHTML="";var P=D.P,S=J.sum,G="육상태양광 협의지침 — 입지 회피",G2="육상태양광 협의지침 — 신중 검토",G3="개발행위허가·인허가 사전 확인";
     R2.appendChild(el("h2",null,"태양광 발전사업 입지검토"));R2.appendChild(el("p","sub","육상태양광발전사업 환경성 평가 협의 지침 기준 · "+D.at.toLocaleDateString("ko-KR")+" 공공데이터 자동 검토"));
     R2.appendChild(el("h3",null,"1. 사업의 개요"));var kv=el("div","kv");
     function K(k,v){kv.appendChild(el("b",null,k));kv.appendChild(el("span",null,v))}
