@@ -153,7 +153,7 @@ td.hl{color:#c0392b;font-weight:800}
       t(pad-6,yb+54,"남(S)","start")+t(x4+6,yb+54,"북(N)","end")+"</svg>"}
 
   var k0v=130;try{k0v=+localStorage.getItem("lay_tbk")||130}catch(e){}setK(k0v);
-  draw();fit();setTimeout(fit,600);
+  draw();fit();setTimeout(fit,600);setTimeout(fit,1500);window.addEventListener("load",fit);try{document.fonts.ready.then(fit)}catch(e){}
   /* 인쇄 = 화면 그대로: 지금 보이는 도면 크기를 고정하고 A3 가로(406×283mm 인쇄 영역)에 맞게 통째로 축소·확대 */
   var SH=document.querySelector(".sheet");
   window.addEventListener("beforeprint",function(){var w=SH.offsetWidth,h=SH.offsetHeight;SH.style.width=w+"px";SH.style.height=h+"px";SH.style.aspectRatio="auto";SH.style.zoom=Math.min(1534/w,1069/h).toFixed(4)});
