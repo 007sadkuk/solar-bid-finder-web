@@ -29,14 +29,14 @@ td.hl{color:#c0392b;font-weight:800}
 .lgd i{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:8px}
 .rowlab{background:#fff;border:1px solid #333;border-radius:3px;font-size:10.5px;line-height:1.1;padding:1px 4px;width:66px;text-align:center;white-space:nowrap;font-weight:700;color:#111;box-shadow:0 1px 2px rgba(0,0,0,.3)}
 .mapwrap{position:relative;height:calc(100vh - 92px);min-height:560px}
-.tb{position:absolute;right:12px;bottom:22px;z-index:600;width:360px;background:#fff;border:2px solid #111;font-size:11.5px;line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.tb table{font-size:11.5px}
+.tb{--k:1;position:absolute;right:12px;bottom:22px;z-index:600;width:calc(360px*var(--k));max-width:calc(100% - 24px);max-height:calc(100% - 30px);overflow:auto;background:#fff;border:2px solid #111;font-size:calc(11.5px*var(--k));line-height:1.35;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.tb table{font-size:1em}
 .tb th,.tb td{border:1px solid #333;padding:3px 6px}
 .tb th{background:#f1f3f7;width:72px;white-space:nowrap}
-.tb .ttl{background:#1f3b63;color:#fff;font-size:14px;font-weight:800;text-align:center;padding:5px;letter-spacing:.5px}
+.tb .ttl{background:#1f3b63;color:#fff;font-size:1.25em;font-weight:800;text-align:center;padding:5px;letter-spacing:.5px}
 .tb .sv{padding:2px 4px 0}
-.tb .ft td{font-size:10.5px;text-align:center;background:#fafbfc}
-.tb .nt{font-size:10px;color:#555;padding:3px 6px;border-top:1px solid #333}
+.tb .ft td{font-size:.92em;text-align:center;background:#fafbfc}
+.tb .nt{font-size:.87em;color:#555;padding:3px 6px;border-top:1px solid #333}
 .tbbtn{position:absolute;right:12px;bottom:12px;z-index:601;display:none}
 .det{margin:0 14px 14px;background:#fff;border:1px solid #c9d0db;padding:12px 16px}
 .det summary{cursor:pointer;font-weight:700}
@@ -55,6 +55,7 @@ td.hl{color:#c0392b;font-weight:800}
 <div class="bar"><b>태양광 발전설비 배치도</b>
   <label>모듈 <select id="selMod"></select></label>
   <label><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
+  <label>명판 크기 <input type="range" id="tbK" min="80" max="220" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
   <button type="button" id="btnTb">명판 숨기기</button>
   <button type="button" id="btnPrint">인쇄 · PDF 저장 (A3 가로)</button>
 </div>
@@ -76,6 +77,8 @@ td.hl{color:#c0392b;font-weight:800}
   $("chkCau").checked=cau;$("chkCau").disabled=!O.L[key+"_c"];if(!O.L[key+"_c"])$("chkCau").parentNode.title="신중검토 구역이 없습니다";
   $("selMod").onchange=function(){key=this.value;draw()};$("chkCau").onchange=function(){cau=this.checked;draw()};
   $("btnPrint").onclick=function(){window.print()};
+  function setK(v){v=+v||130;$("tbK").value=v;$("tbKv").textContent=v+"%";var t=$("tb");if(t)t.style.setProperty("--k",v/100);try{localStorage.setItem("lay_tbk",v)}catch(e){}}
+  $("tbK").oninput=function(){setK(this.value)};$("tbK").onchange=function(){setK(this.value);fit()};
   $("btnTb").onclick=function(){var t=$("tb"),h=t.style.display==="none";t.style.display=h?"":"none";this.textContent=h?"명판 숨기기":"명판 보이기";fit()};
   var d2r=Math.PI/180,sh=O.sh||{dx:0,dy:0};
   function ll(x,y){return [O.B[1]+sh.dy+y/O.ky,O.B[0]+sh.dx+x/O.kx]}
@@ -111,7 +114,7 @@ td.hl{color:#c0392b;font-weight:800}
     /* 열 번호(북쪽부터) */
     var byR={};LY.T.forEach(function(t){(byR[t.r]=byR[t.r]||[]).push(t)});var rs=Object.keys(byR).map(Number).sort(function(a,b){return b-a}),lines=[];
     rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
-      L.marker(ll(xw-1.2,y),{icon:L.divIcon({className:"",html:"<div class='rowlab'>"+(i+1)+"열 "+n(cnt)+"장</div>",iconSize:null,iconAnchor:[70,8]}),interactive:false}).addTo(mods)});
+    });
     var units=LY.mods/O.rows;
     var rowsHTML=[["대상부지 면적","약 "+n(O.total)+" m²"],["배치 범위",cau&&O.L[key+"_c"]?"설치 가능 + 신중검토 구역 (협의 통과 전제)":"설치 가능(확실) 구역만 — 신중검토 "+n(O.cau)+" m² 제외"],["모듈",M.name+"<br>"+n(M.l*1000)+" × "+n(M.w*1000)+" × 30 mm"],
       ["모듈 수량","<b>"+n(LY.mods)+" 장</b>",1],["설비 용량","<b>"+n(LY.mods*M.kw,2)+" kWp</b>",1],["어레이 구성","세로(Portrait) "+O.rows+"단, 정남향"],["어레이 수",rs.length+" 열 / "+n(units)+" 조("+O.rows+"장 1조) · 테이블 "+LY.tables+"개("+O.tcol+"열 이하)"],
@@ -136,7 +139,7 @@ td.hl{color:#c0392b;font-weight:800}
 
   function section(M,mini){var s=mini?22:34,W=M.dep*2+M.gap,pad=26,w=W*s+pad*2,h=M.H*s+90,yb=M.H*s+30,x1=pad,x2=pad+M.dep*s,x3=pad+(M.dep+M.gap)*s,x4=x3+M.dep*s,yt=yb-M.H*s;
     function t(x,y,str,a,c){return "<text x='"+x+"' y='"+y+"' font-size='11' text-anchor='"+(a||"middle")+"' fill='"+(c||"#222")+"'>"+str+"</text>"}
-    return "<svg viewBox='0 0 "+w+" "+h+"' width='100%' style='max-width:"+w+"px;max-height:"+(mini?110:400)+"px;display:block;margin:0 auto'>"+
+    return "<svg viewBox='0 0 "+w+" "+h+"' width='100%' style='max-width:"+(mini?"100%":w+"px")+";max-height:"+(mini?"calc(110px*var(--k))":"400px")+";display:block;margin:0 auto'>"+
       "<line x1='"+(pad-10)+"' y1='"+yb+"' x2='"+(x4+10)+"' y2='"+yb+"' stroke='#888'/>"+
       "<line x1='"+x1+"' y1='"+yb+"' x2='"+x2+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/><line x1='"+x3+"' y1='"+yb+"' x2='"+x4+"' y2='"+yt+"' stroke='#1f3f9e' stroke-width='5'/>"+
       "<line x1='"+x2+"' y1='"+yt+"' x2='"+x2+"' y2='"+yb+"' stroke='#555'/><line x1='"+x4+"' y1='"+yt+"' x2='"+x4+"' y2='"+yb+"' stroke='#555'/>"+
@@ -147,6 +150,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<line x1='"+x1+"' y1='"+(yb+34)+"' x2='"+x3+"' y2='"+(yb+34)+"' stroke='#333'/>"+t((x1+x3)/2,yb+31,"피치 "+M.pitch.toFixed(2)+" m")+
       t(pad-6,yb+54,"남(S)","start")+t(x4+6,yb+54,"북(N)","end")+"</svg>"}
 
+  var k0v=130;try{k0v=+localStorage.getItem("lay_tbk")||130}catch(e){}setK(k0v);
   draw();fit();setTimeout(fit,600);
   window.addEventListener("beforeprint",function(){fit()});
   window.addEventListener("afterprint",function(){map.invalidateSize()});
