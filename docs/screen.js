@@ -582,10 +582,10 @@
       R0.forEach(function (c) { S0 += c.s * P[c.p].cellA; W0 += P[c.p].cellA; });
       for (var i = 0; i < R0.length && W0 > 0 && S0 / W0 >= lim; i++) { var c = R0[i], a = P[c.p].cellA; S0 -= c.s * a; W0 -= a; c.no = reason; why[reason] = (why[reason] || 0) + a; noA += a; cut += a; }
       return { cut: cut, m: W0 > 0 ? S0 / W0 : null }; }
-    if (mRest !== null && mRest > 15) { if (CARVE) { var cs1 = carveTo(sanC, 15.0001, "산지 평균경사도 15° 맞추려 뺀 가파른 구간(산지관리법)"); carve.san = Math.round(cs1.cut); carve.sanM = cs1.m; }
+    if (mRest !== null && mRest > 15) { if (CARVE) { var cs1 = carveTo(sanC, 14.5, "산지 평균경사도 15° 맞추려 뺀 가파른 구간(산지관리법)"); carve.san = Math.round(cs1.cut); carve.sanM = cs1.m; }
       else sanC.forEach(function (c) { if (!c.no) { c.no = "산지 평균경사도 15° 초과(산지관리법)"; why[c.no] = (why[c.no] || 0) + P[c.p].cellA; noA += P[c.p].cellA; } }); }
     if (CARVE && ordS0 && !ordNone0) { var oc = D.cells.filter(function (c) { return c.s !== null && !c.no; }), om = wmean(oc);
-      if (om !== null && om >= ordS0.deg) { carve.ordM0 = om; var cs2 = carveTo(oc, ordS0.deg, "조례 평균경사 " + ordS0.deg + "° 맞추려 뺀 가파른 구간(" + ordS0.name + ")"); carve.ord = Math.round(cs2.cut); carve.ordM = cs2.m; }
+      if (om !== null && om >= ordS0.deg) { carve.ordM0 = om; var cs2 = carveTo(oc, ordS0.deg - 0.5, "조례 평균경사 " + ordS0.deg + "° 맞추려 뺀 가파른 구간(" + ordS0.name + ")"); carve.ord = Math.round(cs2.cut); carve.ordM = cs2.m; }
       if (om !== null) { var om2 = carve.ordM !== null ? carve.ordM : om; if (om2 < ordS0.deg) { ordOK = true; siteM = om2; D.cells.forEach(function (c) { if (c.st === 1 && c.cw === "ord" && !c.no) { c.st = 0; c.cw = null; } }); } } }
     var bins = [0, 0, 0, 0, 0, 0, 0], binN = 0; D.cells.forEach(function (c) { if (c.s === null) return; bins[Math.min(6, Math.floor(c.s / 5))] += P[c.p].cellA; binN += P[c.p].cellA; });
     function ppOf(fn) { return P.map(function (p, i) { var a = 0; D.cells.forEach(function (c) { if (c.p === i && fn(c)) a += p.cellA; }); return a >= 1 ? [p.jibun, Math.round(a), a / p.area] : null; }).filter(Boolean); }
@@ -596,8 +596,8 @@
       d: (carve.san ? "회피 구간을 뺀 산지 평균 약 " + mRest.toFixed(1) + "°로 15°를 넘어, 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞췄습니다(빼는 구간은 사업부지·일시사용 신청 면적에서 제외). [실무] 이렇게 신청 면적을 줄여 평균경사도를 맞추는 방식은 허가청이 받아주는지 사전 확인 필요. " : "") + (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = preCond.slice();
-    if (carve.ord) cond.push("조례 경사 기준(" + (ordS0 ? ordS0.name + " " + ordS0.deg + "°" : "") + "): 남은 땅 평균 약 " + carve.ordM0.toFixed(1) + "°라 기준 이상 → 가장 가파른 칸부터 " + carve.ord.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.ordM != null ? carve.ordM.toFixed(1) : "?") + "°로 맞춰 계산했습니다. 빼는 구간은 사업부지에서 제외(분할 또는 신청 면적 조정)하고, 측량 평균경사도로 다시 확인. [실무] 허가청이 이 방식을 받아주는지 사전 확인");
-    if (carve.san) cond.push("산지 평균경사도 15°: 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞춰 계산 — 빼는 구간은 일시사용 신청 면적에서 제외. [실무] 허가청 사전 확인");
+    if (carve.ord) cond.push("조례 경사 기준(" + (ordS0 ? ordS0.name + " " + ordS0.deg + "°" : "") + "): 남은 땅 평균 약 " + carve.ordM0.toFixed(1) + "°라 기준 이상 → 가장 가파른 칸부터 " + carve.ord.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.ordM != null ? carve.ordM.toFixed(1) : "?") + "°로 맞춰 계산했습니다(공공 지형자료 오차를 감안해 기준보다 0.5° 낮게 맞춤). 빼는 구간은 사업부지에서 제외(분할 또는 신청 면적 조정)하고, 측량 평균경사도로 다시 확인. [실무] 허가청이 이 방식을 받아주는지 사전 확인");
+    if (carve.san) cond.push("산지 평균경사도 15°: 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞춰 계산(기준보다 0.5° 낮게 여유) — 빼는 구간은 일시사용 신청 면적에서 제외. [실무] 허가청 사전 확인");
     var s2r = rows.filter(function (r) { return r.id === "s2"; })[0].v; if (!/^확인됨/.test(s2r)) cond.push(/맹지/.test(s2r) ? "진입로: 실제 도로가 안 붙어 있음 — 진입로 확보(토지 사용승낙·도로 개설) 필요" : "진입로: 길이 좁거나 지적도에만 있음 — 현장에서 폭·통행 확인");
     if (ratio >= 1 && !urb) cond.push("소규모 환경영향평가 대상(환경청 협의 절차 필요)");
     if (gIdx !== null && gIdx >= 1.5) cond.push("토공량이 많을 수 있음(계단식 배치 필요)");
