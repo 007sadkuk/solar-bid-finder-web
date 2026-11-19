@@ -455,6 +455,22 @@
     V(G3, "s1", "소규모 환경영향평가 대상 여부", urb ? "수동확인필요" : ratio >= 1 ? "대상" : "대상 아님(면적 기준)", Math.round(area(P)),
       zt.join(", ") + (urb ? " — 도시지역 포함: 별표4 다른 기준 적용, 수동 확인" : " → 면적÷기준면적 합 " + ratio.toFixed(2) + (ratio >= 1 ? " (1 이상)" : " (1 미만)")) + ". 사업면적을 줄이면 달라짐. 용도지역 경계는 지적과 다를 수 있어 토지이음으로 확인",
       R.seia.law + " — " + R.seia.status, "브이월드 용도지역 레이어(고시연도 " + uniq(D.zones.map(function (z) { return z.y; }).filter(function (y) { return y && y !== "0000"; })).join("/") + ")");
+    // 개발행위허가 규모(국토계획법 시행령 제55조①②, 시행 2026.9.18 원문 확인) — 용도지역마다 걸친 부분을 각각 비교
+    var DEVS = { "제1종전용주거지역": 10000, "제2종전용주거지역": 10000, "제1종일반주거지역": 10000, "제2종일반주거지역": 10000, "제3종일반주거지역": 10000, "준주거지역": 10000, "중심상업지역": 10000, "일반상업지역": 10000, "근린상업지역": 10000, "유통상업지역": 10000, "자연녹지지역": 10000, "생산녹지지역": 10000, "전용공업지역": 30000, "일반공업지역": 30000, "준공업지역": 30000, "보전녹지지역": 5000, "보전관리지역": 30000, "생산관리지역": 30000, "계획관리지역": 30000, "농림지역": 30000, "자연환경보전지역": 5000 };
+    var devOver = Object.keys(zA).filter(function (k) { return DEVS[k] && zA[k] > DEVS[k]; }), devUnk = Object.keys(zA).filter(function (k) { return !DEVS[k]; });
+    var totA = Math.round(area(P)), sanA = Math.round(san.reduce(function (a, i) { return a + P[i].area; }, 0));
+    var disNeed = totA < 5000 ? false : sanA > 0 ? true : devOver.length ? true : devUnk.length ? null : false;
+    var disWhy = totA < 5000 ? "사업 부지 " + totA.toLocaleString() + "㎡ — 기준 5,000㎡ 미만" :
+      sanA > 0 ? "산지(임야) " + sanA.toLocaleString() + "㎡가 들어 있어 산지일시사용허가(태양에너지발전시설) 사업으로 봄 → 부지면적 " + totA.toLocaleString() + "㎡ ≥ 5,000㎡. 부지면적을 산지 부분만으로 볼지 사업 전체로 볼지는 시·군 재난부서 확인" :
+      devOver.length ? "개발행위허가 규모 초과(" + devOver.map(function (k) { return k + " " + Math.round(zA[k]).toLocaleString() + "㎡ > " + DEVS[k].toLocaleString() + "㎡"; }).join(", ") + ") + 부지 5,000㎡ 이상" :
+      devUnk.length ? "용도지역 확인 안 된 부분(" + devUnk.join(", ") + ")이 있어 판단 보류" :
+      "농지·기타 땅을 개발행위허가로만 하는 사업은 용도지역별 허가 규모(" + Object.keys(zA).map(function (k) { return k + " " + (DEVS[k] || 0).toLocaleString() + "㎡"; }).join(", ") + ")를 넘을 때만 대상 — 이 부지는 넘지 않음. 농지전용허가는 별표1 대상 목록에 없음";
+    V(G3, "s10", "재해영향평가등의 협의(자연재해대책법)", disNeed === null ? "수동확인필요" : disNeed ? "대상" : "대상 아님", totA, disWhy + ". 자연재해위험개선지구·해일위험지구에 부지 전부가 들어가면 면적과 상관없이 대상",
+      "자연재해대책법 제4조·시행령 별표1 제2호 및 비고 1(개정 2025.9.23) — 법제처 원문 확인(2026.11.19)", "지목·용도지역 면적");
+    var preCond = [];
+    if (devOver.length) preCond.push("개발행위허가 규모 초과(" + devOver.join(", ") + "): 태양광(공작물 설치 형질변경)은 시·도 도시계획위원회 심의를 거치면 허가 가능 — 국토계획법 시행령 제55조제3항제3호의2. 심의 일정(보통 수개월)을 사업 일정에 반영");
+    if (sanA > 30000) preCond.push("산지 편입 면적 " + sanA.toLocaleString() + "㎡: 태양광 산지일시사용은 사업계획에 편입된 산지면적 3만㎡ 이하여야 함(산지관리법 시행령 별표3의2 제2호나목6), 시행 2026.9.18) — 산지 면적을 3만㎡ 이하로 줄여야 함");
+    var disInfo = { need: disNeed, why: disWhy };
     var rdOK = D.roads.filter(function (r) { return r.touch.some(function (t) { return t.L >= 2; }); }), rd = rdOK.length;
     var lcT = P.map(function (p) { return p.lc && p.lc.road ? p.jibun + " " + p.lc.road + (p.lc.year ? "(" + p.lc.year + "년 조사)" : "") : null; }).filter(Boolean);
     var lcBlind = P.some(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); }), lcAll = P.every(function (p) { return p.lc && /맹지/.test(p.lc.road || ""); });
@@ -480,7 +496,7 @@
     var hl = (BU ? byLot(D.houses.filter(isHome)) : byLot(D.houses)).map(function (h) { return h.d; }).sort(function (a, b) { return a - b; }), d5 = hl.length >= NN ? hl[NN - 1] : null;
     if (village) d5 = null;
     V(G3, "s4", "주거지 이격거리(법 상한 · 시군 조례)", village ? "해당없음(주민참여형 예외)" : d5 === null ? "해당없음" : d5 < Dist ? (rule ? "회피" : "회피(법 상한 기준)") : "해당없음", null,
-      (village ? "햇빛소득마을(주민참여형 발전설비)은 재생에너지법 시행령상 이격거리 적용 제외로 판정. " : "") + (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
+      (village ? "햇빛소득마을(주민참여형 발전설비)은 재생에너지법 제27조의3제3항에 따라 이격거리 적용 제외로 판정. " : "") + (rule ? rule.name + " 조례: 주거지(주택 " + rule.n + "호 이상) " + rule.house + "m, 도로 " + (rule.road ? rule.road + "m" : "이격 없음") + " (" + rule.src + ")" : "이 시군 조례 수치는 아직 등록 안 됨 → 법 상한 " + SB.cap + "m(주택 " + SB.n + "호 이상)로 판정") + ". " +
         (BU ? "주택" : "건물(주택 여부 미구분)") + " " + NN + "번째로 가까운 곳 " + (d5 === null ? R.houses.far + "m 밖" : d5 + "m") + (d5 !== null && d5 < Dist ? " → " + Dist + "m 안에 " + NN + "호 이상" : "") + ". 도로 이격은 법 개정으로 적용 안 함. '5호 이상 주거지'의 범위 산정 방식은 조례마다 달라 근사치",
       SB.law, BU ? "건축물대장 주용도" : "도로명주소 건물");
     var GR = D.grid, gbest = null;
@@ -569,7 +585,7 @@
     if (mAll !== null && san.length) rows.push({ g: G3, id: "s7", t: "산지 평균경사도 15° 이하(태양광 산지일시사용, 산지관리법 시행령 별표3의2)", v: mRest !== null && mRest > 15 ? "회피" : mAll > 15 ? "주의(전체 평균 15° 초과)" : "해당없음", a: null,
       d: (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
-    var cond = [];
+    var cond = preCond.slice();
     var s2r = rows.filter(function (r) { return r.id === "s2"; })[0].v; if (!/^확인됨/.test(s2r)) cond.push(/맹지/.test(s2r) ? "진입로: 실제 도로가 안 붙어 있음 — 진입로 확보(토지 사용승낙·도로 개설) 필요" : "진입로: 길이 좁거나 지적도에만 있음 — 현장에서 폭·통행 확인");
     if (ratio >= 1 && !urb) cond.push("소규모 환경영향평가 대상(환경청 협의 절차 필요)");
     if (gIdx !== null && gIdx >= 1.5) cond.push("토공량이 많을 수 있음(계단식 배치 필요)");
@@ -603,10 +619,10 @@
     cf.items.push({ t: "보호종 서식지·철새도래지", how: "공개 자료로는 확인 불가 → 소규모환평 현지조사(동진)로 확인" });
     cf.items.push({ t: "기맥·지맥 능선", how: "정맥만 자동 확인 → 산림청 산줄기 지도로 확인" });
     var cauA = 0, steepFarm = 0, steepAll = 0, sfb = [0, 0, 0], ordS = ordFind(P), ordOver = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (!c.no && c.st === 1) cauA += a; if (c.s !== null && c.s >= S.avoid) { steepAll += a; if (!c.no) { steepFarm += a; sfb[c.s < 20 ? 0 : c.s < 25 ? 1 : 2] += a; if (ordS && c.s >= ordS.deg) ordOver += a; } } });
-    if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 시행령 개정(2026.9.18 시행, 보도 기준)으로 이격 상한·도로 이격 폐지가 적용되는지 시 허가부서 확인");
+    if (ordS && ordS.setbackOrd && !village) cond.push(ordS.name + " 조례 이격 기준(원문): " + ordS.setbackOrd + " — 재생에너지법 제27조의3·시행령 제27조의3(시행 2026.11.17, 법제처 원문 확인): 태양광은 주거지 이격만 둘 수 있고(조례로 최대 200m, 그 거리 안 주택이 조례 호수(최소 5호) 미만이면 미적용), 도로 이격은 둘 수 없음. 예외 지역(국가유산 보존지역·보호구역, 생태·경관보전지역, 관광지·관광단지, 자연취락지구)은 조례 그대로. 조례가 아직 개정 전이면 허가부서가 어느 기준을 쓰는지 확인");
     if (steepFarm >= 1 && !ordOK) cond.push("경사 15° 이상인 땅 " + Math.round(steepFarm).toLocaleString() + "㎡: 환경청 회피 대상은 아니지만 시·군 조례의 개발행위허가 경사 기준(시군마다 다름)을 확인하기 전까지 신중검토로 분류 — 시·군 허가부서에 기준 경사도 확인");
     var cauBy = { k1: 0, k2: 0, ord: 0 }; D.cells.forEach(function (c) { if (!c.no && c.st === 1 && c.cw && cauBy[c.cw] !== undefined) cauBy[c.cw] += P[c.p].cellA; });
-    var sum = { whyAlso: Object.keys(alsoL).map(function (k) { return k + " (" + alsoL[k].join(", ") + ")"; }), cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
+    var sum = { dis: disInfo, whyAlso: Object.keys(alsoL).map(function (k) { return k + " (" + alsoL[k].join(", ") + ")"; }), cau: Math.round(cauA), cauBy: { k1: Math.round(cauBy.k1), k2: Math.round(cauBy.k2), ord: Math.round(cauBy.ord) }, steepAll: Math.round(steepAll), steepLeft: Math.round(steepFarm), steepLeftBins: sfb.map(Math.round), ord: ordS ? { name: ordS.name, deg: ordS.deg, src: ordS.src, rule: ordS.rule, jichim: ordS.jichim, setbackOrd: ordS.setbackOrd, mean: siteM, ok: ordOK, over: Math.round(ordOver) } : null, conf: cf, grid: gridTxt, verdict: verdict, total: total, ok: ok, no: Math.round(noA), why: Object.keys(why).sort(function (a, b) { return why[b] - why[a]; }).map(function (k) { return [k, Math.round(why[k])]; }), cond: cond, field: field, est: est };
     var kA = [0, 0, 0, 0, 0], kN = 0; D.cells.forEach(function (c) { var a = P[c.p].cellA; if (c.kg) kA[c.kg - 1] += a; else kN += a; });
     rep.kei = D.kei && D.kei.ok ? { a: kA.map(Math.round), none: Math.round(kN) } : null;
     sum.slope = rep.slope;
@@ -614,11 +630,11 @@
     if (farm.length) {
       var G4 = "농지(전·답·과) 개발행위 확인", fA = farm.reduce(function (a, i) { return a + P[i].area; }, 0);
       V(G4, "f1", "농지전용 허가(농지법 제34조)", "대상", Math.round(fA), farm.map(function (i) { return P[i].jibun + " " + P[i].jimok; }).join(", ") + " — 농업진흥구역 밖 농지에 일반 태양광을 놓으려면 농지전용 허가가 필요합니다(개발행위허가 때 함께 의제 처리되는지는 시·군 확인). 농사를 계속 짓는 영농형 태양광은 별도 법(2026.12.17 시행 예정, 최대 30년)으로 따로 허가 [보조자료]", "농지법 제34조 / 영농형 태양광법", "지목");
-      var fee = 0, fmiss = [], fdet = [];
-      farm.forEach(function (i) { var pr = P[i].price; if (!pr || !pr.won) { fmiss.push(P[i].jibun); return; } var u = Math.min(pr.won * 0.3, 50000), a = P[i].area * u; fee += a;
-        fdet.push(P[i].jibun + " " + Math.round(P[i].area).toLocaleString() + "㎡ × " + pr.won.toLocaleString() + "원(" + pr.year + "년)×30%" + (pr.won * 0.3 > 50000 ? "→상한 5만원" : "") + " = 약 " + Math.round(a / 10000).toLocaleString() + "만원"); });
-      V(G4, "f2", "농지보전부담금(전용 면적 × 공시지가 30%, ㎡당 상한 5만원)", fmiss.length === farm.length ? "확인 불가" : "참고", Math.round(fA),
-        (fee ? "약 " + Math.round(fee / 10000).toLocaleString() + "만원" + (fmiss.length ? " (공시지가를 못 받은 " + fmiss.join(", ") + " 제외)" : "") + " — " + fdet.join(" · ") : "공시지가를 받지 못했습니다") + ". 농지 필지 전체를 전용한다고 본 값이며 실제 전용 면적과 감면 여부에 따라 달라짐. 공시지가 기준연도가 오래됐으면 최신 값으로 다시 계산 [요율·상한은 보조자료 기준, 원문 미확인]", "농지법 제38조", "개별공시지가(브이월드)");
+      var fee = 0, fmiss = [], fdet = [], fjh = [];
+      farm.forEach(function (i) { var pr = P[i].price; if (!pr || !pr.won) { fmiss.push(P[i].jibun); return; } var jh = Array.isArray(P[i].ned) && P[i].ned.some(function (x) { return /농업진흥구역|농업보호구역/.test(x[0]) && x[1] !== "3"; }), rt = jh ? 0.3 : 0.2, u = Math.min(pr.won * rt, 50000), a = P[i].area * u; fee += a; if (jh) fjh.push(P[i].jibun);
+        fdet.push(P[i].jibun + " " + Math.round(P[i].area).toLocaleString() + "㎡ × " + pr.won.toLocaleString() + "원(" + pr.year + "년)×" + (jh ? "30%(진흥지역)" : "20%") + (pr.won * rt > 50000 ? "→상한 5만원" : "") + " = 약 " + Math.round(a / 10000).toLocaleString() + "만원"); });
+      V(G4, "f2", "농지보전부담금(전용 면적 × 공시지가 20%, 농업진흥지역은 30%, ㎡당 상한 5만원)", fmiss.length === farm.length ? "확인 불가" : "참고", Math.round(fA),
+        (fee ? "약 " + Math.round(fee / 10000).toLocaleString() + "만원" + (fmiss.length ? " (공시지가를 못 받은 " + fmiss.join(", ") + " 제외)" : "") + " — " + fdet.join(" · ") : "공시지가를 받지 못했습니다") + ". 농지 필지 전체를 전용한다고 본 값이며 실제 전용 면적과 감면 여부에 따라 달라짐. 공시지가 기준연도가 오래됐으면 최신 값으로 다시 계산. 요율: 농지법 시행령 제53조제1항(농업진흥지역 100분의 30, 그 밖 100분의 20), 상한: 같은 법 시행규칙 제47조의2(㎡당 5만원, 시행 2026.9.22) — 법제처 원문 확인(2026.11.19)" + (fjh.length ? ". 진흥지역(농업진흥·보호구역) 걸친 필지 " + fjh.join(", ") + "는 30% 적용(일부만 걸쳐도 필지 전체에 30%로 잡은 보수적 값)" : ""), "농지법 제38조 / 시행령 제53조 / 시행규칙 제47조의2", "개별공시지가(브이월드)");
       V(G4, "f3", "농지 경사 — 시·군 조례 개발행위(태양광) 경사 기준", !ordS && ordNone0 ? "해당없음(조례에 수치 기준 없음)" : ordS ? (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "주의(기준 근접)" : "해당없음") : "주의(기준 이상)") : "수동확인필요", null,
         ordS ? ordS.src + ": " + ordS.rule + ". 이 부지 평균 경사 약 " + (siteM != null ? siteM.toFixed(1) : "?") + "° [추정] → " + (ordOK ? (siteM != null && siteM >= ordS.deg - 1.5 ? "기준 미만이지만 차이가 " + (ordS.deg - siteM).toFixed(1) + "°뿐이라, 공공 지형자료 추정값 오차를 감안해 측량 평균경사로 꼭 확인" : "기준 미만") : "기준 이상(측량 평균경사로 다시 확인)") : ((R.ordNone || {})[String(P[0].pnu).slice(0, 5)] || (ordUnk(P) ? ordUnk(P) + ": 법제처 원문에서 경사 수치 기준을 자동으로 찾지 못함(별표·용도지역별 규정일 수 있음) — 원문 확인" : "이 시·군의 조례 경사 기준은 도구 표에 아직 없음 — 시·군 도시계획 조례의 개발행위허가(태양광) 기준 확인")), "시·군 도시계획 조례", "조례 표 + 표고[추정]");
       var nedAll = P.map(function (p) { return Array.isArray(p.ned) ? p.ned.map(function (x) { return x[0]; }).join(",") : ""; }).join(","), kj = /경지정리|농업생산기반|농업기반/.test(nedAll);
