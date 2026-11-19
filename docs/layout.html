@@ -119,15 +119,15 @@ td.hl{color:#c0392b;font-weight:800}
     var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=O.L[id];lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
     $("lgMod").textContent="태양광 모듈 ("+M.name.replace(/^\S+\s/,"")+")";
     var ct=Math.cos(O.tilt*d2r),ml=M.l*ct,mstep=(M.l+O.mg)*ct,R=new L.Canvas({padding:.5});
-    LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<O.rows;k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
+    LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<(j===t.c-1&&t.l?t.l:O.rows);k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
       L.rectangle([ll(x0,y0),ll(x0+M.w,y0+ml)],{renderer:R,color:"#a9bdf0",weight:.6,fillColor:"#1f3f9e",fillOpacity:.95,interactive:false}).addTo(mods)}});
     /* 열 번호(북쪽부터) */
     var byR={};LY.T.forEach(function(t){(byR[t.r]=byR[t.r]||[]).push(t)});var rs=Object.keys(byR).map(Number).sort(function(a,b){return b-a}),lines=[];
-    rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
+    rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows-(t.l?O.rows-t.l:0)},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
     });
     var units=LY.mods/O.rows;
     var rowsHTML=[["대상부지 면적","약 "+n(O.total)+" m²"],["배치 범위",cau&&O.L[key+"_c"]?"설치 가능 + 신중검토 구역 (협의 통과 전제)":"설치 가능(확실) 구역만 — 신중검토 "+n(O.cau)+" m² 제외"],["모듈",M.name+"<br>"+n(M.l*1000)+" × "+n(M.w*1000)+" × 30 mm"],
-      ["모듈 수량","<b>"+n(LY.mods)+" 장</b>",1],["설비 용량","<b>"+n(LY.mods*M.kw,2)+" kWp</b>",1],["어레이 구성","세로(Portrait) "+O.rows+"단, 정남향"],["어레이 수",rs.length+" 열 / "+n(units)+" 조("+O.rows+"장 1조) · 테이블 "+LY.tables+"개("+O.tcol+"열 이하)"],
+      ["모듈 수량","<b>"+n(LY.mods)+" 장</b>",1],["설비 용량","<b>"+n(LY.mods*M.kw,2)+" kWp</b>",1],["어레이 구성","세로(Portrait) "+O.rows+"단, 정남향"],["어레이 수",rs.length+" 열 / "+n(Math.floor(LY.mods/O.rows))+" 조("+O.rows+"장 1조)"+(LY.mods%O.rows?" + "+(LY.mods%O.rows)+"장":"")+" · 테이블 "+LY.tables+"개("+O.tcol+"열 이하)"],
       ["모듈 경사각",O.tilt+"°"],["음영각(설계 태양고도)",O.shade+"°"],["어레이 경사길이",M.LS.toFixed(2)+" m"],["어레이 수평길이",M.dep.toFixed(2)+" m"],["전·후단 높이차",M.H.toFixed(2)+" m"],
       ["어레이 간 이격거리",(Math.ceil(M.gap*100)/100).toFixed(2)+" m"],["어레이 피치(앞열~뒷열)",M.pitch.toFixed(2)+" m"],["경계 이격거리",O.set.toFixed(1)+" m"],["모듈 간 간격",(O.mg*1000)+" mm"],["테이블 간 간격",O.tgap+" m (가정)"]];
     $("sum").innerHTML=rowsHTML.map(function(r){return "<tr><th>"+r[0]+"</th><td"+(r[2]?" class='hl'":"")+">"+r[1]+"</td></tr>"}).join("");
@@ -143,7 +143,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>"+
       "<div class='nt'>검토용 개략 배치(평지·정남향 가정, 지장물·진입로·전기실 미반영). 경계는 연속지적도 기준. 허가 서류의 장수·용량은 따로 확정.</div>";
     var lc=O.L[key+"_c"];
-    $("sNote").innerHTML="열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
+    $("sNote").innerHTML=(LY.target?(LY.short?"⚠ 목표 "+n(LY.target)+"장보다 "+n(LY.short)+"장 부족(이 땅 최대 "+n(LY.full)+"장).<br>":"목표 "+n(LY.target)+"장에 맞춤 — 남쪽부터 채운 배치(최대 "+n(LY.full)+"장)에서 북쪽 열부터 "+n(LY.trim)+"장을 덜어냈습니다. 3단이라 끝 세로줄 하나는 "+(LY.mods%O.rows||O.rows)+"장입니다.<br>"):"")+"열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
       (lc&&!(cau)?"신중검토 구역까지 배치하면 "+n(lc.mods)+"장 · "+n(lc.mods*M.kw,2)+" kWp (환경청 협의·시군 허가 결과에 따라 달라짐).<br>":"")+
       "피치 = 수평길이 + 높이차 ÷ tan(음영각), 소수 둘째 자리 올림. 정남향·평지 기준이며 지형 경사, 지장물(나무·건물), 진입로, 전기실 자리는 반영하지 않았습니다. 필지 경계는 브이월드 연속지적도 기준이라 실제 측량 경계와 다를 수 있습니다. 허가 서류에는 확정 장수·용량을 따로 정해 쓰십시오."}
 
