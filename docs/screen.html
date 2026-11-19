@@ -139,7 +139,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     <section class="card">
       <h2>지도</h2>
       <div class="seg noprint" id="mode"><button type="button" data-m="st" aria-pressed="true">설치 가능/신중/불가</button><button type="button" data-m="e" aria-pressed="false">생태자연도 등급</button><button type="button" data-m="s" aria-pressed="false">경사도</button><button type="button" data-m="md" aria-pressed="false">모듈 배치</button><button type="button" data-m="k" aria-pressed="false">국토환경성평가</button><button type="button" data-m="h" aria-pressed="false">산사태위험</button><button type="button" data-m="z" aria-pressed="false">용도지역</button></div>
-      <div class="noprint" id="cutBar" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px"><button type="button" class="btn s" id="pickGo">👆 칸 눌러서 빼기</button><button type="button" class="btn s" id="pickEnd" hidden>✔ 다 뺐음</button><select id="pickR" hidden style="font:inherit;padding:3px 6px"><option value="0">붓 크기: 한 칸</option><option value="5">반경 5m</option><option value="10" selected>반경 10m</option><option value="20">반경 20m</option></select><button type="button" class="btn s" id="cutGo">✂ 그려서 빼기</button><button type="button" class="btn s" id="cutEnd" hidden>✔ 다 그렸음</button><button type="button" class="btn s" id="cutUndo" hidden>↶ 점 하나 취소</button><button type="button" class="btn s" id="cutClr" hidden>뺀 구역 모두 지우기</button><span class="sub" id="cutMsg">경사 센 곳 등 사업에서 뺄 부분을 지도에 직접 그리면 나머지 땅으로 다시 계산합니다</span></div>
+      <div class="noprint" id="cutBar" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 6px"><button type="button" class="btn s" id="pickGo">👆 칸 눌러서 빼기</button><span id="pickTools" style="display:none;flex-wrap:wrap;gap:6px;align-items:center"><span class="seg" id="pickMode" style="margin:0"><button type="button" data-a="1" aria-pressed="true">빼기</button><button type="button" data-a="0" aria-pressed="false">되살리기</button></span><select id="pickR" style="font:inherit;padding:3px 6px"><option value="0">붓: 한 칸</option><option value="5">붓: 반경 5m</option><option value="10" selected>붓: 반경 10m</option><option value="20">붓: 반경 20m</option><option value="40">붓: 반경 40m</option></select><button type="button" class="btn s" id="pickEnd">✔ 끝</button></span><button type="button" class="btn s" id="cutGo" style="display:none">✂ 그려서 빼기</button><button type="button" class="btn s" id="cutEnd" hidden>✔ 다 그렸음</button><button type="button" class="btn s" id="cutUndo" hidden>↶ 점 하나 취소</button><button type="button" class="btn s" id="cutClr" hidden>↺ 다시 다 채우기</button><span class="sub" id="cutMsg">경사 센 곳 등 사업에서 뺄 부분을 지도에서 눌러 빼면 나머지 땅으로 다시 계산합니다</span></div>
       <div id="map"></div><div class="lg" id="lg"></div><p class="noprint" style="margin:10px 0 0"><button class="btn s" type="button" id="t3d">⛰ 3D 지형으로 보기</button> <span class="sub">땅 모양과 경사를 입체로 돌려 볼 수 있습니다</span></p>
       <p class="sub" id="shiftNote"></p>
     </section>
@@ -166,7 +166,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script src="ordinance.js?v=20261119a"></script>
 <script src="terrain3d.js?v=20261113e"></script>
 <script src="ldet.js?v=20261119a"></script>
-<script src="screen.js?v=20261119h"></script>
+<script src="screen.js?v=20261119i"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
@@ -433,24 +433,25 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   function pickCells(ll,add){if(!D)return;var sh=D.shift||{dx:0,dy:0},lon=ll.lng-sh.dx,lat=ll.lat-sh.dy,ix=Math.floor((lon-D.B[0])/D.dlon),iy=Math.floor((lat-D.B[1])/D.dlat),r=+$("pickR").value||0;
     if(!r){var k=ix+","+iy;if(add)CX.add(k);else CX.delete(k);return}
     var nx=Math.ceil(r/(D.dlon*D.kx))+1,ny=Math.ceil(r/(D.dlat*D.ky))+1;for(var a=-nx;a<=nx;a++)for(var b=-ny;b<=ny;b++){var dxm=a*D.dlon*D.kx,dym=b*D.dlat*D.ky;if(dxm*dxm+dym*dym<=r*r){var k2=(ix+a)+","+(iy+b);if(add)CX.add(k2);else CX.delete(k2)}}}
-  var pDown=false,pAdd=true,pT=null;
-  function pMD(e){if(!PICK)return;pDown=true;var sh=D.shift||{dx:0,dy:0},ix=Math.floor((e.latlng.lng-sh.dx-D.B[0])/D.dlon),iy=Math.floor((e.latlng.lat-sh.dy-D.B[1])/D.dlat);pAdd=!CX.has(ix+","+iy);pickCells(e.latlng,pAdd);pLive()}
-  function pMM(e){if(PICK&&pDown){pickCells(e.latlng,pAdd);clearTimeout(pT);pT=setTimeout(pLive,60)}}
+  var pDown=false,pAdd=true,pT=null,pBr=null;
+  function pMD(e){if(!PICK)return;pDown=true;pickCells(e.latlng,pAdd);pLive()}
+  function pMM(e){if(!PICK)return;var r=+$("pickR").value||0;if(!pBr)pBr=L.circle(e.latlng,{radius:Math.max(r,1.5),color:pAdd?"#333":"#2e7d32",weight:2,dashArray:"4 3",fill:false,interactive:false}).addTo(map);else{pBr.setLatLng(e.latlng);pBr.setRadius(Math.max(r,1.5));pBr.setStyle({color:pAdd?"#333":"#2e7d32"})}if(pDown){pickCells(e.latlng,pAdd);clearTimeout(pT);pT=setTimeout(pLive,60)}}
   function pMU(){if(PICK&&pDown){pDown=false;redo();cutUI()}}
   function pLive(){/* 누르는 동안 빠르게 보이도록 지도만 다시 그림 */if(!D||!J)return;D.cells.forEach(function(c){c._px=CX.has(c.ix+","+c.iy)});drawMap()}
-  function pickStop(){PICK=false;if(map){map.dragging.enable();map.off("mousedown",pMD);map.off("mousemove",pMM);map.off("mouseup",pMU);map.getContainer().style.cursor=""}if($("pickGo")){$("pickGo").hidden=false;$("pickEnd").hidden=true;$("pickR").hidden=true}}
-  $("pickGo").onclick=function(){if(!map||!D)return;cutStop();PICK=true;map.dragging.disable();map.on("mousedown",pMD);map.on("mousemove",pMM);map.on("mouseup",pMU);map.getContainer().style.cursor="cell";$("pickGo").hidden=true;$("pickEnd").hidden=false;$("pickR").hidden=false;cutUI()};
+  function pickStop(){PICK=false;if(pBr&&map){map.removeLayer(pBr);pBr=null}if(map){map.dragging.enable();map.off("mousedown",pMD);map.off("mousemove",pMM);map.off("mouseup",pMU);map.getContainer().style.cursor=""}if($("pickGo")){$("pickGo").hidden=false;$("pickTools").style.display="none"}}
+  $("pickGo").onclick=function(){if(!map||!D)return;cutStop();PICK=true;map.dragging.disable();map.on("mousedown",pMD);map.on("mousemove",pMM);map.on("mouseup",pMU);map.getContainer().style.cursor="cell";$("pickGo").hidden=true;$("pickTools").style.display="inline-flex";cutUI()};
+  $("pickMode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;pAdd=b.dataset.a==="1";Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});cutUI()});
   $("pickEnd").onclick=function(){pickStop();cutUI()};
   document.addEventListener("mouseup",function(){pMU()});
-  function cutUI(){$("cutClr").hidden=!CUT.length&&!CX.size;$("cutEnd").hidden=$("cutUndo").hidden=!cutPts;$("cutGo").hidden=!!cutPts;
-    $("cutMsg").textContent=PICK?"지도에서 뺄 곳을 누르거나 누른 채로 문지르세요(이미 뺀 칸에서 시작하면 되살림). 다 되면 「다 뺐음」":cutPts?"지도를 눌러 뺄 구역의 꼭짓점을 차례로 찍고(3개 이상) 「다 그렸음」을 누르세요":(CUT.length||CX.size)?"뺀 구역이 있습니다 — 나머지 땅으로 다시 계산했습니다"+(J&&J.sum&&J.sum.userCut?" (뺀 면적 약 "+J.sum.userCut.toLocaleString()+"㎡)":""):"경사 센 곳 등 사업에서 뺄 부분을 지도에 직접 그리면 나머지 땅으로 다시 계산합니다"}
+  function cutUI(){$("cutClr").hidden=!CUT.length&&!CX.size&&!SCUT;$("cutEnd").hidden=$("cutUndo").hidden=!cutPts;$("cutGo").hidden=!!cutPts;
+    $("cutMsg").textContent=PICK?(pAdd?"뺄 곳을 누르거나 누른 채로 문지르세요(점선 원이 붓 크기). 잘못 뺐으면 「되살리기」로 바꿔 문지르면 됩니다":"되살릴 회색 칸을 누르거나 문지르세요"):cutPts?"지도를 눌러 뺄 구역의 꼭짓점을 차례로 찍고(3개 이상) 「다 그렸음」을 누르세요":(CUT.length||CX.size)?"뺀 구역이 있습니다 — 나머지 땅으로 다시 계산했습니다"+(J&&J.sum&&J.sum.userCut?" (뺀 면적 약 "+J.sum.userCut.toLocaleString()+"㎡)":""):"경사 센 곳 등 사업에서 뺄 부분을 지도에서 눌러 빼면 나머지 땅으로 다시 계산합니다"}
   function cutTmpDraw(){if(cutTmp){map.removeLayer(cutTmp);cutTmp=null}if(cutPts&&cutPts.length){cutTmp=L.layerGroup().addTo(map);L.polyline(cutPts,{color:"#ff7a00",weight:3,dashArray:"5 4"}).addTo(cutTmp);cutPts.forEach(function(p){L.circleMarker(p,{radius:4,color:"#ff7a00",fillOpacity:1}).addTo(cutTmp)})}}
   function cutClick(e){if(!cutPts)return;cutPts.push([e.latlng.lat,e.latlng.lng]);cutTmpDraw()}
   function cutStop(){cutPts=null;if(map){map.off("click",cutClick);map.doubleClickZoom.enable();map.getContainer().style.cursor=""}cutTmpDraw()}
   $("cutGo").onclick=function(){if(!map||!D)return;pickStop();cutPts=[];map.on("click",cutClick);map.doubleClickZoom.disable();map.getContainer().style.cursor="crosshair";cutUI()};
   $("cutUndo").onclick=function(){if(cutPts&&cutPts.length){cutPts.pop();cutTmpDraw()}};
   $("cutEnd").onclick=function(){if(!cutPts||cutPts.length<3){$("cutMsg").textContent="꼭짓점을 3개 이상 찍어 주세요";return}var sh=D.shift||{dx:0,dy:0},r=cutPts.map(function(p){return [p[1]-sh.dx,p[0]-sh.dy]});r.push(r[0]);CUT.push(r);cutStop();redo();cutUI()};
-  $("cutClr").onclick=function(){CUT=[];CX=new Set();cutStop();redo();cutUI()};
+  $("cutClr").onclick=function(){CUT=[];CX=new Set();SCUT=null;cutStop();redo();cutUI()};
   function drawMap(){window._scrRedraw=drawMap;if(typeof L==="undefined")return;var k=BFGeo.getKey(),sh=D.shift||{dx:0,dy:0};
     if(!map){map=L.map("map");if(k){L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Satellite/{z}/{y}/{x}.jpeg",{maxZoom:19,attribution:"V-World"}).addTo(map);L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+k+"/Hybrid/{z}/{y}/{x}.png",{maxZoom:19}).addTo(map)}else L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map)}
     map.invalidateSize();if(ov)map.removeLayer(ov);if(lines)map.removeLayer(lines);
