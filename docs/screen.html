@@ -490,5 +490,5 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 })();
 </script>
 <div id="qcov" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff"></div>
-<script>(function(){var c=document.getElementById("qcov"),t0=document.title;document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!e.repeat){var on=c.style.display==="none";c.style.display=on?"block":"none";document.title=on?"새 탭":t0}})})();</script>
+<script>(function(){var c=document.getElementById("qcov"),t0=document.title;document.addEventListener("keydown",function(e){var pm=document.getElementById("pmap");if(e.key==="Escape"&&!e.repeat&&!(pm&&pm.classList.contains("full")&&c.style.display==="none")){var on=c.style.display==="none";c.style.display=on?"block":"none";document.title=on?"새 탭":t0}})})();</script>
 </body></html>
