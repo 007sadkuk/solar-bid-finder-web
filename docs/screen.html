@@ -420,7 +420,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
-  $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap();if(MODE==="md"&&D&&J&&LAY)layDoc()});
+  $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
   function srcs(){var S=$("src");S.innerHTML="";var g=R.guideline;
     [["협의지침",g.name+" — "+g.checked+". "+g.cited],["생태자연도","국립생태원 생태자연도 WFS(조회 시점 최신 고시). "+(D.eco.err?"이번 조회 실패: "+D.eco.err:"이번 조회 폴리곤 "+D.eco.n+"개")],
      ["경사도·산사태위험","산림청 산사태정보시스템의 10m 격자(경사 Slope, 산사태위험지도 hazard2025)를 칸마다 조회"+(D.fsErr?" — 이번 조회 실패: "+D.fsErr+" → 공개 표고(약 30m)로 대신 계산[추정]":"")+". 허가용 평균경사도(산지관리법)는 별도 산정"],["용도지역","브이월드 용도지역 레이어(관리·농림·자연환경보전·도시지역). 고시연도 레이어 속성 기준"],["토지이용계획","브이월드 NED 토지이용계획속성(필지별 지역·지구)"],["지적·건물","브이월드 연속지적도, 도로명주소 건물"],
@@ -489,4 +489,6 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   tog.addEventListener("click",function(){box.hidden=!box.hidden;tog.textContent=box.hidden?"🗺 지도에서 고르기":"🗺 지도 닫기";if(!box.hidden){PICK_INIT();[60,300,700].forEach(function(t){setTimeout(function(){PM.invalidateSize();if(t===300)fitSel()},t)})}});
 })();
 </script>
+<div id="qcov" style="display:none;position:fixed;inset:0;z-index:99999;background:#fff"></div>
+<script>(function(){var c=document.getElementById("qcov"),t0=document.title;document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!e.repeat){var on=c.style.display==="none";c.style.display=on?"block":"none";document.title=on?"새 탭":t0}})})();</script>
 </body></html>
