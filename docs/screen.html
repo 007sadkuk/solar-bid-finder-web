@@ -119,8 +119,8 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       <h2>태양광 발전사업 입지검토 요약</h2>
       <p class="sub" id="ttl"></p><p class="sub noprint" id="elinks" style="margin:2px 0 6px"></p>
       <div class="seg" id="biz" style="margin:8px 0 10px"><button type="button" data-b="general">일반 태양광</button><button type="button" data-b="village">햇빛소득마을(주민참여형)</button></div>
-      <label class="noprint" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;margin:0 0 8px" title="평균경사 기준(조례·산지 15°)을 넘으면 가장 가파른 칸부터 빼고 나머지로 계산합니다(실무에서 가파른 구간을 사업부지에서 빼고 신청하는 방식)"><input type="checkbox" id="carveChk"> 경사 기준 넘으면 가파른 구간만 빼고 계산(실무 방식)</label>
-      <label class="noprint" style="display:inline-flex;gap:6px;align-items:center;font-size:13px;margin:0 0 8px 12px" title="소규모 환경영향평가 대상(용도지역별 기준면적)이 아니면 환경청 협의가 없으므로 협의지침의 회피·신중 항목을 설치 가능 면적에서 빼지 않습니다"><input type="checkbox" id="seiaChk"> 소규모 환평 대상 아니면 협의지침 기준 빼고 보기</label>
+      
+      
       <div class="vline"><span class="vbig" id="vbig"></span><span class="vok" id="vok"></span></div>
       <div class="bar"><i id="vbar"></i></div>
       <div id="vboss" class="boss"></div><div id="vlite"></div>
@@ -171,8 +171,8 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
 <script>
 (function(){
   var LITE=/[?&]lite=1\b/.test(location.search);
-  var SEIAG=true;try{SEIAG=localStorage.getItem("scr_seiag")!=="0"}catch(e){}
-  try{window.SCR_CARVE=localStorage.getItem("scr_carve")!=="0"}catch(e){window.SCR_CARVE=true}
+  var SEIAG=true; /* 소규모 환평 대상 여부는 면적 기준으로 자동 적용 */
+  window.SCR_CARVE=true; /* 평균경사 기준 초과 시 가파른 칸 자동 제척 — 적용됐을 때만 조건 목록에 표시 */
   var BIZ="general";try{BIZ=localStorage.getItem("scr_biz")||"general"}catch(e){}
   if(LITE){BIZ="village";document.body.classList.add("lite");try{var hl=document.querySelector("header h1 a");if(hl)hl.href="screen.html?lite=1"}catch(e){}}
   var R=window.SCREEN_RULES,D=null,J=null,veg2="",vegP=[],MODE="st",map=null,ov=null,lines=null;
@@ -475,8 +475,6 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       var re=function(){var v=$("modSel").value;if(v==="__add"){var nid=addUM();v=nid||MOD.key}else if(v==="__del"){if(confirm(MODS[MOD.key].name+" 을(를) 목록에서 지울까요?")){delUM(MOD.key);v="f655"}else v=MOD.key}MOD.key=MODS[v]?v:"f655";MOD.cau=$("modCau").checked;try{localStorage.setItem("scr_mod",MOD.key);localStorage.setItem("scr_modcau",MOD.cau?"1":"0")}catch(e){}try{layAll()}catch(e){LAY=null}head();report();drawMap()};$("modSel").onchange=re;$("modCau").onchange=re;$("modDoc").onclick=layDoc;$("modCmpB").onclick=function(){var t=$("modCmpT");if(t.innerHTML){t.innerHTML="";return}t.innerHTML="계산 중…";setTimeout(function(){t.innerHTML=modCmp()},20)};var lb=el("button",null,"🔒 잠그기");lb.type="button";lb.className="btn";lb.style.padding="4px 10px";lb.onclick=function(){LDET.lock()};ctl.appendChild(document.createTextNode(" "));ctl.appendChild(lb)}
     $("shiftNote").textContent=D.shift?"이 지역은 지적도 좌표가 실제 위치와 약 "+D.shift.m+"m 어긋나 있어, 생태자연도·경사·건물은 보정한 위치로 계산했습니다(주변 건물 "+D.shift.n+"곳 기준).":""}
   function bizUI(){Array.prototype.forEach.call($("biz").children,function(b){b.setAttribute("aria-pressed",String(b.dataset.b===BIZ))})}bizUI();
-  $("seiaChk").checked=SEIAG;$("seiaChk").onchange=function(){SEIAG=this.checked;try{localStorage.setItem("scr_seiag",this.checked?"1":"0")}catch(e){}if(D)redo()};
-  $("carveChk").checked=window.SCR_CARVE!==false;$("carveChk").onchange=function(){window.SCR_CARVE=this.checked;try{localStorage.setItem("scr_carve",this.checked?"1":"0")}catch(e){}if(D)redo()};
   $("biz").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;if(LITE)return;BIZ=b.dataset.b;try{localStorage.setItem("scr_biz",BIZ)}catch(_){}bizUI();if(D)redo()});
   $("t3d").addEventListener("click",function(){if(!D)return;Terrain3D.open({D:D,key:BFGeo.getKey(),start:"st",cellColor:function(c){return c.no?[179,38,30]:c.st===1?[243,198,35]:[46,160,90]}})});
   $("mode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;MODE=b.dataset.m;Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});drawMap()});
