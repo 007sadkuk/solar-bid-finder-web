@@ -1,10 +1,10 @@
 {
  "source": "https://apis.data.go.kr/1613000/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade",
- "run_at": "2026-11-20 05:16",
+ "run_at": "2026-11-21 05:11",
  "errors": [
-  "47113 202610: <urlopen error _ssl.c:994: The handshake operation timed out>",
-  "47730 202610: <urlopen error _ssl.c:994: The handshake operation timed out>",
-  "47820 202609: <urlopen error _ssl.c:994: The handshake operation timed out>"
+  "47250 202609: <urlopen error _ssl.c:994: The handshake operation timed out>",
+  "47830 202609: <urlopen error _ssl.c:994: The handshake operation timed out>",
+  "47920 202609: <urlopen error _ssl.c:994: The handshake operation timed out>"
  ],
  "calls": 96,
  "keys": [
