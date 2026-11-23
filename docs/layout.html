@@ -55,7 +55,7 @@ td.hl{color:#c0392b;font-weight:800}
 </head><body>
 <div class="bar"><b>태양광 발전설비 배치도</b>
   <button type="button" id="btnLd">🔒 상세 보기</button>
-  <label class="det2">목표 장수 <input type="number" id="tgt" min="0" step="1" placeholder="예: 2300" style="width:90px;font:inherit;padding:4px 6px;border-radius:6px;border:1px solid #9fb3cf"></label><button type="button" class="det2" id="btnTgt">맞추기</button>
+  <label class="det2">목표 용량 <input type="number" id="tgt" min="0" step="0.01" placeholder="예: 1506.5" style="width:100px;font:inherit;padding:4px 6px;border-radius:6px;border:1px solid #9fb3cf"> kW</label><button type="button" class="det2" id="btnTgt">맞추기</button>
   <label class="det2">모듈 <select id="selMod"></select></label>
   <label class="det2"><input type="checkbox" id="chkCau"> 신중검토 구역에도 배치</label>
   <label>명판 크기 <input type="range" id="tbK" min="60" max="200" step="10" value="130" style="width:110px"> <span id="tbKv">130%</span></label>
@@ -86,10 +86,10 @@ td.hl{color:#c0392b;font-weight:800}
   function setK(v){v=+v||130;$("tbK").value=v;$("tbKv").textContent=v+"%";var t=$("tb");if(t)t.style.setProperty("--k",v/100);try{localStorage.setItem("lay_tbk",v)}catch(e){}}
   $("tbK").oninput=function(){setK(this.value)};$("tbK").onchange=function(){setK(this.value);fit()};
   $("btnTb").onclick=function(){var t=$("tb"),h=t.style.display==="none";t.style.display=h?"":"none";this.textContent=h?"명판 숨기기":"명판 보이기";fit()};
-  var TG=+O.target||0;$("tgt").value=TG||"";
-  $("btnTgt").onclick=function(){TG=Math.max(0,Math.floor(+$("tgt").value||0));draw();fit()};$("tgt").onkeydown=function(e){if(e.key==="Enter")$("btnTgt").click()};
+  var TKW=+O.tkw||0,TG0=+O.target||0;$("tgt").value=TKW||"";
+  $("btnTgt").onclick=function(){TKW=Math.max(0,+$("tgt").value||0);TG0=0;draw();fit()};$("tgt").onkeydown=function(e){if(e.key==="Enter")$("btnTgt").click()};
   /* 목표 장수: 남쪽부터 채운 배치에서 북쪽 테이블부터 덜어냄(테이블은 최소 열 유지, 3으로 안 나눠지는 나머지는 세로줄 하나를 1~2장으로) — 입지검토 화면과 같은 방식 */
-  function trimL(L0,M){var full=L0.mods,R=O.rows,T=L0.T.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:t.s,l:0}});var L={mods:full,full:full,tables:T.length,kwp:L0.kwp,T:T,target:TG||null,short:0,trim:0};
+  function trimL(L0,M){var TG=TKW?Math.floor(TKW/M.kw+1e-9):TG0;var full=L0.mods,R=O.rows,T=L0.T.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:t.s,l:0}});var L={mods:full,full:full,tables:T.length,kwp:L0.kwp,T:T,target:TG||null,short:0,trim:0};
     if(!TG)return L;if(full<=TG){L.short=TG-full;return L}
     var rm=full-TG,S=T.slice().sort(function(a,b){return b.y-a.y||b.x-a.x}),mc=O.minCol||4;
     for(var i=0;i<S.length&&rm>0;i++){var t=S[i];if(rm>=t.c*R){t.drop=1;rm-=t.c*R}else break}
@@ -155,7 +155,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>"+
       "<div class='nt'>검토용 개략 배치(평지·정남향 가정, 지장물·진입로·전기실 미반영). 경계는 연속지적도 기준. 허가 서류의 장수·용량은 따로 확정.</div>";
     var lc=O.L[key+"_c"];
-    $("sNote").innerHTML=(LY.target?(LY.short?"⚠ 목표 "+n(LY.target)+"장보다 "+n(LY.short)+"장 부족(이 땅 최대 "+n(LY.full)+"장).<br>":"목표 "+n(LY.target)+"장에 맞춤 — 남쪽부터 채운 배치(최대 "+n(LY.full)+"장)에서 북쪽 열부터 "+n(LY.trim)+"장을 덜어냈습니다. 3단이라 끝 세로줄 하나는 "+(LY.mods%O.rows||O.rows)+"장입니다.<br>"):"")+"열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
+    $("sNote").innerHTML=(LY.target?(LY.short?"⚠ 목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW("+n(LY.target)+"장)":n(LY.target)+"장")+"보다 "+n(LY.short)+"장 부족(이 땅 최대 "+n(LY.full)+"장).<br>":"목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW → "+n(LY.target)+"장":n(LY.target)+"장")+"에 맞춤 — 남쪽부터 채운 배치(최대 "+n(LY.full)+"장)에서 북쪽 열부터 "+n(LY.trim)+"장을 덜어냈습니다. 3단이라 끝 세로줄 하나는 "+(LY.mods%O.rows||O.rows)+"장입니다.<br>"):"")+"열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
       (lc&&!(cau)?"신중검토 구역까지 배치하면 "+n(lc.mods)+"장 · "+n(lc.mods*M.kw,2)+" kWp (환경청 협의·시군 허가 결과에 따라 달라짐).<br>":"")+
       "피치 = 수평길이 + 높이차 ÷ tan(음영각), 소수 둘째 자리 올림. 정남향·평지 기준이며 지형 경사, 지장물(나무·건물), 진입로, 전기실 자리는 반영하지 않았습니다. 필지 경계는 브이월드 연속지적도 기준이라 실제 측량 경계와 다를 수 있습니다. 허가 서류에는 확정 장수·용량을 따로 정해 쓰십시오."}
 
