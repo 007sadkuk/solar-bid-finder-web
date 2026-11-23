@@ -149,7 +149,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr>"+
       "<tr><th>부지 면적</th><td>약 "+n(O.total)+" m²</td><th style='width:4.6em'>배치 범위</th><td>"+(inC?"확실+신중검토":"확실 구역만")+"</td></tr>"+
       "<tr><th>모듈</th><td colspan='3'>"+esc(M.name)+" ("+n(M.l*1000)+"×"+n(M.w*1000)+"×30)</td></tr>"+
-      "<tr><th>수량·용량</th><td colspan='3' class='hl'>"+n(LY.mods)+" 장 · "+n(LY.mods*M.kw,2)+" kWp"+(LY.short?" <span style='font-size:.85em'>(목표 "+n(LY.target)+"장보다 "+n(LY.short)+"장 부족)</span>":"")+"</td></tr>"+
+      "<tr><th>수량·용량</th><td colspan='3' class='hl'>"+n(LY.mods)+" 장 · "+(Math.round(LY.mods*M.kw*1000)/1000).toLocaleString("ko-KR",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWp"+(LY.short?" <span style='font-size:.85em'>(목표 "+n(LY.target)+"장보다 "+n(LY.short)+"장 부족)</span>":"")+"</td></tr>"+
       "<tr><th>어레이</th><td colspan='3'>세로 "+O.rows+"단 · 정남향 · 모듈각 "+O.tilt+"° · 음영각 "+O.shade+"° · "+rs.length+"열 / 테이블 "+LY.tables+"개</td></tr>"+
       "<tr><th>간격(m)</th><td colspan='3'>피치 "+M.pitch.toFixed(2)+" · 열간 이격 "+gap2+" · 경계 이격 "+O.set.toFixed(1)+" · 모듈 간 "+(O.mg*1000)+"mm</td></tr>"+
       "<tr><td colspan='4' class='sv'>"+section(M,true)+"</td></tr>"+
