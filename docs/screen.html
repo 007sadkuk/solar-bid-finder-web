@@ -444,12 +444,12 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     var SS=PT==="i"?CINC:CX;if(!r){var k=ix+","+iy;if(add)SS.add(k);else SS.delete(k);return}
     var nx=Math.ceil(r/(D.dlon*D.kx))+1,ny=Math.ceil(r/(D.dlat*D.ky))+1;for(var a=-nx;a<=nx;a++)for(var b=-ny;b<=ny;b++){var dxm=a*D.dlon*D.kx,dym=b*D.dlat*D.ky;if(dxm*dxm+dym*dym<=r*r){var k2=(ix+a)+","+(iy+b);if(add)SS.add(k2);else SS.delete(k2)}}}
   var pDown=false,pAdd=true,pT=null,pBr=null;
-  function pMD(e){if(!PICK)return;pDown=true;pickCells(e.latlng,pAdd);pLive()}
+  function pMD(e){if(!PICK)return;if(e.originalEvent){e.originalEvent.preventDefault();try{window.getSelection().removeAllRanges()}catch(_){}}pDown=true;pickCells(e.latlng,pAdd);pLive()}
   function pMM(e){if(!PICK)return;var r=+$("pickR").value||0;if(!pBr)pBr=L.circle(e.latlng,{radius:Math.max(r,1.5),color:pAdd?"#333":"#2e7d32",weight:2,dashArray:"4 3",fill:false,interactive:false}).addTo(map);else{pBr.setLatLng(e.latlng);pBr.setRadius(Math.max(r,1.5));pBr.setStyle({color:pAdd?"#333":"#2e7d32"})}if(pDown){pickCells(e.latlng,pAdd);clearTimeout(pT);pT=setTimeout(pLive,60)}}
   function pMU(){if(PICK&&pDown){pDown=false;redo();cutUI()}}
   function pLive(){/* 누르는 동안 빠르게 보이도록 지도만 다시 그림 */if(!D||!J)return;D.cells.forEach(function(c){var k=c.ix+","+c.iy;c._px=CX.has(k);c._pi=CINC.has(k)});drawMap()}
   function pickStop(){PICK=false;if(pBr&&map){map.removeLayer(pBr);pBr=null}if(map){map.dragging.enable();map.off("mousedown",pMD);map.off("mousemove",pMM);map.off("mouseup",pMU);map.getContainer().style.cursor=""}if($("pickGo")){$("pickGo").hidden=false;$("pickTools").style.display="none"}}
-  $("pickGo").onclick=function(){if(!map||!D)return;cutStop();PICK=true;map.dragging.disable();map.on("mousedown",pMD);map.on("mousemove",pMM);map.on("mouseup",pMU);map.getContainer().style.cursor="cell";$("pickGo").hidden=true;$("pickTools").style.display="inline-flex";cutUI()};
+  $("pickGo").onclick=function(){if(!map||!D)return;cutStop();PICK=true;map.dragging.disable();map.on("mousedown",pMD);map.on("mousemove",pMM);map.on("mouseup",pMU);map.getContainer().style.cursor="cell";map.getContainer().style.userSelect="none";$("pickGo").hidden=true;$("pickTools").style.display="inline-flex";cutUI()};
   $("pickMode").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;PT=b.dataset.a.charAt(0);pAdd=b.dataset.a.charAt(1)==="1";Array.from(this.children).forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});cutUI()});
   $("pickEnd").onclick=function(){pickStop();cutUI()};
   document.addEventListener("mouseup",function(){pMU()});
