@@ -89,20 +89,21 @@ td.hl{color:#c0392b;font-weight:800}
   var TKW=+O.tkw||0,TG0=+O.target||0;$("tgt").value=TKW||"";
   $("btnTgt").onclick=function(){TKW=Math.max(0,+$("tgt").value||0);TG0=0;draw();fit()};$("tgt").onkeydown=function(e){if(e.key==="Enter")$("btnTgt").click()};
   /* 목표 장수: 남쪽부터 채운 배치에서 북쪽 테이블부터 덜어냄(테이블은 최소 열 유지, 3으로 안 나눠지는 나머지는 세로줄 하나를 1~2장으로) — 입지검토 화면과 같은 방식 */
-  function trimL(L0,M){var TG=TKW?Math.floor(TKW/M.kw+1e-9):TG0;var full=L0.mods,R=O.rows,T=L0.T.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:t.s,l:0}});var L={mods:full,full:full,tables:T.length,kwp:L0.kwp,T:T,target:TG||null,short:0,trim:0};
-    if(!TG)return L;if(full<=TG){L.short=TG-full;return L}
-    var rm=full-TG,S=T.slice().sort(function(a,b){return b.y-a.y||b.x-a.x}),mc=O.minCol||4;
+  function trimL(L0,M){var TG=TKW?Math.floor(TKW/M.kw+1e-9):TG0;var full=L0.mods,R=O.rows,T=L0.T.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:t.s,l:0}});var L={mods:full,full:full,tables:T.length,kwp:L0.kwp,T:T,target:TG||null,short:0,trim:0,fillUsed:0};
+    if(TG&&full<TG&&L0.F&&L0.F.length){var add=L0.F.map(function(t){return {x:t.x,y:t.y,c:t.c,r:t.r,s:0,l:0,fill:1}}).sort(function(a,b){return a.y-b.y||a.x-b.x}),u=0;for(var i=0;i<add.length&&L.mods<TG;i++){T.push(add[i]);L.mods+=add[i].c*R;u++}L.fillUsed=u;full=L.mods;L.full=L.mods+add.slice(u).reduce(function(a,t){return a+t.c*R},0);L.tables=T.length}
+    if(!TG)return L;if(full<=TG){L.short=TG-full;L.mods=full;L.kwp=Math.round(full*M.kw*1000)/1000;return L}
+    var rm=full-TG,S=T.slice().sort(function(a,b){return (b.fill?1:0)-(a.fill?1:0)||b.y-a.y||b.x-a.x}),mc=O.minCol||4;
     for(var i=0;i<S.length&&rm>0;i++){var t=S[i];if(rm>=t.c*R){t.drop=1;rm-=t.c*R}else break}
-    for(var i=0;i<S.length&&rm>=R;i++){var t=S[i];if(t.drop)continue;var k=Math.min(Math.floor(rm/R),t.c-mc);if(k>0){t.c-=k;rm-=k*R}}
+    for(var i=0;i<S.length&&rm>=R;i++){var t=S[i];if(t.drop)continue;var k=Math.min(Math.floor(rm/R),t.c-(t.fill?1:mc));if(k>0){t.c-=k;rm-=k*R}}
     if(rm>0&&rm<R){var t2=S.filter(function(t){return !t.drop})[0];if(t2)t2.l=R-rm;rm=0}
     if(rm>0){for(var i=0;i<S.length&&rm>0;i++){var t=S[i];if(t.drop)continue;var k=Math.min(Math.ceil(rm/R),t.c);t.c-=k;rm-=k*R;if(rm<0){t.c+=1;t.l=-rm;rm=0}if(t.c<=0)t.drop=1}}
-    L.T=T.filter(function(t){return !t.drop&&t.c>0});L.tables=L.T.length;L.mods=TG;L.kwp=Math.round(TG*M.kw*1000)/1000;L.trim=full-TG;return L}
+    L.T=T.filter(function(t){return !t.drop&&t.c>0});L.tables=L.T.length;L.mods=TG;L.kwp=Math.round(TG*M.kw*1000)/1000;L.trim=(L.full||full)-TG;L.fillUsed=L.T.filter(function(t){return t.fill}).length;return L}
   var d2r=Math.PI/180,sh=O.sh||{dx:0,dy:0};
   function ll(x,y){return [O.B[1]+sh.dy+y/O.ky,O.B[0]+sh.dx+x/O.kx]}
   function n(a,d){return (+a).toLocaleString("ko-KR",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})}
 
   $("root").innerHTML="<div class='sheet'><div class='mapwrap'><div id='map'></div><div class='north'><svg width='22' height='30' viewBox='0 0 22 30'><path d='M11 1 L20 28 L11 21 L2 28 Z' fill='#fff' stroke='#000' stroke-width='1'/><path d='M11 1 L11 21 L2 28 Z' fill='#111'/></svg>N</div>"+
-    "<div class='lgd'><div><i style='border-top:3px solid #e01b1b'></i>대상부지 경계</div><div><i style='border-top:2px dashed #ffd400'></i>경계 이격선 (<span id='lgSet'></span> m)</div><div><i style='height:10px;background:#1f3f9e;border:1px solid #9fb3e8'></i><span id='lgMod'></span></div></div></div>"+
+    "<div class='lgd'><div><i style='border-top:3px solid #e01b1b'></i>대상부지 경계</div><div><i style='border-top:2px dashed #ffd400'></i>경계 이격선 (<span id='lgSet'></span> m)</div><div><i style='height:10px;background:#1f3f9e;border:1px solid #9fb3e8'></i><span id='lgMod'></span></div><div id='lgFill' style='display:none'><i style='height:10px;background:#d9730d;border:1px solid #ffd29a'></i>좁은 곳 보충(규격 외)</div></div></div>"+
     "<div class='tb' id='tb'></div></div></div>"+
     "<details class='det'><summary>상세 설계개요 · 열별 수량 · 유의사항 (인쇄에는 안 나옴)</summary><table id='sum'></table><div class='note' id='sNote' style='margin-top:8px'></div></details>";
   $("lgSet").textContent=O.set;
@@ -128,11 +129,11 @@ td.hl{color:#c0392b;font-weight:800}
       $("tb").innerHTML="<div class='ttl'>태양광 발전설비 배치도</div><table><tr><th>사업 위치</th><td colspan='3'>"+esc(O.addr)+"</td></tr><tr><th>부지 면적</th><td colspan='3'>약 "+n(O.total)+" m²</td></tr><tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>";
       $("sum").innerHTML="";$("sNote").textContent="";return}
     $("lgMod").parentNode.style.display="";
-    var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=trimL(O.L[id],M);lay=LY;mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
+    var M=O.mods[key],id=key+(cau&&O.L[key+"_c"]?"_c":""),LY=trimL(O.L[id],M);lay=LY;$("lgFill").style.display=LY.fillUsed?"":"none";mods.clearLayers();$("chkCau").disabled=!O.L[key+"_c"];
     $("lgMod").textContent="태양광 모듈 ("+M.name.replace(/^\S+\s/,"")+")";
     var ct=Math.cos(O.tilt*d2r),ml=M.l*ct,mstep=(M.l+O.mg)*ct,R=new L.Canvas({padding:.5});
     LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<(j===t.c-1&&t.l?t.l:O.rows);k++){var x0=t.x+j*M.colW,y0=t.y+k*mstep;
-      L.rectangle([ll(x0,y0),ll(x0+M.w,y0+ml)],{renderer:R,color:"#a9bdf0",weight:.6,fillColor:"#1f3f9e",fillOpacity:.95,interactive:false}).addTo(mods)}});
+      L.rectangle([ll(x0,y0),ll(x0+M.w,y0+ml)],{renderer:R,color:t.fill?"#ffd29a":"#a9bdf0",weight:.6,fillColor:t.fill?"#d9730d":"#1f3f9e",fillOpacity:.95,interactive:false}).addTo(mods)}});
     /* 열 번호(북쪽부터) */
     var byR={};LY.T.forEach(function(t){(byR[t.r]=byR[t.r]||[]).push(t)});var rs=Object.keys(byR).map(Number).sort(function(a,b){return b-a}),lines=[];
     rs.forEach(function(r,i){var L0=byR[r],cnt=L0.reduce(function(a,t){return a+t.c*O.rows-(t.l?O.rows-t.l:0)},0),xw=Math.min.apply(null,L0.map(function(t){return t.x})),y=L0[0].y+M.dep/2;lines.push(cnt);
@@ -155,7 +156,7 @@ td.hl{color:#c0392b;font-weight:800}
       "<tr class='ft'><td>작성</td><td>(주)금호테크닉스</td><td>일자</td><td>"+esc(O.at)+"</td></tr></table>"+
       "<div class='nt'>검토용 개략 배치(평지·정남향 가정, 지장물·진입로·전기실 미반영). 경계는 연속지적도 기준. 허가 서류의 장수·용량은 따로 확정.</div>";
     var lc=O.L[key+"_c"];
-    $("sNote").innerHTML=(LY.target?(LY.short?"⚠ 목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW("+n(LY.target)+"장)":n(LY.target)+"장")+"보다 "+n(LY.short)+"장 부족(이 땅 최대 "+n(LY.full)+"장).<br>":"목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW → "+n(LY.target)+"장":n(LY.target)+"장")+"에 맞춤 — 남쪽부터 채운 배치(최대 "+n(LY.full)+"장)에서 북쪽 열부터 "+n(LY.trim)+"장을 덜어냈습니다. 3단이라 끝 세로줄 하나는 "+(LY.mods%O.rows||O.rows)+"장입니다.<br>"):"")+"열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
+    $("sNote").innerHTML=(LY.target?(LY.short?"⚠ 목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW("+n(LY.target)+"장)":n(LY.target)+"장")+"보다 "+n(LY.short)+"장 부족(이 땅 최대 "+n(LY.full)+"장).<br>":"목표 "+(TKW?(+TKW).toLocaleString("ko-KR",{maximumFractionDigits:3})+"kW → "+n(LY.target)+"장":n(LY.target)+"장")+"에 맞춤"+(LY.fillUsed?" (규격 테이블만으로 모자라 좁은 곳 보충 테이블 — 3단×1~3열, 주황색 — "+LY.fillUsed+"개 사용)":"")+" — 남쪽부터 채운 배치(최대 "+n(LY.full)+"장)에서 북쪽 열부터 "+n(LY.trim)+"장을 덜어냈습니다. 3단이라 끝 세로줄 하나는 "+(LY.mods%O.rows||O.rows)+"장입니다.<br>"):"")+"열별 수량(북쪽부터): "+lines.map(function(c,i){return (i+1)+"열 "+n(c)+"장"}).join(" · ")+"<br>"+
       (lc&&!(cau)?"신중검토 구역까지 배치하면 "+n(lc.mods)+"장 · "+n(lc.mods*M.kw,2)+" kWp (환경청 협의·시군 허가 결과에 따라 달라짐).<br>":"")+
       "피치 = 수평길이 + 높이차 ÷ tan(음영각), 소수 둘째 자리 올림. 정남향·평지 기준이며 지형 경사, 지장물(나무·건물), 진입로, 전기실 자리는 반영하지 않았습니다. 필지 경계는 브이월드 연속지적도 기준이라 실제 측량 경계와 다를 수 있습니다. 허가 서류에는 확정 장수·용량을 따로 정해 쓰십시오."}
 
