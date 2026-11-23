@@ -379,10 +379,10 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   var MODS={f655:{name:"외산 655Wp",l:2.382,w:1.134,kw:0.655},k645:{name:"국산 645Wp",l:2.465,w:1.134,kw:0.645}};
   var MOD={key:"f655",set:2,gap:2,rows:3,tilt:10,shade:25,mg:0.02,tcol:12,minCol:4,tgap:0.5,small:5,cau:false};
   var MOD0={set:2,gap:2,shade:25,tgap:0.5,tcol:12},ADJ=null; /* 기본 설계값. ADJ = 목표 맞추려 바꾼 항목 */
-  /* 목표 용량이 모자랄 때 모듈은 그대로 두고 설계값을 한 단계씩 풀어 봄: 음영각 25→20° → 테이블 간격 0.5→0.2m → 한 테이블 최대 열 12→16 → 신중검토 구역 포함 → 경계·제외구역 이격 2→1.5→1m. 처음으로 목표를 채우는 조합을 씀 */
+  /* 목표 용량이 모자랄 때 모듈은 그대로 두고 설계값을 한 단계씩 풀어 봄: 음영각 25→27→30° → 테이블 간격 0.5→0.2m → 한 테이블 최대 열 12→16 → 신중검토 구역 포함 → 경계·제외구역 이격 2→1.5→1m. 처음으로 목표를 채우는 조합을 씀 */
   function autoFit(){var tg=MOD.tkw?Math.floor(MOD.tkw/MODS[MOD.key].kw+1e-9):(+MOD.target||0);if(!tg)return null;
     var steps=[],sv={set:MOD.set,gap:MOD.gap,shade:MOD.shade,tgap:MOD.tgap,tcol:MOD.tcol,cau:MOD.cau};
-    for(var a=24;a>=20;a--)steps.push({shade:a});steps.push({tgap:0.2});steps.push({tcol:16});
+    [27,30].forEach(function(a){steps.push({shade:a})}); /* 음영각을 키우면(태양고도 기준을 높이면) 줄 간격이 좁아짐 — 대신 겨울철 앞줄 그림자 손실 증가 */steps.push({tgap:0.2});steps.push({tcol:16});
     if(J&&J.sum&&J.sum.cau>=1&&!MOD.cau)steps.push({cau:true});steps.push({set:1.5,gap:1.5});steps.push({set:1,gap:1});
     var cur={},best=null;for(var i=0;i<steps.length;i++){Object.assign(cur,steps[i]);Object.assign(MOD,cur);var L=null;try{L=layout(MOD.cau)}catch(e){}
       if(L&&(!best||L.full>best.full||(!L.short&&best.short)))best={full:L.short?L.mods:L.full,short:L.short||0,cfg:Object.assign({},cur)};if(L&&!L.short){best={ok:1,cfg:Object.assign({},cur),full:L.full};break}}
