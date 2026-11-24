@@ -425,7 +425,10 @@
     var hh = legalHits("h");
     V(G, "h", "생태·경관보전지역, 문화재보호구역 등 경관보전이 필요한 지역", hh.length ? "회피" : nedErr.length === P.length ? "확인 불가" : "해당없음", hh.length ? hitArea(hh) : null, hh.length ? hitText(hh) : "토지이용계획에 해당 지역·지구 없음" + nedNote, "지침 입지회피 8", luSrc);
     // i) 산사태위험
-    var san = P.map(function (p, i) { return i; }).filter(function (i) { return P[i].jcode === "임"; }), hzOK = D.cells.some(function (c) { return c.hz !== undefined; });
+    /* 산지: 지목 임야 + 지목은 달라도 토지특성 이용상황(공시지가 현황조사)이 임야·자연림 등인 필지(현황 산지) */
+    function useOf(i) { return (P[i].lc && P[i].lc.use) || ""; }
+    var sanCur = P.map(function (p, i) { return i; }).filter(function (i) { return P[i].jcode !== "임" && /임야|자연림|조림|산림/.test(useOf(i)); });
+    var san = P.map(function (p, i) { return i; }).filter(function (i) { return P[i].jcode === "임" || sanCur.indexOf(i) >= 0; }), hzOK = D.cells.some(function (c) { return c.hz !== undefined; });
     var h12 = hzOK ? A(function (c) { return san.indexOf(c.p) >= 0 && c.hz !== null && c.hz <= 2; }) : null, h12all = hzOK ? A(function (c) { return c.hz !== null && c.hz <= 2; }) : null;
     var hzB = {}; if (hzOK) D.cells.forEach(function (c) { if (san.indexOf(c.p) >= 0 && c.hz) hzB[c.hz] = (hzB[c.hz] || 0) + P[c.p].cellA; });
     // 국토환경성평가(KEI) 등급 판정: 1등급 회피, 2등급 신중(동진 검토 기준)
@@ -436,7 +439,7 @@
     V(G2, "kei2", "국토환경성평가 2등급 지역", !keiOK ? "확인 불가" : kA2 ? "신중검토" : "해당없음", keiOK ? Math.round(kA2) : null,
       keiOK ? (kA2 ? "2등급 " + Math.round(kA2).toLocaleString() + "㎡ — 설치는 가능하나 환경청 협의에서 보전 대책(녹지 존치·배치 조정)을 요구받을 수 있음" : "2등급 없음") : "KEI 등급 자료 조회 실패", R.kei ? R.kei.law : "", "국토환경성평가지도 2025");
     V(G, "i", "산사태위험 1·2등급지 (사업지구가 산지인 경우)", !san.length ? (hzOK && h12all >= 1 ? "주의(산지 아님 — 위험지도 1·2등급 " + Math.round(h12all).toLocaleString() + "㎡)" : "해당없음") : !hzOK ? "수동확인필요" : h12 ? "회피" : "해당없음", san.length ? (hzOK ? h12 : null) : null,
-      !san.length ? "지목 임야 필지 없음(지목 기준)" + (h12all ? " — 다만 위험지도 1·2등급 " + h12all.toLocaleString() + "㎡ 있음(산지 아닌 필지)" : "")
+      !san.length ? "산지 필지 없음(지목 임야 없음, 토지특성 이용상황도 경작지 등)" + (h12all ? " — 다만 위험지도 1·2등급 " + h12all.toLocaleString() + "㎡ 있음(산지 아닌 필지)" : "")
         : hzOK ? "산지(지목 임야 " + san.map(function (i) { return P[i].jibun; }).join(", ") + ") 위험등급 면적: " + [1, 2, 3, 4, 5].filter(function (g) { return hzB[g]; }).map(function (g) { return g + "등급 " + Math.round(hzB[g]).toLocaleString() + "㎡"; }).join(", ") + (Object.keys(hzB).length ? "" : "위험지도 값 없음") + ". 10m 격자 값이라 경계부는 ±10m 오차"
         : "산림청 격자 조회 실패" + (D.fsErr ? "(" + D.fsErr + ")" : "") + " — 산사태정보시스템 위험지도로 확인",
       "지침 입지회피 9", "산림청 산사태위험지도(2025) 10m 격자");
@@ -610,7 +613,13 @@
       d: (carve.san ? "회피 구간을 뺀 산지 평균 약 " + mRest.toFixed(1) + "°로 15°를 넘어, 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞췄습니다(빼는 구간은 사업부지·일시사용 신청 면적에서 제외). [실무] 이렇게 신청 면적을 줄여 평균경사도를 맞추는 방식은 허가청이 받아주는지 사전 확인 필요. " : "") + (mAll > 15 && !(mRest > 15) ? "필지 전체로 보면 15° 초과 — 가파른 구간을 빼고 계획해야 허가 기준 충족. " : "") + "산지 전체 평균 약 " + mAll.toFixed(1) + "°" + (mRest !== null && Math.abs(mRest - mAll) > 0.05 ? ", 회피 구간을 뺀 나머지 평균 약 " + mRest.toFixed(1) + "°" : "") + " (" + slopeSrc() + " 칸 평균 — 허가용 평균경사도 조사서와 산정 방식이 다를 수 있음)", b: "산지관리법 시행령 별표3의2", src: slopeSrc() });
     var total = Math.round(area(P)), ok = Math.max(0, Math.round(total - noA));
     var cond = preCond.slice();
-    if (!san.length && hzOK && h12all >= 1) cond.push("산사태위험지도 1·2등급 " + Math.round(h12all).toLocaleString() + "㎡(부지의 " + Math.round(h12all / area(P) * 100) + "%): 지목이 임야가 아니라 협의지침 입지회피(산지인 경우)에는 해당하지 않는 것으로 판정했지만, 환경청 협의·시군 개발행위허가(재해 위험)에서 배수·사면 안정 대책을 요구받을 수 있음 — 현황이 산지(경사 농지·묵은 밭 포함)인지, 산림청 산사태취약지역 지정 여부를 확인");
+    var slTake = P.map(function (p, i) { return Array.isArray(p.ned) && p.ned.some(function (x) { return /산사태취약/.test(x[0]) && x[1] !== "3"; }) ? p.jibun : null; }).filter(Boolean);
+    if (slTake.length) cond.unshift("⚠ 산사태취약지역(산림보호법) 지정 필지: " + slTake.join(", ") + " — 토지이용계획에 지정됨. 개발행위·산지전용 제한이 클 수 있어 시·군 산림부서 확인 필수");
+    if (!san.length && hzOK && h12all >= 1) {
+      var useL = P.map(function (p, i) { return p.jibun + " " + (useOf(i) || "자료 없음"); }).join(", "), vtN = D.cells.filter(function (c) { return c.vt !== null && c.vt !== undefined; }).length;
+      cond.push("산사태위험지도 1·2등급 " + Math.round(h12all).toLocaleString() + "㎡(부지의 " + Math.round(h12all / area(P) * 100) + "%) — 자동 확인 결과: ① 현황: 토지특성 이용상황(" + ((P[0].lc && P[0].lc.year) || "최근") + "년 조사) " + useL + " → 경작지로 조사돼 산지로 보지 않음" + (vtN ? "" : ", 식생보전등급(산림) 자료도 없음") + " ② 산사태취약지역: 토지이용계획 지역·지구 목록에 지정 없음 → 협의지침 입지회피(산지인 경우)는 해당 없음. 다만 소규모 환경영향평가·개발행위허가에서 배수·사면 안정 대책을 요구받을 수 있음");
+    }
+    if (sanCur.length) cond.push("현황 산지로 본 필지: " + sanCur.map(function (i) { return P[i].jibun + "(지목 " + P[i].jimok + ", 이용상황 " + useOf(i) + ")"; }).join(", ") + " — 지목은 임야가 아니지만 토지특성 이용상황이 산림이라 산지 기준(산사태위험 1·2등급 회피, 평균경사 15°)을 적용. 산지 여부는 시·군 산림부서 판단");
     if (GATE) cond.push("소규모 환경영향평가 대상 아님(면적÷기준면적 합 " + ratio.toFixed(2) + ") → 환경청 협의가 없어 「육상태양광 협의지침」의 회피·신중 항목(생태자연도 2등급·식생, 경사 15° 산림, 국토환경성평가, 산사태위험, 정맥 등)은 참고로만 보고 설치 가능 면적에서 빼지 않았습니다. 생태자연도 1등급만 계속 제외. 사업면적을 늘려 대상이 되면 다시 적용됩니다. [확인 필요] 시·군이 개발행위허가 때 같은 기준을 따로 보는지는 허가부서 확인");
     if (carve.ord) cond.push("조례 경사 기준(" + (ordS0 ? ordS0.name + " " + ordS0.deg + "°" : "") + "): 남은 땅 평균 약 " + carve.ordM0.toFixed(1) + "°라 기준 이상 → 가장 가파른 칸부터 " + carve.ord.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.ordM != null ? carve.ordM.toFixed(1) : "?") + "°로 맞춰 계산했습니다(공공 지형자료 오차를 감안해 기준보다 0.5° 낮게 맞춤). 빼는 구간은 사업부지에서 제외(분할 또는 신청 면적 조정)하고, 측량 평균경사도로 다시 확인. [실무] 허가청이 이 방식을 받아주는지 사전 확인");
     if (carve.san) cond.push("산지 평균경사도 15°: 가장 가파른 칸부터 " + carve.san.toLocaleString() + "㎡를 빼서 나머지 평균을 약 " + (carve.sanM != null ? carve.sanM.toFixed(1) : "?") + "°로 맞춰 계산(기준보다 0.5° 낮게 여유) — 빼는 구간은 일시사용 신청 면적에서 제외. [실무] 허가청 사전 확인");
