@@ -71,7 +71,7 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
   var P=O.P||[],adr=String(O.addr||"").split(" · ")[0],parts=adr.split(/\s+/);
   /* 표지 제목: 시군 읍면 리 / 지번 외 N필지 */
   var t1=parts.slice(0,Math.min(parts.length,4)).filter(function(w){return !/^\d|^산\d/.test(w)}).slice(1).join(" ")||adr,t2=P.length?(P[0].jibun+(P.length>1?" 외 "+(P.length-1)+"필지":"")):"";
-  var LY=O.lay,kind=VIL?"햇빛소득마을 · 주민참여형 태양광 입지검토":"태양광 발전사업(일반 RPS) 입지검토";
+  var LY=O.lay;if(LY)LY.kwp=Math.round(LY.mods*LY.kw*1000)/1000;var kind=VIL?"햇빛소득마을 · 주민참여형 태양광 입지검토":"태양광 발전사업(일반 RPS) 입지검토";
   var pct=function(a){return O.total?Math.round(a/O.total*100):0},sure=Math.max(0,(O.ok||0)-(O.cau||0));
 
   /* ── 검토표: 사업 형태에 따라 행 구성 ── */
@@ -84,9 +84,9 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
   [["s1","소규모 환경영향평가"],["s10","재해영향평가"]].forEach(function(x){var r=rowOf(x[0],x[1]);if(r)rows.push(r)});
   if(VIL)rows.push(["이격거리","주민참여형 발전설비는 재생에너지법 제27조의3제3항에 따라 이격거리 적용 제외","적용 제외",true]);else{var r4=rowOf("s4","이격거리");if(r4)rows.push(r4)}
   var hasFarm=P.some(function(p){return /^(전|답|과)$/.test(p.jimok)}),hasSan=P.some(function(p){return p.jimok==="임야"});
-  if(hasFarm){var f1=R.f1,f2=R.f2;rows.push(["농지전용",(f1?"농지전용 허가 대상":"")+(f2?" · 농지보전부담금 "+first(f2.d,40):""),"허가 필요",false])}
+  if(hasFarm){var f1=R.f1,f2=R.f2;rows.push(["농지전용",(f1?"농지전용 허가 대상":"")+(f2&&/약 [\d,]+만원/.test(f2.d)?" · 농지보전부담금 "+f2.d.match(/약 [\d,]+만원/)[0]+"(공시지가 기준 추정)":""),"허가 필요",false])}
   if(hasSan){var r7=rowOf("s7","산지 평균경사(15° 이하)");if(r7)rows.push(r7)}
-  [["s2","진입로"],["s6","한전 계통"]].forEach(function(x){var r=rowOf(x[0],x[1]);if(r)rows.push(r)});
+  var r2=rowOf("s2","진입로");if(r2)rows.push(r2);var r6=R.s6;if(r6)rows.push(["한전 계통",/조회 못|미지원|실패/.test(r6.d)?"공개자료 조회 못 함 — 한전 지사에 계통 연계 여유 문의 필요":first(r6.d),/조회 못|미지원|실패/.test(r6.d)?"문의 필요":r6.v,false]);
   rows=rows.slice(0,10);
 
   var checks=(O.cond||[]).map(function(c){return first(c,120)}).slice(0,6);
@@ -100,7 +100,7 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     if(!lons.length)return res(null);
     var mnL=Math.min.apply(null,lons),mxL=Math.max.apply(null,lons),mnB=Math.min.apply(null,lats),mxB=Math.max.apply(null,lats);
     function px(lon,lat,z){var s=Math.sin(lat*Math.PI/180),k=256*Math.pow(2,z);return [(lon+180)/360*k,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*k]}
-    var z=19;for(;z>10;z--){var a=px(mnL,mxB,z),b=px(mxL,mnB,z);if(b[0]-a[0]<W*0.82&&b[1]-a[1]<H*0.82)break}
+    var a0=px(mnL,mxB,0),b0=px(mxL,mnB,0),z=Math.min(20,Math.log2(Math.min(W*0.84/Math.max(1e-9,b0[0]-a0[0]),H*0.84/Math.max(1e-9,b0[1]-a0[1]))));
     var c0=px((mnL+mxL)/2,(mnB+mxB)/2,z),ox=c0[0]-W/2,oy=c0[1]-H/2;function P2(lon,lat){var q=px(lon,lat,z);return [q[0]-ox,q[1]-oy]}
     function overlay(){
       var polys=[];P.forEach(function(p){p.rings.forEach(function(r){var c=r.slice();if(c.length>2){var a=c[0],e=c[c.length-1];if(a[0]!==e[0]||a[1]!==e[1])c.push(a);try{polys.push(turf.polygon([c]))}catch(_){}}})});
@@ -120,8 +120,8 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     var key=window.BFGeo&&BFGeo.getKey&&BFGeo.getKey();
     function finish(withTiles){overlay();try{res({url:cv.toDataURL("image/jpeg",0.9),tiles:withTiles})}catch(e){/* 타일 때문에 캔버스가 막히면 타일 없이 다시 */g.clearRect(0,0,W,H);g.fillStyle="#e9ecef";g.fillRect(0,0,W,H);overlay();try{res({url:cv.toDataURL("image/jpeg",0.9),tiles:false})}catch(e2){res(null)}}}
     if(!key)return finish(false);
-    var tx0=Math.floor(ox/256),ty0=Math.floor(oy/256),tx1=Math.floor((ox+W)/256),ty1=Math.floor((oy+H)/256),jobs=[],z2=Math.min(z,19),sc=Math.pow(2,z-z2);
-    for(var tx=tx0;tx<=tx1;tx++)for(var ty=ty0;ty<=ty1;ty++)(function(tx,ty){jobs.push(new Promise(function(ok){var im=new Image();im.crossOrigin="anonymous";im.onload=function(){try{g.drawImage(im,tx*256-ox,ty*256-oy,256,256)}catch(e){}ok(1)};im.onerror=function(){ok(0)};im.src="https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Satellite/"+z2+"/"+ty+"/"+tx+".jpeg"}))})(tx,ty);
+    var z2=Math.min(19,Math.floor(z)),sc=Math.pow(2,z-z2),ts=256*sc,tx0=Math.floor(ox/ts),ty0=Math.floor(oy/ts),tx1=Math.floor((ox+W)/ts),ty1=Math.floor((oy+H)/ts),jobs=[];
+    for(var tx=tx0;tx<=tx1;tx++)for(var ty=ty0;ty<=ty1;ty++)(function(tx,ty){jobs.push(new Promise(function(ok){var im=new Image();im.crossOrigin="anonymous";im.onload=function(){try{g.drawImage(im,tx*ts-ox,ty*ts-oy,ts+0.5,ts+0.5)}catch(e){}ok(1)};im.onerror=function(){ok(0)};im.src="https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Satellite/"+z2+"/"+ty+"/"+tx+".jpeg"}))})(tx,ty);
     Promise.all(jobs).then(function(r){finish(r.some(Boolean))})})}
 
   var MAP=null,LOGO=null;
@@ -148,7 +148,7 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     $("deck").innerHTML=h;$("st").textContent=VIL?"햇빛소득마을(주민참여형) 양식":"일반 RPS 양식"}
 
   /* ── PPT (같은 내용, 템플릿 색·글꼴: 제목 바탕, 본문 맑은 고딕) ── */
-  function makePpt(){var p=new PptxGenJS();p.layout="LAYOUT_WIDE";p.company="(주)금호테크닉스";p.title="입지검토 간단 보고서";
+  function makePpt(asBlob){var p=new PptxGenJS();p.layout="LAYOUT_WIDE";p.company="(주)금호테크닉스";p.title="입지검토 간단 보고서";
     var NV="1F2A3C",DK="3B4252",OR="C06A1D",LT="F6F4F0",LN="E3E3E3",GR="6B7280",HF="바탕",BF="맑은 고딕",W=13.333,i=1;
     function base(note){var s=p.addSlide();s.background={color:"FFFFFF"};if(LOGO)s.addImage({data:LOGO,x:W-2.2,y:6.95,w:1.6,h:0.34});s.addText((note||foot)+" · "+i,{x:0.67,y:7.0,w:9.5,h:0.3,fontFace:BF,fontSize:9,color:GR,margin:0});i++;return s}
     function title(s,t){s.addText(t,{x:0.67,y:0.45,w:12,h:0.7,fontFace:HF,bold:true,fontSize:26,color:NV,margin:0})}
@@ -179,8 +179,9 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     s.addText((checks.length?checks:["특별한 사항 없음"]).map(function(c,k){return {text:c,options:{bullet:{type:"number"},breakLine:k<checks.length-1}}}),{x:0.67,y:1.8,w:5.9,h:4.6,fontFace:BF,fontSize:10.5,color:DK,valign:"top",paraSpaceAfter:6});
     s.addText(VIL?"햇빛소득마을 추진 순서":"일반 RPS 추진 순서",{x:7.0,y:1.35,w:5.6,h:0.35,fontFace:BF,bold:true,fontSize:13,color:OR,margin:0});
     steps.forEach(function(st2,k){var x=7.0+(k%2)*2.85,y=1.85+Math.floor(k/2)*2.0;s.addShape(p.ShapeType.rect,{x:x,y:y,w:2.7,h:1.8,fill:{color:"FFFFFF"},line:{color:LN,width:1}});s.addShape(p.ShapeType.rect,{x:x,y:y,w:0.06,h:1.8,fill:{color:OR},line:{color:OR}});s.addText(String(k+1),{x:x+0.2,y:y+0.12,w:0.5,h:0.45,fontFace:HF,bold:true,fontSize:20,color:OR,margin:0});s.addText(st2[0],{x:x+0.65,y:y+0.15,w:1.95,h:0.4,fontFace:BF,bold:true,fontSize:12,color:NV,margin:0});s.addText(st2[1],{x:x+0.2,y:y+0.65,w:2.4,h:1.05,fontFace:BF,fontSize:10,color:DK,margin:0,valign:"top"})});
-    var nm=(t1+" "+t2).replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"_");return p.writeFile({fileName:"입지검토_간단보고서_"+(VIL?"햇빛소득마을_":"RPS_")+nm+".pptx"})}
+    var nm=(t1+" "+t2).replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"_");if(asBlob)return p.write({outputType:"blob"});return p.writeFile({fileName:"입지검토_간단보고서_"+(VIL?"햇빛소득마을_":"RPS_")+nm+".pptx"})}
 
+  window._pptTest=function(){return makePpt(true).then(function(b){return b.size})};
   render();
   Promise.all([mkMap(1400,933),logo()]).then(function(r){MAP=r[0];LOGO=r[1];render()});
   $("bPrint").onclick=function(){window.print()};
