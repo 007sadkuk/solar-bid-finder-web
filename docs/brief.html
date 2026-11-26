@@ -46,14 +46,14 @@ body{margin:0;background:#d9dce1;color:var(--nv);font:15px/1.5 "Pretendard Varia
   /* ── 짧은 문구 만들기 ── */
   var vShort=/불가|어려움/.test(O.verdict)?"설치 어려움":/일부/.test(O.verdict)||!full?"일부 설치 가능":"설치 가능";
   var sub1=full?vShort+" · 부지 "+n(O.total)+"㎡ 전체 (100%)":vShort+" · 설치 가능 면적 "+n(O.ok)+"㎡ ("+pct(O.ok)+"%)";
-  var zones=(kvv("용도지역")||"").split(/,\s*/).filter(Boolean).map(function(z){return z.replace(/지역(?=\s)/,"")}),zoneShort=zones.length>1?zones.join(" · "):(kvv("용도지역")||"").replace(/\s[\d,]+㎡$/,""),zoneOne=zones.length>1?zones[0].replace(/\s[\d,]+㎡$/,"")+"지역 위주":zoneShort;
+  var zones=(kvv("용도지역")||"").split(/,\s+/).filter(Boolean).map(function(z){return z.replace(/지역(?=\s)/,"")}),zoneShort=zones.length>1?zones.join(" · "):(kvv("용도지역")||"").replace(/\s[\d,]+㎡$/,""),zoneOne=zones.length>1?zones[0].replace(/\s[\d,]+㎡$/,"")+"지역 위주":zoneShort;
   var WHY={"경사 15° 이상 산림":"급경사 산림","산사태위험 1·2등급":"산사태위험","생태자연도 1등급":"생태자연도 1등급","생태자연도 2등급 + 식생 양호":"생태·식생 양호지","국토환경성평가 1등급":"국토환경성 1등급","식생등급 자료 없음(안전하게 제외)":"식생 미확인","정맥 100m 안":"정맥 인접","멸종위기종 서식":"멸종위기종","농업진흥구역":"농업진흥구역","공익용산지":"공익용산지"};
   function whyS(w){if(WHY[w])return WHY[w];if(/주택 \d+m/.test(w))return "주택 이격";if(/직접 뺀/.test(w))return "직접 제외";if(/맞추려 뺀/.test(w))return "경사 제척";if(/산지 평균경사/.test(w))return "산지 경사";return w.replace(/\(.*$/,"").replace(/\s*포함.*$/,"").slice(0,12)}
   var whyL=(O.why||[]).filter(function(w){return w[1]>=1}).map(function(w){return whyS(w[0])}).filter(function(v,i,a){return a.indexOf(v)===i});
   var rS1=R.s1,ratio=rS1&&/합 ([\d.]+)/.test(rS1.d)?rS1.d.match(/합 ([\d.]+)/)[1]:null,seiaY=rS1&&/^대상$/.test(rS1.v);
   var rS10=R.s10,disY=rS10&&/^대상$/.test(rS10.v);
   var degN=O.ordName?parseFloat(O.ordName.replace(/^.*\s/,"")):null,slopeOk=O.ordMean!=null&&degN!=null&&O.ordMean<degN;
-  var road=R.s2,roadW=road&&/도로 폭 ([\d.]+)m/.test(road.d)?road.d.match(/도로 폭 ([\d.]+)m/)[1]:null,roadTxt=!road?"-":/맹지|붙어 있지 않|접한 도로 없/.test(road.v+road.d)?"접한 도로 없음 — 진입로 확보 필요":/^확인/.test(road.v)?(roadW?roadW+"m 도로에 접함":"도로에 접함"):(roadW?"도로 폭 "+roadW+"m — 트럭 진입 어려울 수 있음":"좁은 길 — 현장 확인");
+  var road=R.s2,roadW=road&&/도로 폭 ([\d.]+)m/.test(road.d)?road.d.match(/도로 폭 ([\d.]+)m/)[1]:null,roadTxt=!road?"-":/^확인/.test(road.v)?(roadW?roadW+"m 도로에 접함":"도로에 접함"):/맹지/.test(road.v)?"접한 도로 없음 — 진입로 확보 필요":(roadW?"도로 폭 "+roadW+"m — 트럭 진입 어려울 수 있음":"좁은 길 — 현장 확인");
   var feeM=R.f2&&/약 [\d,]+만원/.test(R.f2.d)?R.f2.d.match(/약 [\d,]+만원/)[0]:null;
   var hasFarm=P.some(function(p){return /^(전|답|과)$/.test(p.jimok)}),hasSan=P.some(function(p){return p.jimok==="임야"});
   var s4=R.s4,s4t=VIL?"주민참여형 → 적용 제외":!s4?"-":/등록 안 됨/.test(s4.d)?"조례 미등록 → 법 기준 200m":(/조례: 주거[^ ]* (\d+)m/.test(s4.d)?"조례 주거 "+s4.d.match(/조례: 주거[^ ]* (\d+)m/)[1]+"m":"조례 기준 확인");
@@ -73,13 +73,13 @@ body{margin:0;background:#d9dce1;color:var(--nv);font:15px/1.5 "Pretendard Varia
   rows=rows.slice(0,10);
 
   /* 확인할 사항: 짧은 말로 */
-  function cShort(c){if(/진입로/.test(c))return "진입로 폭·통행 현장 확인";if(/소규모 환경영향평가 대상/.test(c))return "환경영향평가 (환경청 협의)";if(/분류 안 된 지역·지구: ([^(]+)/.test(c))return c.match(/분류 안 된 지역·지구: ([^(]+)/)[1].trim()+" 기준 확인";
+  function cShort(c){if(/^소규모 환경영향평가 대상 아님/.test(c))return null;if(/진입로/.test(c))return "진입로 폭·통행 현장 확인";if(/^소규모 환경영향평가 대상/.test(c))return "환경영향평가 (환경청 협의)";
+    var gm=c.match(/^[^:]{2,40}\(([^)]*)\):\s*([^(,·]+)\(/);if(gm&&!/분류 안 된/.test(c))return gm[2].trim()+(/설치 불가|걸친/.test(gm[1])?" 걸친 부분 제외":" 기준 확인");if(/분류 안 된 지역·지구: ([^(]+)/.test(c))return c.match(/분류 안 된 지역·지구: ([^(]+)/)[1].trim()+" 기준 확인";
     if(/매장유산/.test(c))return "매장유산 조사 여부 확인";if(/한전/.test(c))return "한전 계통 접속 문의";if(/조례 이격 기준/.test(c))return VIL?null:gun+" 조례 이격거리 확인";if(/공고 요건/.test(c))return null;
     if(/산사태위험지도/.test(c))return "산사태위험 배수 대책 확인";if(/산사태취약/.test(c))return "산사태취약지역 — 산림부서 확인";if(/조례 경사 기준/.test(c))return "경사 구간 제척 협의";if(/현황 산지/.test(c))return "현황 산지 여부 확인";
     if(/산지 편입 면적/.test(c))return "산지 면적 3만㎡ 이하로";if(/개발행위허가 규모 초과/.test(c))return "도시계획위원회 심의";if(/토공량/.test(c))return "토공량 (계단식 배치)";if(/경사 15° 이상인 땅/.test(c))return "조례 경사 기준 확인";
     if(/걸친|구역/.test(c)&&/(\S+구역)/.test(c))return c.match(/(\S+구역)/)[1]+" 걸친 부분 제외";return c.replace(/[:(—].*$/,"").trim().slice(0,16)}
   var checks=[];(O.cond||[]).forEach(function(c){var s=cShort(c);if(s&&checks.indexOf(s)<0)checks.push(s)});
-  if(R.z_infra&&/^주의/.test(R.z_infra.v))checks.unshift("도로·하천구역 걸친 부분 제외");
   checks=checks.slice(0,6);
   var steps=VIL?[["주민 동의","설명회·총회 →\n협동조합 설립"],["부지·계통","부지 사용 협의\n한전 계통 확인"],["공모·허가","공모 선정 →\n발전·개발 허가"],["융자·시공","정책융자 → 시공\n→ 20년 운영"]]
     :[["계통 확인","한전 계통\n여유 확인"],["발전사업허가","사업계획·배치도\n제출"],["개발행위 등","개발행위·\n"+(hasFarm?"농지전용":hasSan?"산지일시사용":"관련")+" 허가"],["시공·운영","시공 → 사용전검사\n→ 전력 판매"]];
