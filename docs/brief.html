@@ -182,7 +182,6 @@ body{margin:0;background:#d9dce1;color:var(--nv);font:15px/1.5 "Pretendard Varia
   Promise.all([mkMap(1400,934),logo()]).then(function(r){MAP=r[0];LOGO=r[1];render()});
   $("bPrint").onclick=function(){window.print()};
   $("bPpt").onclick=function(){var b=this;b.disabled=true;b.textContent="만드는 중…";Promise.resolve().then(function(){return makePpt()}).catch(function(e){alert("PPT를 만들지 못했습니다: "+e.message)}).then(function(){b.disabled=false;b.textContent="PPT로 받기 (.pptx)"})};
-  window._pptB64=function(){return makePpt(true).then(function(b){return new Promise(function(ok){var fr=new FileReader();fr.onload=function(){ok(String(fr.result).split(",")[1])};fr.readAsDataURL(b)})})};
 })();
 </script>
 </body></html>
