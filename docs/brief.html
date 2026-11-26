@@ -74,6 +74,7 @@ body{margin:0;background:#d9dce1;color:var(--nv);font:15px/1.5 "Pretendard Varia
 
   /* 확인할 사항: 짧은 말로 */
   function cShort(c){if(/^소규모 환경영향평가 대상 아님/.test(c))return null;if(/진입로/.test(c))return "진입로 폭·통행 현장 확인";if(/^소규모 환경영향평가 대상/.test(c))return "환경영향평가 (환경청 협의)";
+    if(/조례 이격 기준/.test(c))return VIL?null:gun+" 조례 이격거리 확인";
     var gm=c.match(/^[^:]{2,40}\(([^)]*)\):\s*([^(,·]+)\(/);if(gm&&!/분류 안 된/.test(c))return gm[2].trim()+(/설치 불가|걸친/.test(gm[1])?" 걸친 부분 제외":" 기준 확인");if(/분류 안 된 지역·지구: ([^(]+)/.test(c))return c.match(/분류 안 된 지역·지구: ([^(]+)/)[1].trim()+" 기준 확인";
     if(/매장유산/.test(c))return "매장유산 조사 여부 확인";if(/한전/.test(c))return "한전 계통 접속 문의";if(/조례 이격 기준/.test(c))return VIL?null:gun+" 조례 이격거리 확인";if(/공고 요건/.test(c))return null;
     if(/산사태위험지도/.test(c))return "산사태위험 배수 대책 확인";if(/산사태취약/.test(c))return "산사태취약지역 — 산림부서 확인";if(/조례 경사 기준/.test(c))return "경사 구간 제척 협의";if(/현황 산지/.test(c))return "현황 산지 여부 확인";
