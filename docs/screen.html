@@ -422,7 +422,9 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       var n=T.reduce(function(a,t){return a+t.c},0);if(n>best.n)best={n:n,T:T,F:F}}
     /* 실제 지적 경계로 다시 검사: 칸(격자) 판정은 경계에서 최대 반 칸 오차가 있어 모듈이 경계·이격선을 넘을 수 있음 → 세로줄마다 「줄 + 경계 이격」 사각형 둘레가 모두 필지 안인지 확인하고, 통과한 세로줄만 이어서 테이블을 다시 만듦 */
     var SR=[];D.P.forEach(function(p){p.rings.forEach(function(o){var r=o.r.map(function(v){return [(v[0]-D.B[0])*D.kx,(v[1]-D.B[1])*D.ky]}),bb=[1e9,1e9,-1e9,-1e9];r.forEach(function(q){if(q[0]<bb[0])bb[0]=q[0];if(q[1]<bb[1])bb[1]=q[1];if(q[0]>bb[2])bb[2]=q[0];if(q[1]>bb[3])bb[3]=q[1]});SR.push({r:r,b:bb})})});
-    function inS(x,y){for(var i=0;i<SR.length;i++){var o=SR[i],b=o.b;if(x<b[0]||x>b[2]||y<b[1]||y>b[3])continue;var r=o.r,c=false;for(var a=0,z=r.length-1;a<r.length;z=a++){var A=r[a],Z=r[z];if((A[1]>y)!==(Z[1]>y)&&x<(Z[0]-A[0])*(y-A[1])/(Z[1]-A[1])+A[0])c=!c}if(c)return true}return false}
+    /* 필지 사이 지적도 틈(수십 cm)을 경계로 오인하지 않도록 0.3m 안에 필지가 있으면 안으로 봄 */
+    function inS(x,y){return in0(x,y)||in0(x+0.3,y)||in0(x-0.3,y)||in0(x,y+0.3)||in0(x,y-0.3)}
+    function in0(x,y){for(var i=0;i<SR.length;i++){var o=SR[i],b=o.b;if(x<b[0]||x>b[2]||y<b[1]||y>b[3])continue;var r=o.r,c=false;for(var a=0,z=r.length-1;a<r.length;z=a++){var A=r[a],Z=r[z];if((A[1]>y)!==(Z[1]>y)&&x<(Z[0]-A[0])*(y-A[1])/(Z[1]-A[1])+A[0])c=!c}if(c)return true}return false}
     function rectIn(x0,x1,y0,y1){var e=MOD.set,X0=x0-e,X1=x1+e,Y0=y0-e,Y1=y1+e,st2=0.5,x,y;for(x=X0;x<=X1+1e-9;x+=st2){if(!inS(x,Y0)||!inS(x,Y1))return false}for(y=Y0;y<=Y1+1e-9;y+=st2){if(!inS(X0,y)||!inS(X1,y))return false}return inS(X1,Y1)}
     var mw=SP.m.w;function edgeFix(L0,keepMin){var out=[],dem=[];L0.forEach(function(t){var ok=[];for(var j=0;j<t.c;j++){var cx=t.x+j*cw;ok.push(rectIn(cx,cx+mw,t.y,t.y+dep))}
         var bs=0,bl=0,s0=-1;for(var j=0;j<=ok.length;j++){if(j<ok.length&&ok[j]){if(s0<0)s0=j}else if(s0>=0){var ln=j-s0;if(ln>bl){bl=ln;bs=s0}s0=-1}}
