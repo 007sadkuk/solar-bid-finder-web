@@ -465,7 +465,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     var cc=document.querySelector("#rep2 .concl");
     var keyRows=J.rows.map(function(r){return {id:r.id,g:r.g,t:r.t,v:r.v,d:String(r.d||"").slice(0,400),a:r.a}});
     var o={biz:BIZ,total:S.total,ok:S.ok,cau:Math.min(S.cau||0,S.ok||0),ordMean:S.ord&&S.ord.mean!=null?+S.ord.mean.toFixed(1):(S.restM!=null?+S.restM.toFixed(1):null),ordName:S.ord?S.ord.name+" "+S.ord.deg+"°":null,seiaGate:!!S.seiaGate,why:S.why,addr:$("ttl").textContent,at:new Date().toLocaleDateString("ko-KR"),verdict:$("vbig").textContent,vok:$("vok").textContent,concl:cc?cc.textContent.replace(/^※ 결론 ※\s*/,""):"",kv:kv,rows:keyRows,cond:S.cond.slice(0,12),
-      lay:LAY&&LAY.tables?{show:UL,txt:layTxt(),mods:LAY.mods,kwp:LAY.kwp,tables:LAY.tables,name:SP.m.name,l:SP.m.l,w:SP.m.w,kw:SP.m.kw,colW:SP.colW,dep:SP.dep,pitch:SP.pitch,gap:SP.gap,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,mg:MOD.mg,set:MOD.set,cau:!!LAY.cau,
+      lay:LAY&&LAY.tables?{show:UL,txt:layTxt(),mods:LAY.mods,kwp:LAY.kwp,tables:LAY.tables,blocks:LAY.blocks||0,name:SP.m.name,l:SP.m.l,w:SP.m.w,kw:SP.m.kw,colW:SP.colW,dep:SP.dep,pitch:SP.pitch,gap:SP.gap,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,mg:MOD.mg,set:MOD.set,cau:!!LAY.cau,
         T:UL?LAY.T.map(function(t){return {x:+t.x.toFixed(2),y:+t.y.toFixed(2),c:t.c,l:t.l||0,f:t.fill?1:0}}):[]}:null,
       B:D.B,sh:sh,kx:D.kx,ky:D.ky,P:D.P.map(function(p){return {jibun:p.jibun,jimok:p.jimok,area:p.area,rings:p.rings.map(function(q){return q.r.map(function(v){return [v[0]+sh.dx,v[1]+sh.dy]})})}})};
     try{localStorage.setItem("scr_brief",JSON.stringify(o))}catch(e){alert("보고서 데이터를 넘기지 못했습니다: "+e.message);return}
