@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>입지검토 간단 보고서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{--nv:#1F2A3C;--dk:#3B4252;--or:#C06A1D;--lt:#F6F4F0;--ln:#E3E3E3;--gr:#6B7280}
+*{box-sizing:border-box}
+body{margin:0;background:#d9dce1;color:var(--nv);font:15px/1.5 "Pretendard Variable",Pretendard,"Malgun Gothic",sans-serif}
+.bar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 16px;background:var(--nv);color:#fff}
+.bar b{margin-right:auto;font-size:16px}
+.bar button{font:inherit;padding:6px 14px;border-radius:6px;border:0;background:#fff;color:var(--nv);font-weight:700;cursor:pointer}
+.bar button.o{background:var(--or);color:#fff}
+.bar .st{font-size:13px;color:#cbd3df}
+#deck{padding:18px 12px 40px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.sl{width:min(100%,1280px);aspect-ratio:16/9;background:#fff;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.18);overflow:hidden;container-type:inline-size}
+.sl .in{position:absolute;inset:0;padding:4.8cqw 5cqw 6.5cqw;font-size:1.35cqw}
+.sl h2{font-family:"Noto Serif KR","바탕",serif;font-weight:700;font-size:2.5cqw;margin:0 0 2.2cqw;color:var(--nv)}
+.ft{position:absolute;left:5cqw;right:5cqw;bottom:2.2cqw;display:flex;align-items:center;gap:1.5cqw;font-size:.95cqw;color:var(--gr)}
+.ft .note{margin-right:auto}.ft img{height:1.9cqw}
+.kick{color:var(--or);font-weight:700;font-size:1.35cqw;letter-spacing:.02em}
+.cv h1{font-family:"Noto Serif KR","바탕",serif;font-size:4cqw;line-height:1.3;margin:2cqw 0 1.5cqw}
+.cv .sub{font-size:1.7cqw;color:var(--dk)}
+.cv .rule{width:6cqw;height:.3cqw;background:var(--or);margin:2.4cqw 0 1.6cqw}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6cqw}
+.card{border:1px solid var(--ln);border-radius:.6cqw;padding:2cqw;min-height:20cqw}
+.card .no{font-family:"Noto Serif KR",serif;color:var(--or);font-size:2.6cqw;font-weight:700}
+.card .h{font-weight:800;font-size:1.6cqw;margin:1.2cqw 0 .8cqw}
+.card .t{color:var(--dk);font-size:1.25cqw;line-height:1.55}
+.ov{display:grid;grid-template-columns:58% 1fr;gap:2.2cqw;height:31cqw}
+.ov .mp{background:#eef0f3;border:1px solid var(--ln);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ov .mp img{max-width:100%;max-height:100%}
+.stat{border-bottom:1px solid var(--ln);padding:.9cqw 0}
+.stat .k{font-size:1.05cqw;color:var(--gr)}.stat .v{font-family:"Noto Serif KR",serif;font-size:2cqw;font-weight:700}.stat .s{font-size:1.05cqw;color:var(--dk)}
+table.tb{width:100%;border-collapse:collapse;font-size:1.12cqw}
+table.tb th{background:var(--nv);color:#fff;text-align:left;padding:.65cqw .9cqw;font-weight:700}
+table.tb td{border-bottom:1px solid var(--ln);padding:.6cqw .9cqw;vertical-align:top}
+td.stt{color:var(--or);font-weight:700;white-space:nowrap}
+td.ok{color:#2e7d4f;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:2.2cqw}
+.big{display:grid;grid-template-columns:repeat(3,1fr);gap:1.4cqw;margin-bottom:1.6cqw}
+.big div{background:var(--lt);border-radius:.6cqw;padding:1.4cqw}
+.big .k{font-size:1.05cqw;color:var(--gr)}.big .v{font-family:"Noto Serif KR",serif;font-size:2.3cqw;font-weight:700}.big .s{font-size:1cqw;color:var(--dk)}
+ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{margin-bottom:.6cqw}
+.steps{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2cqw}
+.step{border:1px solid var(--ln);border-left:.4cqw solid var(--or);padding:1cqw 1.2cqw;font-size:1.15cqw}
+.step b{font-family:"Noto Serif KR",serif;color:var(--or);font-size:1.6cqw;margin-right:.6cqw}
+.box{background:var(--lt);border-radius:.6cqw;padding:1.2cqw 1.6cqw;font-size:1.15cqw;color:var(--dk);margin-top:1.4cqw}
+.empty{padding:40px;font-size:16px}
+@media print{@page{size:13.333in 7.5in;margin:0}body{background:#fff}.bar{display:none}#deck{padding:0;gap:0}.sl{width:13.333in;box-shadow:none;page-break-after:always;break-after:page}}
+</style></head><body>
+<div class="bar"><b>입지검토 간단 보고서</b><span class="st" id="st"></span><button type="button" class="o" id="bPpt">PPT로 받기 (.pptx)</button><button type="button" id="bPrint">인쇄 · PDF</button></div>
+<div id="deck"></div>
+<script src="core.js?v=20261029c"></script>
+<script src="vwkey.js"></script>
+<script src="site-config.js?v=20261030a"></script>
+<script src="geo.js?v=20261112a"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script>
+(function(){
+  function $(i){return document.getElementById(i)}
+  function esc(t){return String(t==null?"":t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+  function n(a,d){return (+a).toLocaleString("ko-KR",{maximumFractionDigits:d||0})}
+  var O=null;try{O=JSON.parse(localStorage.getItem("scr_brief")||"null")}catch(e){}
+  if(!O){$("deck").innerHTML="<div class='empty'>보고서 자료가 없습니다. 입지검토 화면에서 「📄 간단 보고서」를 눌러 다시 열어 주세요.</div>";return}
+  var VIL=O.biz==="village",R={};(O.rows||[]).forEach(function(r){R[r.id]=r});
+  function kvv(k){var x=(O.kv||[]).filter(function(p){return p[0].indexOf(k)===0})[0];return x?x[1]:""}
+  function first(d,m){d=String(d||"").replace(/\s+/g," ").trim();var i=d.search(/[.。](\s|$)/);d=i>0?d.slice(0,i):d;return d.length>(m||90)?d.slice(0,(m||90)-1)+"…":d}
+  var P=O.P||[],adr=String(O.addr||"").split(" · ")[0],parts=adr.split(/\s+/);
+  /* 표지 제목: 시군 읍면 리 / 지번 외 N필지 */
+  var t1=parts.slice(0,Math.min(parts.length,4)).filter(function(w){return !/^\d|^산\d/.test(w)}).slice(1).join(" ")||adr,t2=P.length?(P[0].jibun+(P.length>1?" 외 "+(P.length-1)+"필지":"")):"";
+  var LY=O.lay,kind=VIL?"햇빛소득마을 · 주민참여형 태양광 입지검토":"태양광 발전사업(일반 RPS) 입지검토";
+  var pct=function(a){return O.total?Math.round(a/O.total*100):0},sure=Math.max(0,(O.ok||0)-(O.cau||0));
+
+  /* ── 검토표: 사업 형태에 따라 행 구성 ── */
+  function rowOf(id,label,fn){var r=R[id];if(!r)return null;var v=r.v||"",ok=/^해당없음|^대상 아님|^확인됨|^적합|^참고/.test(v);return [label,fn?fn(r):first(r.d),v.replace(/\(.*$/,"").trim()||v,ok]}
+  var rows=[];
+  rows.push(["용도지역",kvv("용도지역")||"-","확인",true]);
+  rows.push(["설치 불가·회피 구간",(O.why&&O.why.length?O.why.slice(0,3).map(function(w){return w[0]+" "+n(w[1])+"㎡"}).join(", "):"없음"),O.why&&O.why.length?"제외 후 배치":"없음",!(O.why&&O.why.length)]);
+  if(O.cau>=1)rows.push(["협의 필요(신중검토)",n(O.cau)+"㎡ — 환경청 협의·조례 기준 결과에 따라 사용 여부 결정","협의 필요",false]);
+  rows.push(["경사",(O.ordName?O.ordName+" 기준, ":"")+"부지 평균 약 "+(O.ordMean!=null?O.ordMean+"°":"?")+" (공공 지형자료 추정)",O.ordMean!=null&&O.ordName&&O.ordMean<parseFloat(O.ordName.replace(/^.*\s/,""))?"기준 미만":"확인 필요",O.ordMean!=null&&O.ordName&&O.ordMean<parseFloat(O.ordName.replace(/^.*\s/,""))]);
+  [["s1","소규모 환경영향평가"],["s10","재해영향평가"]].forEach(function(x){var r=rowOf(x[0],x[1]);if(r)rows.push(r)});
+  if(VIL)rows.push(["이격거리","주민참여형 발전설비는 재생에너지법 제27조의3제3항에 따라 이격거리 적용 제외","적용 제외",true]);else{var r4=rowOf("s4","이격거리");if(r4)rows.push(r4)}
+  var hasFarm=P.some(function(p){return /^(전|답|과)$/.test(p.jimok)}),hasSan=P.some(function(p){return p.jimok==="임야"});
+  if(hasFarm){var f1=R.f1,f2=R.f2;rows.push(["농지전용",(f1?"농지전용 허가 대상":"")+(f2?" · 농지보전부담금 "+first(f2.d,40):""),"허가 필요",false])}
+  if(hasSan){var r7=rowOf("s7","산지 평균경사(15° 이하)");if(r7)rows.push(r7)}
+  [["s2","진입로"],["s6","한전 계통"]].forEach(function(x){var r=rowOf(x[0],x[1]);if(r)rows.push(r)});
+  rows=rows.slice(0,10);
+
+  var checks=(O.cond||[]).map(function(c){return first(c,120)}).slice(0,6);
+  var steps=VIL?[["주민 동의","주민 설명회·총회로 사업 동의를 받고 마을 협동조합 설립"],["부지·계통","부지 사용 협의, 한전 계통 연계 가능 여부 공문 확보"],["공모·허가","햇빛소득마을 공모 신청 → 선정 후 발전사업허가·개발행위허가"],["융자·시공","정책융자 실행, 시공·사용전검사 후 마을이 20년 운영"]]
+    :[["계통 확인","한전 지사에 계통 연계 여유 확인(접속 가능 여부가 사업 전제)"],["발전사업허가","사업계획·배치도로 발전사업허가 신청"],["개발행위 등","개발행위허가"+(hasFarm?"·농지전용":"")+(hasSan?"·산지일시사용":"")+(O.rows&&R.s1&&/^대상$/.test(R.s1.v)?"·소규모 환경영향평가 협의":"")],["시공·운영","공사계획 신고 → 시공 → 사용전검사 → REC·SMP 판매"]];
+
+  /* ── 배치도 이미지(캔버스): 위성사진(가능하면) + 부지 경계 + 이격선 + 모듈 ── */
+  function mkMap(W,H){return new Promise(function(res){
+    var cv=document.createElement("canvas");cv.width=W;cv.height=H;var g=cv.getContext("2d");g.fillStyle="#e9ecef";g.fillRect(0,0,W,H);
+    var lons=[],lats=[];P.forEach(function(p){p.rings.forEach(function(r){r.forEach(function(v){lons.push(v[0]);lats.push(v[1])})})});
+    if(!lons.length)return res(null);
+    var mnL=Math.min.apply(null,lons),mxL=Math.max.apply(null,lons),mnB=Math.min.apply(null,lats),mxB=Math.max.apply(null,lats);
+    function px(lon,lat,z){var s=Math.sin(lat*Math.PI/180),k=256*Math.pow(2,z);return [(lon+180)/360*k,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*k]}
+    var z=19;for(;z>10;z--){var a=px(mnL,mxB,z),b=px(mxL,mnB,z);if(b[0]-a[0]<W*0.82&&b[1]-a[1]<H*0.82)break}
+    var c0=px((mnL+mxL)/2,(mnB+mxB)/2,z),ox=c0[0]-W/2,oy=c0[1]-H/2;function P2(lon,lat){var q=px(lon,lat,z);return [q[0]-ox,q[1]-oy]}
+    function overlay(){
+      var polys=[];P.forEach(function(p){p.rings.forEach(function(r){var c=r.slice();if(c.length>2){var a=c[0],e=c[c.length-1];if(a[0]!==e[0]||a[1]!==e[1])c.push(a);try{polys.push(turf.polygon([c]))}catch(_){}}})});
+      var site=null;try{site=polys.reduce(function(a,b){return a?turf.union(a,b):b},null)}catch(e){}
+      function path(rings,stroke,w,dash){g.save();g.strokeStyle=stroke;g.lineWidth=w;g.setLineDash(dash||[]);rings.forEach(function(r){g.beginPath();r.forEach(function(v,i){var q=P2(v[0],v[1]);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.closePath();g.stroke()});g.restore()}
+      function geomRings(gj){var o=[];if(!gj)return o;var gm=gj.geometry||gj;if(gm.type==="Polygon")o.push(gm.coordinates[0]);if(gm.type==="MultiPolygon")gm.coordinates.forEach(function(p){o.push(p[0])});return o}
+      P.forEach(function(p){path(p.rings,"rgba(255,255,255,.85)",1.2,[4,4])});
+      if(LY&&LY.show&&LY.T&&LY.T.length){var sh=O.sh||{dx:0,dy:0},d2r=Math.PI/180,ct=Math.cos(LY.tilt*d2r),ml=LY.l*ct,ms=(LY.l+LY.mg)*ct;
+        function ll(x,y){return [O.B[0]+sh.dx+x/O.kx,O.B[1]+sh.dy+y/O.ky]}
+        LY.T.forEach(function(t){for(var j=0;j<t.c;j++)for(var k=0;k<(j===t.c-1&&t.l?t.l:LY.rows);k++){var x0=t.x+j*LY.colW,y0=t.y+k*ms,a=P2.apply(null,ll(x0,y0)),b=P2.apply(null,ll(x0+LY.w,y0+ml));
+          g.fillStyle=t.f?"#d9730d":"#1f3f9e";g.fillRect(Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(1,Math.abs(b[0]-a[0])),Math.max(1,Math.abs(b[1]-a[1])))}})}
+      if(site){path(geomRings(site),"#e01b1b",3);if(LY&&LY.set){try{var inn=turf.buffer(site,-LY.set,{units:"meters"});path(geomRings(inn),"#ffd400",2,[7,5])}catch(e){}}}
+      /* 방위·축척 */
+      g.fillStyle="#fff";g.strokeStyle="#000";g.lineWidth=1;g.beginPath();g.moveTo(W-34,18);g.lineTo(W-24,46);g.lineTo(W-34,39);g.lineTo(W-44,46);g.closePath();g.fill();g.stroke();g.font="bold 15px sans-serif";g.fillStyle="#fff";g.textAlign="center";g.fillText("N",W-34,64);
+      var mpp=156543.03392*Math.cos(((mnB+mxB)/2)*Math.PI/180)/Math.pow(2,z),nice=[10,20,50,100,200,500].filter(function(v){return v/mpp<W*0.22}).pop()||10,bw=nice/mpp;
+      g.fillStyle="rgba(255,255,255,.85)";g.fillRect(14,H-34,bw+56,22);g.fillStyle="#111";g.fillRect(20,H-20,bw,4);g.textAlign="left";g.font="13px sans-serif";g.fillText(nice+" m",26+bw,H-15)}
+    var key=window.BFGeo&&BFGeo.getKey&&BFGeo.getKey();
+    function finish(withTiles){overlay();try{res({url:cv.toDataURL("image/jpeg",0.9),tiles:withTiles})}catch(e){/* 타일 때문에 캔버스가 막히면 타일 없이 다시 */g.clearRect(0,0,W,H);g.fillStyle="#e9ecef";g.fillRect(0,0,W,H);overlay();try{res({url:cv.toDataURL("image/jpeg",0.9),tiles:false})}catch(e2){res(null)}}}
+    if(!key)return finish(false);
+    var tx0=Math.floor(ox/256),ty0=Math.floor(oy/256),tx1=Math.floor((ox+W)/256),ty1=Math.floor((oy+H)/256),jobs=[],z2=Math.min(z,19),sc=Math.pow(2,z-z2);
+    for(var tx=tx0;tx<=tx1;tx++)for(var ty=ty0;ty<=ty1;ty++)(function(tx,ty){jobs.push(new Promise(function(ok){var im=new Image();im.crossOrigin="anonymous";im.onload=function(){try{g.drawImage(im,tx*256-ox,ty*256-oy,256,256)}catch(e){}ok(1)};im.onerror=function(){ok(0)};im.src="https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Satellite/"+z2+"/"+ty+"/"+tx+".jpeg"}))})(tx,ty);
+    Promise.all(jobs).then(function(r){finish(r.some(Boolean))})})}
+
+  var MAP=null,LOGO=null;
+  function logo(){return fetch("kht-logo.png").then(function(r){return r.blob()}).then(function(b){return new Promise(function(ok){var fr=new FileReader();fr.onload=function(){ok(fr.result)};fr.readAsDataURL(b)})}).catch(function(){return null})}
+
+  /* ── HTML 슬라이드 ── */
+  var foot="공공데이터 자동 사전 검토 · 허가·협의의 확정 판정이 아님";
+  function slide(i,inner,note){return "<section class='sl'><div class='in'>"+inner+"</div><div class='ft'><span class='note'>"+esc(note||foot)+" · "+i+"</span><img src='kht-logo.png' alt=''></div></section>"}
+  function render(){var h="",i=1;
+    h+="<section class='sl cv'><div class='in' style='padding-top:9cqw'><div class='kick'>"+esc(kind)+"</div><h1>"+esc(t1)+"<br>"+esc(t2)+"</h1><div class='rule'></div><div class='sub'>"+esc(O.verdict)+" · 설치 가능 "+n(O.ok)+"㎡ ("+pct(O.ok)+"%)</div></div><div class='ft'><img src='kht-logo.png' alt='' style='height:2.6cqw'><span style='margin-left:auto'>"+esc(O.at)+"</span></div></section>";i++;
+    var c3=checks.slice(0,2).map(function(c){return "· "+esc(first(c,60))}).join("<br>")||"특별한 사항 없음";
+    h+=slide(i++,"<h2>검토 요지</h2><div class='cards'><div class='card'><div class='no'>01</div><div class='h'>"+esc(O.verdict)+"</div><div class='t'>부지 "+n(O.total)+"㎡ 중 설치 가능 "+n(O.ok)+"㎡ ("+pct(O.ok)+"%)"+(O.cau>=1?"<br>그중 협의 필요 "+n(O.cau)+"㎡":"")+"</div></div>"+
+      "<div class='card'><div class='no'>02</div><div class='h'>"+(LY?"계획 규모 약 "+n(LY.kwp,1)+"kWp":"모듈 배치 미산정")+"</div><div class='t'>"+(LY?esc(LY.name)+" × "+n(LY.mods)+"장<br>세로 "+LY.rows+"단 · 모듈각 "+LY.tilt+"° · 음영각 "+LY.shade+"°":"입지검토 화면에서 모듈 배치를 계산하면 표시됩니다")+"</div></div>"+
+      "<div class='card'><div class='no'>03</div><div class='h'>먼저 확인할 것</div><div class='t'>"+c3+"</div></div></div>"+
+      "<div class='box'>"+esc(VIL?"햇빛소득마을(주민참여형) 기준 — 주택 이격거리 적용 제외, 마을 협동조합 운영 전제":"일반 RPS 기준 — 시·군 조례 이격거리·개발행위 기준 적용")+"</div>");
+    var st=[["설치 장소 · 부지 면적",P.length+"필지 · "+n(O.total)+"㎡",kvv("용도지역")],["설치 가능 면적",n(O.ok)+"㎡ ("+pct(O.ok)+"%)",O.cau>=1?"확실 "+n(sure)+"㎡ · 협의 필요 "+n(O.cau)+"㎡":"협의 필요 구간 없음"],["계획 규모",LY?"약 "+n(LY.kwp,1)+"kWp":"-",LY?esc(LY.name)+" × "+n(LY.mods)+"장":""],["연 발전량(예시)",LY?"약 "+n(LY.kwp*3.5*365/1000)+"MWh":"-",LY?"하루 3.5시간 가정 · 보증 아님":""]];
+    h+=slide(i++,"<h2>사업 개요</h2><div class='ov'><div class='mp'>"+(MAP?"<img src='"+MAP.url+"' alt='배치도'>":"<span style='color:#888'>배치도 이미지를 만드는 중…</span>")+"</div><div>"+st.map(function(s){return "<div class='stat'><div class='k'>"+s[0]+"</div><div class='v'>"+esc(s[1])+"</div><div class='s'>"+esc(s[2])+"</div></div>"}).join("")+"</div></div>"+
+      "<div style='font-size:1cqw;color:#6B7280;margin-top:.8cqw'>"+(LY&&LY.show?"배치 예시(예비, 평지·정남향 가정) · 허가·측량 경계를 확정한 도면이 아닙니다":"모듈 배치는 잠금 상태라 도면에서 생략 — 부지 경계와 이격선만 표시")+(MAP&&!MAP.tiles?" · 위성사진을 불러오지 못해 배경 없이 표시":"")+"</div>","예비 수치 · 측량·설계 후 확정");
+    h+=slide(i++,"<h2>부지 예비 검토</h2><table class='tb'><tr><th style='width:20%'>항목</th><th>예비 검토</th><th style='width:16%'>상태</th></tr>"+rows.map(function(r){return "<tr><td><b>"+esc(r[0])+"</b></td><td>"+esc(r[1])+"</td><td class='"+(r[3]?"ok":"stt")+"'>"+esc(r[2])+"</td></tr>"}).join("")+"</table>");
+    if(LY)h+=slide(i++,"<h2>모듈 배치 설계</h2><div class='big'><div><div class='k'>모듈 수량</div><div class='v'>"+n(LY.mods)+"장</div><div class='s'>"+esc(LY.name)+"</div></div><div><div class='k'>설치 용량</div><div class='v'>"+(Math.round(LY.kwp*1000)/1000).toLocaleString("ko-KR",{maximumFractionDigits:3})+" kWp</div><div class='s'>테이블 "+LY.tables+"개</div></div><div><div class='k'>배치 범위</div><div class='v' style='font-size:1.7cqw'>"+(LY.cau?"확실+신중검토":"확실 구역만")+"</div><div class='s'>경계 이격 "+LY.set+"m</div></div></div>"+
+      "<table class='tb'><tr><th style='width:26%'>설계 항목</th><th>값</th></tr><tr><td>모듈 규격</td><td>"+esc(LY.name)+" ("+Math.round(LY.l*1000)+"×"+Math.round(LY.w*1000)+"×30mm)</td></tr><tr><td>어레이</td><td>세로 "+LY.rows+"단 · 정남향 · 모듈각 "+LY.tilt+"°</td></tr><tr><td>음영각 · 열 피치</td><td>"+LY.shade+"° · "+LY.pitch.toFixed(2)+"m (줄 사이 빈 공간 "+(Math.ceil(LY.gap*100)/100).toFixed(2)+"m)</td></tr><tr><td>모듈 간격 · 경계 이격</td><td>"+Math.round(LY.mg*1000)+"mm · "+LY.set+"m</td></tr></table>"+
+      "<div class='box'>"+esc(first(LY.txt.replace(/^모듈 배치[^:]*:\s*/,""),220))+"</div>","평지·정남향 개략 배치 · 지형·지장물·진입로·전기실 미반영");
+    h+=slide(i++,"<h2>확인할 사항과 추진 순서</h2><div class='two'><div><div class='kick' style='margin-bottom:1cqw'>확인할 사항</div><ol class='chk'>"+(checks.length?checks.map(function(c){return "<li>"+esc(c)+"</li>"}).join(""):"<li>특별한 사항 없음</li>")+"</ol></div><div><div class='kick' style='margin-bottom:1cqw'>"+(VIL?"햇빛소득마을 추진 순서":"일반 RPS 추진 순서")+"</div><div class='steps'>"+steps.map(function(s,k){return "<div class='step'><b>"+(k+1)+"</b><strong>"+esc(s[0])+"</strong><br>"+esc(s[1])+"</div>"}).join("")+"</div></div></div>",VIL?"햇빛소득마을 공모 요건은 공고문으로 확인":"한전 계통 연계 가능 여부가 사업 전제");
+    $("deck").innerHTML=h;$("st").textContent=VIL?"햇빛소득마을(주민참여형) 양식":"일반 RPS 양식"}
+
+  /* ── PPT (같은 내용, 템플릿 색·글꼴: 제목 바탕, 본문 맑은 고딕) ── */
+  function makePpt(){var p=new PptxGenJS();p.layout="LAYOUT_WIDE";p.company="(주)금호테크닉스";p.title="입지검토 간단 보고서";
+    var NV="1F2A3C",DK="3B4252",OR="C06A1D",LT="F6F4F0",LN="E3E3E3",GR="6B7280",HF="바탕",BF="맑은 고딕",W=13.333,i=1;
+    function base(note){var s=p.addSlide();s.background={color:"FFFFFF"};if(LOGO)s.addImage({data:LOGO,x:W-2.2,y:6.95,w:1.6,h:0.34});s.addText((note||foot)+" · "+i,{x:0.67,y:7.0,w:9.5,h:0.3,fontFace:BF,fontSize:9,color:GR,margin:0});i++;return s}
+    function title(s,t){s.addText(t,{x:0.67,y:0.45,w:12,h:0.7,fontFace:HF,bold:true,fontSize:26,color:NV,margin:0})}
+    var s=p.addSlide();s.background={color:"FFFFFF"};s.addText(kind,{x:0.67,y:1.2,w:11,h:0.4,fontFace:BF,bold:true,fontSize:14,color:OR,margin:0});
+    s.addText([{text:t1,options:{breakLine:true}},{text:t2}],{x:0.67,y:1.75,w:11.5,h:1.9,fontFace:HF,bold:true,fontSize:38,color:NV,margin:0,valign:"top"});
+    s.addShape(p.ShapeType.rect,{x:0.67,y:3.85,w:0.8,h:0.05,fill:{color:OR},line:{color:OR}});
+    s.addText(O.verdict+" · 설치 가능 "+n(O.ok)+"㎡ ("+pct(O.ok)+"%)",{x:0.67,y:4.05,w:11,h:0.5,fontFace:BF,fontSize:18,color:DK,margin:0});
+    if(LOGO)s.addImage({data:LOGO,x:0.67,y:6.75,w:2.0,h:0.42});s.addText(O.at,{x:9.5,y:6.8,w:3.2,h:0.35,fontFace:BF,fontSize:11,color:GR,align:"right",margin:0});i++;
+    s=base();title(s,"검토 요지");
+    var cards=[["01",O.verdict,"부지 "+n(O.total)+"㎡ 중 설치 가능 "+n(O.ok)+"㎡ ("+pct(O.ok)+"%)"+(O.cau>=1?"\n그중 협의 필요 "+n(O.cau)+"㎡":"")],["02",LY?"계획 규모 약 "+n(LY.kwp,1)+"kWp":"모듈 배치 미산정",LY?LY.name+" × "+n(LY.mods)+"장\n세로 "+LY.rows+"단 · 모듈각 "+LY.tilt+"° · 음영각 "+LY.shade+"°":""],["03","먼저 확인할 것",checks.slice(0,2).map(function(c){return "· "+first(c,60)}).join("\n")||"특별한 사항 없음"]];
+    cards.forEach(function(c,k){var x=0.67+k*4.05;s.addShape(p.ShapeType.rect,{x:x,y:1.5,w:3.85,h:3.4,fill:{color:"FFFFFF"},line:{color:LN,width:1}});s.addText(c[0],{x:x+0.3,y:1.75,w:3,h:0.5,fontFace:HF,bold:true,fontSize:24,color:OR,margin:0});s.addText(c[1],{x:x+0.3,y:2.4,w:3.3,h:0.5,fontFace:BF,bold:true,fontSize:15,color:NV,margin:0});s.addText(c[2],{x:x+0.3,y:3.0,w:3.3,h:1.7,fontFace:BF,fontSize:11,color:DK,margin:0,valign:"top"})});
+    s.addShape(p.ShapeType.rect,{x:0.67,y:5.2,w:12,h:0.6,fill:{color:LT},line:{color:LT}});s.addText(VIL?"햇빛소득마을(주민참여형) 기준 — 주택 이격거리 적용 제외, 마을 협동조합 운영 전제":"일반 RPS 기준 — 시·군 조례 이격거리·개발행위 기준 적용",{x:0.9,y:5.2,w:11.5,h:0.6,fontFace:BF,fontSize:11,color:DK,margin:0});
+    s=base("예비 수치 · 측량·설계 후 확정");title(s,"사업 개요");
+    if(MAP)s.addImage({data:MAP.url,x:0.67,y:1.4,w:7.0,h:4.67,sizing:{type:"contain",w:7.0,h:4.67}});
+    var st=[["설치 장소 · 부지 면적",P.length+"필지 · "+n(O.total)+"㎡",kvv("용도지역")],["설치 가능 면적",n(O.ok)+"㎡ ("+pct(O.ok)+"%)",O.cau>=1?"확실 "+n(sure)+"㎡ · 협의 필요 "+n(O.cau)+"㎡":"협의 필요 구간 없음"],["계획 규모",LY?"약 "+n(LY.kwp,1)+"kWp":"-",LY?LY.name+" × "+n(LY.mods)+"장":""],["연 발전량(예시)",LY?"약 "+n(LY.kwp*3.5*365/1000)+"MWh":"-",LY?"하루 3.5시간 가정 · 보증 아님":""]];
+    st.forEach(function(x,k){var y=1.4+k*1.17;s.addText(x[0],{x:8.0,y:y,w:4.7,h:0.28,fontFace:BF,fontSize:10,color:GR,margin:0});s.addText(x[1],{x:8.0,y:y+0.28,w:4.7,h:0.45,fontFace:HF,bold:true,fontSize:18,color:NV,margin:0});s.addText(x[2],{x:8.0,y:y+0.73,w:4.7,h:0.3,fontFace:BF,fontSize:9.5,color:DK,margin:0});s.addShape(p.ShapeType.line,{x:8.0,y:y+1.08,w:4.67,h:0,line:{color:LN,width:1}})});
+    s.addText(LY&&LY.show?"배치 예시(예비, 평지·정남향 가정) · 허가·측량 경계를 확정한 도면이 아닙니다":"모듈 배치는 잠금 상태라 도면에서 생략",{x:0.67,y:6.15,w:7,h:0.3,fontFace:BF,fontSize:9,color:GR,margin:0});
+    s=base();title(s,"부지 예비 검토");
+    var hd=[{text:"항목",options:{bold:true,color:"FFFFFF",fill:{color:NV}}},{text:"예비 검토",options:{bold:true,color:"FFFFFF",fill:{color:NV}}},{text:"상태",options:{bold:true,color:"FFFFFF",fill:{color:NV}}}];
+    s.addTable([hd].concat(rows.map(function(r){return [{text:r[0],options:{bold:true}},{text:r[1]},{text:r[2],options:{bold:true,color:r[3]?"2E7D4F":OR}}]})),{x:0.67,y:1.35,w:12,colW:[2.4,7.6,2.0],fontFace:BF,fontSize:10.5,color:NV,border:{type:"solid",pt:0.5,color:LN},valign:"middle",rowH:0.42});
+    if(LY){s=base("평지·정남향 개략 배치 · 지형·지장물·진입로·전기실 미반영");title(s,"모듈 배치 설계");
+      [["모듈 수량",n(LY.mods)+"장",LY.name],["설치 용량",(Math.round(LY.kwp*1000)/1000).toLocaleString("ko-KR",{maximumFractionDigits:3})+" kWp","테이블 "+LY.tables+"개"],["배치 범위",LY.cau?"확실+신중검토":"확실 구역만","경계 이격 "+LY.set+"m"]].forEach(function(x,k){var xx=0.67+k*4.05;s.addShape(p.ShapeType.rect,{x:xx,y:1.35,w:3.85,h:1.35,fill:{color:LT},line:{color:LT}});s.addText(x[0],{x:xx+0.25,y:1.45,w:3.4,h:0.3,fontFace:BF,fontSize:10,color:GR,margin:0});s.addText(x[1],{x:xx+0.25,y:1.78,w:3.5,h:0.5,fontFace:HF,bold:true,fontSize:20,color:NV,margin:0});s.addText(x[2],{x:xx+0.25,y:2.3,w:3.4,h:0.3,fontFace:BF,fontSize:9.5,color:DK,margin:0})});
+      var dr=[["모듈 규격",LY.name+" ("+Math.round(LY.l*1000)+"×"+Math.round(LY.w*1000)+"×30mm)"],["어레이","세로 "+LY.rows+"단 · 정남향 · 모듈각 "+LY.tilt+"°"],["음영각 · 열 피치",LY.shade+"° · "+LY.pitch.toFixed(2)+"m (줄 사이 빈 공간 "+(Math.ceil(LY.gap*100)/100).toFixed(2)+"m)"],["모듈 간격 · 경계 이격",Math.round(LY.mg*1000)+"mm · "+LY.set+"m"]];
+      s.addTable([[{text:"설계 항목",options:{bold:true,color:"FFFFFF",fill:{color:NV}}},{text:"값",options:{bold:true,color:"FFFFFF",fill:{color:NV}}}]].concat(dr.map(function(r){return [{text:r[0]},{text:r[1]}]})),{x:0.67,y:3.0,w:12,colW:[3.2,8.8],fontFace:BF,fontSize:11,color:NV,border:{type:"solid",pt:0.5,color:LN},rowH:0.42});
+      s.addText(first(LY.txt.replace(/^모듈 배치[^:]*:\s*/,""),220),{x:0.67,y:5.3,w:12,h:0.8,fontFace:BF,fontSize:10,color:DK,fill:{color:LT},margin:8})}
+    s=base(VIL?"햇빛소득마을 공모 요건은 공고문으로 확인":"한전 계통 연계 가능 여부가 사업 전제");title(s,"확인할 사항과 추진 순서");
+    s.addText("확인할 사항",{x:0.67,y:1.35,w:5.8,h:0.35,fontFace:BF,bold:true,fontSize:13,color:OR,margin:0});
+    s.addText((checks.length?checks:["특별한 사항 없음"]).map(function(c,k){return {text:c,options:{bullet:{type:"number"},breakLine:k<checks.length-1}}}),{x:0.67,y:1.8,w:5.9,h:4.6,fontFace:BF,fontSize:10.5,color:DK,valign:"top",paraSpaceAfter:6});
+    s.addText(VIL?"햇빛소득마을 추진 순서":"일반 RPS 추진 순서",{x:7.0,y:1.35,w:5.6,h:0.35,fontFace:BF,bold:true,fontSize:13,color:OR,margin:0});
+    steps.forEach(function(st2,k){var x=7.0+(k%2)*2.85,y=1.85+Math.floor(k/2)*2.0;s.addShape(p.ShapeType.rect,{x:x,y:y,w:2.7,h:1.8,fill:{color:"FFFFFF"},line:{color:LN,width:1}});s.addShape(p.ShapeType.rect,{x:x,y:y,w:0.06,h:1.8,fill:{color:OR},line:{color:OR}});s.addText(String(k+1),{x:x+0.2,y:y+0.12,w:0.5,h:0.45,fontFace:HF,bold:true,fontSize:20,color:OR,margin:0});s.addText(st2[0],{x:x+0.65,y:y+0.15,w:1.95,h:0.4,fontFace:BF,bold:true,fontSize:12,color:NV,margin:0});s.addText(st2[1],{x:x+0.2,y:y+0.65,w:2.4,h:1.05,fontFace:BF,fontSize:10,color:DK,margin:0,valign:"top"})});
+    var nm=(t1+" "+t2).replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"_");return p.writeFile({fileName:"입지검토_간단보고서_"+(VIL?"햇빛소득마을_":"RPS_")+nm+".pptx"})}
+
+  render();
+  Promise.all([mkMap(1400,933),logo()]).then(function(r){MAP=r[0];LOGO=r[1];render()});
+  $("bPrint").onclick=function(){window.print()};
+  $("bPpt").onclick=function(){var b=this;b.disabled=true;b.textContent="만드는 중…";Promise.resolve().then(makePpt).catch(function(e){alert("PPT를 만들지 못했습니다: "+e.message)}).then(function(){b.disabled=false;b.textContent="PPT로 받기 (.pptx)"})};
+})();
+</script>
+</body></html>

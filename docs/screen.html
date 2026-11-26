@@ -112,7 +112,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
   </form>
 
   <div id="res" hidden>
-    <div class="tabs noprint" id="tabs" role="group" aria-label="결과 보기"><button type="button" data-t="site" aria-pressed="true">입지 검토</button><button type="button" data-t="land" aria-pressed="false">땅의 가치</button><span class="sp"></span><button class="btn s" type="button" id="repAll">보고서 한 번에 출력</button></div>
+    <div class="tabs noprint" id="tabs" role="group" aria-label="결과 보기"><button type="button" data-t="site" aria-pressed="true">입지 검토</button><button type="button" data-t="land" aria-pressed="false">땅의 가치</button><span class="sp"></span><button class="btn s" type="button" id="repBrief">📄 간단 보고서</button> <button class="btn s" type="button" id="repAll">보고서 한 번에 출력</button></div>
     <div id="tLand" hidden><iframe id="landF" title="땅의 가치 결과"></iframe></div>
     <div id="tSite">
     <section class="card verdict rep" id="vcard">
@@ -420,6 +420,14 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
           if(run[xi]&&c>=MOD.minCol){var w=c*cw-MOD.mg;T.push({x:xi*R,y:y0,w:w,c:c,r:r});xi+=Math.ceil((w+MOD.tgap)/R)}
           else if(run[xi]&&c>=1){var w2=c*cw-MOD.mg;F.push({x:xi*R,y:y0,w:w2,c:c,r:r,fill:1});xi+=Math.ceil((w2+MOD.tgap)/R)}else xi++}}
       var n=T.reduce(function(a,t){return a+t.c},0);if(n>best.n)best={n:n,T:T,F:F}}
+    /* 실제 지적 경계로 다시 검사: 칸(격자) 판정은 경계에서 최대 반 칸 오차가 있어 모듈이 경계·이격선을 넘을 수 있음 → 세로줄마다 「줄 + 경계 이격」 사각형 둘레가 모두 필지 안인지 확인하고, 통과한 세로줄만 이어서 테이블을 다시 만듦 */
+    var SR=[];D.P.forEach(function(p){p.rings.forEach(function(o){var r=o.r.map(function(v){return [(v[0]-D.B[0])*D.kx,(v[1]-D.B[1])*D.ky]}),bb=[1e9,1e9,-1e9,-1e9];r.forEach(function(q){if(q[0]<bb[0])bb[0]=q[0];if(q[1]<bb[1])bb[1]=q[1];if(q[0]>bb[2])bb[2]=q[0];if(q[1]>bb[3])bb[3]=q[1]});SR.push({r:r,b:bb})})});
+    function inS(x,y){for(var i=0;i<SR.length;i++){var o=SR[i],b=o.b;if(x<b[0]||x>b[2]||y<b[1]||y>b[3])continue;var r=o.r,c=false;for(var a=0,z=r.length-1;a<r.length;z=a++){var A=r[a],Z=r[z];if((A[1]>y)!==(Z[1]>y)&&x<(Z[0]-A[0])*(y-A[1])/(Z[1]-A[1])+A[0])c=!c}if(c)return true}return false}
+    function rectIn(x0,x1,y0,y1){var e=MOD.set,X0=x0-e,X1=x1+e,Y0=y0-e,Y1=y1+e,st2=0.5,x,y;for(x=X0;x<=X1+1e-9;x+=st2){if(!inS(x,Y0)||!inS(x,Y1))return false}for(y=Y0;y<=Y1+1e-9;y+=st2){if(!inS(X0,y)||!inS(X1,y))return false}return inS(X1,Y1)}
+    var mw=SP.m.w;function edgeFix(L0,keepMin){var out=[],dem=[];L0.forEach(function(t){var ok=[];for(var j=0;j<t.c;j++){var cx=t.x+j*cw;ok.push(rectIn(cx,cx+mw,t.y,t.y+dep))}
+        var bs=0,bl=0,s0=-1;for(var j=0;j<=ok.length;j++){if(j<ok.length&&ok[j]){if(s0<0)s0=j}else if(s0>=0){var ln=j-s0;if(ln>bl){bl=ln;bs=s0}s0=-1}}
+        if(bl===t.c){out.push(t);return}if(bl<1)return;var nt=Object.assign({},t,{x:t.x+bs*cw,c:bl,w:bl*cw-MOD.mg,edge:1});if(keepMin&&bl<MOD.minCol){nt.fill=1;dem.push(nt)}else out.push(nt)});return {T:out,dem:dem}}
+    var ef=edgeFix(best.T||[],true),ef2=edgeFix(best.F||[],false);best.T=ef.T;best.F=ef2.T.concat(ef.dem);best.n=best.T.reduce(function(a,t){return a+t.c},0);
     var T=best.T||[],par=T.map(function(_,i){return i});function f(i){while(par[i]!==i)i=par[i]=par[par[i]];return i}
     for(var i=0;i<T.length;i++)for(var j=i+1;j<T.length;j++){var A=T[i],B=T[j];if(Math.abs(A.r-B.r)>1)continue;
       if(A.r===B.r?(B.x<=A.x+A.w+MOD.tgap+0.3&&A.x<=B.x+B.w+MOD.tgap+0.3):(A.x<B.x+B.w&&B.x<A.x+A.w))par[f(i)]=f(j)}
@@ -449,6 +457,18 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
     finally{MOD.key=k0;MOD.cau=c0}
     try{localStorage.setItem("scr_laydoc",JSON.stringify(o))}catch(e){alert("배치도 데이터를 넘기지 못했습니다: "+e.message);return}
     window.open("layout.html?t="+Date.now(),"_blank")}
+  /* 간단 보고서(A4 2쪽): 결론·개요·모듈 배치도·주요 검토·확인사항만 */
+  function briefDoc(){if(!D||!J){alert("먼저 지번을 검토해 주세요.");return}var S=J.sum,sh=D.shift||{dx:0,dy:0},UL=!!(window.LDET&&LDET.ok()),SP=modSpec();
+    var kv=[];var kvEl=document.querySelector("#rep2 .kv");if(kvEl){var ks=kvEl.children;for(var i=0;i+1<ks.length;i+=2)kv.push([ks[i].textContent,ks[i+1].textContent])}
+    var cc=document.querySelector("#rep2 .concl");
+    var keyRows=J.rows.map(function(r){return {id:r.id,g:r.g,t:r.t,v:r.v,d:String(r.d||"").slice(0,400),a:r.a}});
+    var o={biz:BIZ,total:S.total,ok:S.ok,cau:Math.min(S.cau||0,S.ok||0),ordMean:S.ord&&S.ord.mean!=null?+S.ord.mean.toFixed(1):(S.restM!=null?+S.restM.toFixed(1):null),ordName:S.ord?S.ord.name+" "+S.ord.deg+"°":null,seiaGate:!!S.seiaGate,why:S.why,addr:$("ttl").textContent,at:new Date().toLocaleDateString("ko-KR"),verdict:$("vbig").textContent,vok:$("vok").textContent,concl:cc?cc.textContent.replace(/^※ 결론 ※\s*/,""):"",kv:kv,rows:keyRows,cond:S.cond.slice(0,12),
+      lay:LAY&&LAY.tables?{show:UL,txt:layTxt(),mods:LAY.mods,kwp:LAY.kwp,tables:LAY.tables,name:SP.m.name,l:SP.m.l,w:SP.m.w,kw:SP.m.kw,colW:SP.colW,dep:SP.dep,pitch:SP.pitch,gap:SP.gap,rows:MOD.rows,tilt:MOD.tilt,shade:MOD.shade,mg:MOD.mg,set:MOD.set,cau:!!LAY.cau,
+        T:UL?LAY.T.map(function(t){return {x:+t.x.toFixed(2),y:+t.y.toFixed(2),c:t.c,l:t.l||0,f:t.fill?1:0}}):[]}:null,
+      B:D.B,sh:sh,kx:D.kx,ky:D.ky,P:D.P.map(function(p){return {jibun:p.jibun,jimok:p.jimok,area:p.area,rings:p.rings.map(function(q){return q.r.map(function(v){return [v[0]+sh.dx,v[1]+sh.dy]})})}})};
+    try{localStorage.setItem("scr_brief",JSON.stringify(o))}catch(e){alert("보고서 데이터를 넘기지 못했습니다: "+e.message);return}
+    window.open("brief.html?t="+Date.now(),"_blank")}
+  $("repBrief").onclick=briefDoc;
   function layAll(){LAY=layout();var S=J&&J.sum;LAY2=S&&S.cau>=1&&!MOD.cau?layout(true):null}
   function layDesc(){var SP=modSpec();return SP.m.name+"("+Math.round(SP.m.l*1000).toLocaleString()+"×"+Math.round(SP.m.w*1000).toLocaleString()+") 세로 "+MOD.rows+"단·모듈각 "+MOD.tilt+"°·음영각 "+MOD.shade+"°·열 피치 "+SP.pitch.toFixed(2)+"m(줄 사이 빈 공간 "+(Math.ceil(SP.gap*100)/100).toFixed(2)+"m)·모듈 간격 20mm·경계 "+MOD.set+"m 이격·테이블 "+MOD.tcol+"열 이하"}
   function layTxt(){var o=LAY;if(!o)return "";var cap=o.kwp.toLocaleString("ko-KR",{maximumFractionDigits:2})+"kWp";
