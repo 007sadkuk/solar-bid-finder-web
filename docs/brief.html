@@ -182,6 +182,7 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     var nm=(t1+" "+t2).replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"_");if(asBlob)return p.write({outputType:"blob"});return p.writeFile({fileName:"입지검토_간단보고서_"+(VIL?"햇빛소득마을_":"RPS_")+nm+".pptx"})}
 
   window._pptTest=function(){return makePpt(true).then(function(b){return b.size})};
+  window._pptB64=function(){return makePpt(true).then(function(b){return new Promise(function(ok){var fr=new FileReader();fr.onload=function(){ok(String(fr.result).split(",")[1])};fr.readAsDataURL(b)})})};
   render();
   Promise.all([mkMap(1400,933),logo()]).then(function(r){MAP=r[0];LOGO=r[1];render()});
   $("bPrint").onclick=function(){window.print()};
