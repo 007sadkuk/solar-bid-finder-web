@@ -181,8 +181,6 @@ ol.chk{margin:0;padding-left:2cqw;font-size:1.2cqw;line-height:1.55}ol.chk li{ma
     steps.forEach(function(st2,k){var x=7.0+(k%2)*2.85,y=1.85+Math.floor(k/2)*2.0;s.addShape(p.ShapeType.rect,{x:x,y:y,w:2.7,h:1.8,fill:{color:"FFFFFF"},line:{color:LN,width:1}});s.addShape(p.ShapeType.rect,{x:x,y:y,w:0.06,h:1.8,fill:{color:OR},line:{color:OR}});s.addText(String(k+1),{x:x+0.2,y:y+0.12,w:0.5,h:0.45,fontFace:HF,bold:true,fontSize:20,color:OR,margin:0});s.addText(st2[0],{x:x+0.65,y:y+0.15,w:1.95,h:0.4,fontFace:BF,bold:true,fontSize:12,color:NV,margin:0});s.addText(st2[1],{x:x+0.2,y:y+0.65,w:2.4,h:1.05,fontFace:BF,fontSize:10,color:DK,margin:0,valign:"top"})});
     var nm=(t1+" "+t2).replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g,"_");if(asBlob)return p.write({outputType:"blob"});return p.writeFile({fileName:"입지검토_간단보고서_"+(VIL?"햇빛소득마을_":"RPS_")+nm+".pptx"})}
 
-  window._pptTest=function(){return makePpt(true).then(function(b){return b.size})};
-  window._pptB64=function(){return makePpt(true).then(function(b){return new Promise(function(ok){var fr=new FileReader();fr.onload=function(){ok(String(fr.result).split(",")[1])};fr.readAsDataURL(b)})})};
   render();
   Promise.all([mkMap(1400,933),logo()]).then(function(r){MAP=r[0];LOGO=r[1];render()});
   $("bPrint").onclick=function(){window.print()};
