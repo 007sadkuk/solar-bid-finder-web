@@ -331,7 +331,7 @@ main a:not(.btn){color:var(--ink);text-decoration:underline;text-decoration-colo
       [/^정맥/,"주요 산줄기(정맥) 가까이라 보호 대상입니다."],
       [/^주택/,"주변에 집이 모여 있어 이격거리 때문에 쓸 수 없습니다."],
       [/^식생등급 자료 없음/,"숲 상태 자료가 없어 안전하게 뺀 부분입니다(현장 확인이 필요)."],
-      [/농업진흥구역/,"우량 농지(농업진흥구역)라 법으로 땅 위 태양광이 막혀 있습니다(건물 지붕형만 가능)."],
+      [/농업진흥구역/,"우량 농지(농업진흥구역)라 법으로 땅 위 태양광이 막혀 있습니다(건물 지붕형만 가능). 개발행위허가로는 풀리지 않고, 영농형도 이 땅이 재생에너지지구로 지정돼야 가능합니다."],
       [/공익용산지/,"공익용산지라 법으로 민간 발전시설을 놓을 수 없습니다."]];
     var why=(S.why||[]).filter(function(w){return w[1]>=T*0.03}).slice(0,3),seen={},L=[];
     why.forEach(function(w){var m=M.filter(function(x){return x[0].test(w[0])})[0],t=m?m[1]:w[0]+" — 법이나 기준으로 설치가 막힌 곳입니다.";var sl=/^경사 15/.test(w[0]);if(seen[t])return;seen[t]=1;L.push(t+" (땅의 "+(sl&&stP?Math.round(stP*100)+"%가 경사 15도 이상":pc(w[1])+")"+"").replace(/\)$/,"")+")")});
